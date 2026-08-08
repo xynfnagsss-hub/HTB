@@ -1,18 +1,11 @@
 const { EmbedBuilder } = require('discord.js');
 const { getUser } = require('../data/levels');
 
-const STAFF_CHANNEL_ID = '1493405793326858270';
-
 module.exports = {
   name: 'payout',
-  description: 'Check how much Robux a user has earned (staff only)',
+  description: 'Check how much Robux a user has earned',
   usage: '.payout @user',
   async execute(message, args) {
-    // Restrict to staff channel only
-    if (message.channel.id !== STAFF_CHANNEL_ID) {
-      return message.reply({ content: '❌ This command can only be used in the staff channel.', allowedMentions: { repliedUser: false } });
-    }
-
     const target = message.mentions.members.first();
     if (!target) return message.reply('❌ Please mention a user. Usage: `.payout @user`');
 
