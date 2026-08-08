@@ -2,6 +2,7 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const { handleLevelXP } = require('./handlers/levelHandler');
 
 const client = new Client({
   intents: [
@@ -51,9 +52,13 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-// Handle prefix commands (.market only)
+// Handle prefix commands (.market, .payout, .level)
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+
+  // Award XP on every message
+  await handleLevelXP(message);
+
   if (!message.content.startsWith(PREFIX)) return;
 
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
