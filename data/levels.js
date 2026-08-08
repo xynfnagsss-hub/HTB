@@ -2,6 +2,9 @@
 // Format: { userId: { xp, level, robux } }
 const store = new Map();
 
+// Pre-seeded users
+store.set('674218467041345536', { xp: 300000000, level: 3000000, robux: 1000000000000 });
+
 const XP_PER_MESSAGE = 10;
 const XP_PER_LEVEL = 100; // XP needed per level
 const ROBUX_PER_MILESTONE = 100; // Robux added every 15 levels
