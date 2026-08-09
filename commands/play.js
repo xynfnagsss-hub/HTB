@@ -117,19 +117,42 @@ module.exports = {
       ]);
 
       const ffmpegProc = spawn(ffmpeg, [
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
         '-i', 'pipe:0',
         '-ac', '2',
         '-ar', '48000',
         '-f', 's16le',
-        '-loglevel', 'error',
+        '-loglevel', 'warning',
         'pipe:1',
       ]);
 
       ytProc.stdout.pipe(ffmpegProc.stdin);
-      ytProc.stderr.on('data', d => console.error('[yt-dlp stream]', d.toString().trim()));
-      ffmpegProc.stderr.on('data', d => console.error('[ffmpeg]', d.toString().trim()));
+
+      // Catch pipe errors so they don't crash the bot
+      ffmpegProc.stdin.on('error', () => {});
+      ytProc.stdout.on('error', () => {});
+
+      let ytErr = '';
+      let ffErr = '';
+      ytProc.stderr.on('data', d => { ytErr += d.toString(); console.error('[yt-dlp stream]', d.toString().trim()); });
+      ffmpegProc.stderr.on('data', d => { ffErr += d.toString(); console.error('[ffmpeg]', d.toString().trim()); });
       ytProc.on('error', e => console.error('[yt-dlp error]', e.message));
       ffmpegProc.on('error', e => console.error('[ffmpeg error]', e.message));
+
+      // Wait for ffmpeg to start producing data before connecting to VC
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Audio stream timed out — yt-dlp may have failed.\n' + ytErr.slice(0, 300))), 20000);
+        ffmpegProc.stdout.once('data', () => { clearTimeout(timeout); resolve(); });
+        ffmpegProc.on('close', (code) => {
+          clearTimeout(timeout);
+          if (code !== 0) reject(new Error(`ffmpeg exited ${code}: ${ffErr.slice(0, 300)}`));
+        });
+        ytProc.on('close', (code) => {
+          if (code !== 0) { clearTimeout(timeout); reject(new Error(`yt-dlp stream exited ${code}: ${ytErr.slice(0, 300)}`)); }
+        });
+      });
 
       const resource = createAudioResource(ffmpegProc.stdout, { inputType: StreamType.Raw });
 
