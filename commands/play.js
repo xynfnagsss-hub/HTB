@@ -92,6 +92,9 @@ module.exports = {
       connection.subscribe(player);
       player.play(resource);
 
+      // Save to music store so .stop can access it
+      message.client.musicStore.set(message.guild.id, { player, connection });
+
       // Now playing embed
       const embed = new EmbedBuilder()
         .setColor(0xff0000)
@@ -107,11 +110,13 @@ module.exports = {
       // Leave when song ends
       player.on(AudioPlayerStatus.Idle, () => {
         connection.destroy();
+        message.client.musicStore.delete(message.guild.id);
       });
 
       player.on('error', (err) => {
         console.error('[PLAY ERROR]', err.message);
         connection.destroy();
+        message.client.musicStore.delete(message.guild.id);
         message.channel.send('❌ An error occurred while playing the song.').catch(() => {});
       });
 

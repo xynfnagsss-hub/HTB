@@ -22,6 +22,9 @@ const PREFIX = '.';
 // Snipe store: channelId -> array of deleted messages (newest first, max 20)
 client.snipeStore = new Map();
 
+// Music store: guildId -> { player, connection }
+client.musicStore = new Map();
+
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
