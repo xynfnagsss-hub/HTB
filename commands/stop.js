@@ -1,21 +1,13 @@
 module.exports = {
   name: 'stop',
-  description: 'Stop the current song and leave the voice channel',
+  description: 'Stop the music and leave the voice channel',
   usage: '.stop',
 
   async execute(message, args, client) {
-    const music = client.musicStore.get(message.guild.id);
+    const queue = client.distube.getQueue(message.guild.id);
+    if (!queue) return message.reply('❌ Nothing is playing right now.');
 
-    if (!music) {
-      return message.reply('❌ Nothing is playing right now.');
-    }
-
-    music.player.stop();
-    music.connection.destroy();
-    try { music.ytProc?.kill(); } catch {}
-    try { music.ffmpeg?.kill(); } catch {}
-    client.musicStore.delete(message.guild.id);
-
+    await client.distube.stop(message.guild.id);
     message.reply('⏹️ Stopped the music and left the voice channel.');
   },
 };
