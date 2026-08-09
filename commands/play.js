@@ -39,7 +39,13 @@ function getBinaries() {
   return { ffmpeg, ytdlp };
 }
 
-const COOKIES = 'HSID=AUolAcz8zuPf-xvQ1; SSID=AH1T_BTRbgNBGEQq-; APISID=NzQ-RC2HeBedA3gY/AHQBw8ewNjHdphGeY; SAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7; SID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuayV25PwsaNSXP3QeXk2SQwACgYKAQ0SARYSFQHGX2Midj2G3YqqA3Lv0ByAvfunuBoVAUF8yKqMuthW8dxc-hwQahpJQEIy0076; __Secure-1PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5Lu7ryTV8p99kOeTdLd-4V8PAACgYKAdISARYSFQHGX2MigK4iuAyBPkh93LFGkCmOIhoVAUF8yKp19iblY_TrjbRPNlrx1s2H0076; __Secure-3PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuGRDT5sNqA9OLyDwNmu9s7gACgYKAS0SARYSFQHGX2MiGQlu24jl_ApvNZAjc8_apBoVAUF8yKpiSINtLpzpyovr_su2c6BF0076; SIDCC=AKEyXzU61hMDWrX8n0hwIRzhqaK6RsrG_wcaTwHQ_e0GvezIYZQhpbXdU37WE8TjoZU0thD3sQ; VISITOR_INFO1_LIVE=wHzK3izM8mc; LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3';
+const COOKIES_FILE = path.join(__dirname, '../data/cookies.txt');
+
+const YTDLP_ARGS = [
+  '--cookies', COOKIES_FILE,
+  '--no-playlist',
+  '--no-warnings',
+];
 
 module.exports = {
   name: 'play',
@@ -81,10 +87,7 @@ module.exports = {
         let out = '', err = '';
         const proc = spawn(ytdlp, [
           '--dump-single-json',
-          '--no-playlist',
-          '--no-warnings',
-          '--add-header', `Cookie:${COOKIES}`,
-          '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+          ...YTDLP_ARGS,
           input,
         ]);
         proc.stdout.on('data', d => out += d);
@@ -109,12 +112,9 @@ module.exports = {
 
       // Step 2: Stream audio via yt-dlp piped through ffmpeg -> Discord
       const ytProc = spawn(ytdlp, [
-        '--no-playlist',
-        '--no-warnings',
-        '-f', 'bestaudio',
-        '--add-header', `Cookie:${COOKIES}`,
-        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        '-f', 'bestaudio/best',
         '-o', '-',
+        ...YTDLP_ARGS,
         videoUrl,
       ]);
 
