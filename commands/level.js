@@ -7,7 +7,7 @@ module.exports = {
   usage: '.level [@user]',
   async execute(message, args) {
     const target = message.mentions.members.first() || message.member;
-    const userData = getUser(target.id);
+    const userData = await getUser(target.id);
 
     const xpForNext = (target.level + 1) * XP_PER_LEVEL;
     const xpNeeded = (userData.level + 1) * XP_PER_LEVEL - userData.xp;

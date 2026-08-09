@@ -9,7 +9,7 @@ module.exports = {
     const target = message.mentions.members.first();
     if (!target) return message.reply('❌ Please mention a user. Usage: `.payout @user`');
 
-    const userData = getUser(target.id);
+    const userData = await getUser(target.id);
 
     const embed = new EmbedBuilder()
       .setColor(0x00cc44)

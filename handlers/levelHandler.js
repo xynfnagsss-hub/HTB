@@ -16,7 +16,7 @@ async function handleLevelXP(message) {
   if (cooldowns.has(userId) && now - cooldowns.get(userId) < COOLDOWN_MS) return;
   cooldowns.set(userId, now);
 
-  const { leveledUp, newLevel, robuxEarned } = addXP(userId, message.author.username);
+  const { leveledUp, newLevel, robuxEarned } = await addXP(userId);
 
   if (!leveledUp) return;
 
