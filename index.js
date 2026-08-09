@@ -1,7 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, Partials, EmbedBuilder } = require('discord.js');
-const { DisTube } = require('distube');
-const { YtDlpPlugin } = require('@distube/yt-dlp');
+const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -22,54 +20,15 @@ const client = new Client({
 
 const PREFIX = '.';
 
-// Snipe store
+// Snipe store: channelId -> [{ content, author, authorAvatar, deletedAt }]
 client.snipeStore = new Map();
 
-// Point ffmpeg-static binary to PATH so DisTube can find it
-const ffmpegPath = require('ffmpeg-static');
-
-// DisTube setup
-client.distube = new DisTube(client, {
-  ffmpeg: { path: ffmpegPath },
-  plugins: [
-    new YtDlpPlugin({
-      update: false,
-      ytdlpArgs: [
-        '--add-header', 'Cookie:HSID=AUolAcz8zuPf-xvQ1; SSID=AH1T_BTRbgNBGEQq-; APISID=NzQ-RC2HeBedA3gY/AHQBw8ewNjHdphGeY; SAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7; SID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuayV25PwsaNSXP3QeXk2SQwACgYKAQ0SARYSFQHGX2Midj2G3YqqA3Lv0ByAvfunuBoVAUF8yKqMuthW8dxc-hwQahpJQEIy0076; __Secure-1PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5Lu7ryTV8p99kOeTdLd-4V8PAACgYKAdISARYSFQHGX2MigK4iuAyBPkh93LFGkCmOIhoVAUF8yKp19iblY_TrjbRPNlrx1s2H0076; SIDCC=AKEyXzU61hMDWrX8n0hwIRzhqaK6RsrG_wcaTwHQ_e0GvezIYZQhpbXdU37WE8TjoZU0thD3sQ; VISITOR_INFO1_LIVE=wHzK3izM8mc',
-        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-      ],
-    }),
-  ],
-});
-
-client.distube
-  .on('playSong', (queue, song) => {
-    const embed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle('🎵 Now Playing')
-      .setDescription(`**[${song.name}](${song.url})**`)
-      .addFields({ name: 'Duration', value: song.formattedDuration, inline: true })
-      .setThumbnail(song.thumbnail || null)
-      .setFooter({ text: `Requested by ${song.member?.user?.tag || 'Unknown'}` })
-      .setTimestamp();
-    queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
-  })
-  .on('addSong', (queue, song) => {
-    queue.textChannel?.send(`✅ Added **${song.name}** to the queue.`).catch(() => {});
-  })
-  .on('finish', queue => {
-    queue.textChannel?.send('✅ Queue finished. Leaving voice channel.').catch(() => {});
-  })
-  .on('error', (channel, err) => {
-    console.error('[DisTube ERROR]', err);
-    channel?.send(`❌ Music error: \`${err.message}\``).catch(() => {});
-  });
+// Music store: guildId -> { player, connection }
+client.musicStore = new Map();
 
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'));
-
-for (const file of commandFiles) {
+for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) {
   const command = require(path.join(commandsPath, file));
   const name = command.data ? command.data.name : command.name;
   client.commands.set(name, command);
@@ -97,26 +56,22 @@ client.once('ready', () => {
 });
 
 client.on('messageDelete', (message) => {
-  if (message.author?.bot) return;
-  if (!message.guild) return;
-  const channelId = message.channel.id;
-  if (!client.snipeStore.has(channelId)) client.snipeStore.set(channelId, []);
-  const snipes = client.snipeStore.get(channelId);
+  if (message.author?.bot || !message.guild) return;
+  const snipes = client.snipeStore.get(message.channel.id) || [];
   snipes.unshift({
     content: message.content || '*[no text content]*',
-    author: message.author?.tag || 'Unknown User',
+    author: message.author?.tag || 'Unknown',
     authorAvatar: message.author?.displayAvatarURL({ dynamic: true }) || null,
     deletedAt: new Date(),
   });
   if (snipes.length > 20) snipes.pop();
+  client.snipeStore.set(message.channel.id, snipes);
 });
 
 client.on('interactionCreate', async (interaction) => {
-  if (interaction.isButton()) {
-    if (interaction.customId.startsWith('snipe_')) {
-      const snipeCommand = client.commands.get('snipe');
-      if (snipeCommand?.handleButton) await snipeCommand.handleButton(interaction, client);
-    }
+  if (interaction.isButton() && interaction.customId.startsWith('snipe_')) {
+    const cmd = client.commands.get('snipe');
+    if (cmd?.handleButton) await cmd.handleButton(interaction, client);
     return;
   }
   if (!interaction.isChatInputCommand()) return;
@@ -125,10 +80,9 @@ client.on('interactionCreate', async (interaction) => {
   try {
     await command.execute(interaction);
   } catch (err) {
-    console.error(`[ERROR] Slash command "${interaction.commandName}" failed:`, err);
-    const msg = { content: '❌ There was an error executing that command.', ephemeral: true };
-    if (interaction.replied || interaction.deferred) await interaction.followUp(msg);
-    else await interaction.reply(msg);
+    console.error(`[ERROR] /${interaction.commandName}:`, err);
+    const msg = { content: '❌ Error executing command.', ephemeral: true };
+    interaction.replied || interaction.deferred ? interaction.followUp(msg) : interaction.reply(msg);
   }
 });
 
@@ -143,7 +97,7 @@ client.on('messageCreate', async (message) => {
   try {
     await command.execute(message, args, client);
   } catch (err) {
-    console.error(`[ERROR] Prefix command "${commandName}" failed:`, err);
-    message.reply({ content: '❌ There was an error executing that command.' });
+    console.error(`[ERROR] .${commandName}:`, err);
+    message.reply('❌ There was an error executing that command.');
   }
 });
