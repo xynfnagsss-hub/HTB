@@ -25,10 +25,21 @@ const PREFIX = '.';
 // Snipe store
 client.snipeStore = new Map();
 
+// Point ffmpeg-static binary to PATH so DisTube can find it
+const ffmpegPath = require('ffmpeg-static');
+
 // DisTube setup
 client.distube = new DisTube(client, {
-  plugins: [new YtDlpPlugin({ update: false })],
-  ffmpeg: { path: require('ffmpeg-static') },
+  ffmpeg: { path: ffmpegPath },
+  plugins: [
+    new YtDlpPlugin({
+      update: false,
+      ytdlpArgs: [
+        '--add-header', 'Cookie:HSID=AUolAcz8zuPf-xvQ1; SSID=AH1T_BTRbgNBGEQq-; APISID=NzQ-RC2HeBedA3gY/AHQBw8ewNjHdphGeY; SAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7; SID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuayV25PwsaNSXP3QeXk2SQwACgYKAQ0SARYSFQHGX2Midj2G3YqqA3Lv0ByAvfunuBoVAUF8yKqMuthW8dxc-hwQahpJQEIy0076; __Secure-1PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5Lu7ryTV8p99kOeTdLd-4V8PAACgYKAdISARYSFQHGX2MigK4iuAyBPkh93LFGkCmOIhoVAUF8yKp19iblY_TrjbRPNlrx1s2H0076; SIDCC=AKEyXzU61hMDWrX8n0hwIRzhqaK6RsrG_wcaTwHQ_e0GvezIYZQhpbXdU37WE8TjoZU0thD3sQ; VISITOR_INFO1_LIVE=wHzK3izM8mc',
+        '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+      ],
+    }),
+  ],
 });
 
 client.distube
