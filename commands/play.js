@@ -65,7 +65,7 @@ module.exports = {
     }
 
     const query = args.join(' ');
-    const searching = await message.reply(`🔍 Searching for **${query}**...`);
+    const searching = await message.channel.send(`🔍 Searching for **${query}**...`);
 
     try {
       let videoUrl, videoTitle, videoDuration, videoThumbnail;
