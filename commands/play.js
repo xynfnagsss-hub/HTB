@@ -9,6 +9,8 @@ const {
 const { EmbedBuilder } = require('discord.js');
 const play = require('play-dl');
 
+const BLACKLISTED_USERS = ['urboyeli'];
+
 function formatDuration(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
   const s = Math.floor(Number(seconds));
@@ -40,6 +42,21 @@ module.exports = {
   usage: '.play <song title or URL>',
 
   async execute(message, args, client) {
+    // Check if user is blacklisted from playing music
+    const authorUsername = (message.author.username || '').toLowerCase();
+    const authorDisplayName = (message.author.displayName || '').toLowerCase();
+    const memberNickname = (message.member?.nickname || '').toLowerCase();
+
+    const isBlacklisted = BLACKLISTED_USERS.some(u =>
+      authorUsername.includes(u) ||
+      authorDisplayName.includes(u) ||
+      memberNickname.includes(u)
+    );
+
+    if (isBlacklisted) {
+      return message.reply('❌ You are blacklisted from using the `.play` command.');
+    }
+
     const voiceChannel = message.member?.voice?.channel;
     if (!voiceChannel) {
       return message.reply('❌ You must join a voice channel first.');
