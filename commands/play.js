@@ -9,47 +9,48 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const yts = require('yt-search');
-const { spawn, execSync } = require('child_process');
+const { spawn, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
 
-const BIN_DIR = path.join(__dirname, '../bin');
-const YT_DLP_PATH = path.join(BIN_DIR, 'yt-dlp');
+const BIN_PATH = path.join(__dirname, '../bin/yt-dlp');
 
-// Download yt-dlp binary for Linux if not present
-async function ensureYtDlp() {
-  if (fs.existsSync(YT_DLP_PATH)) return YT_DLP_PATH;
-
-  // Try system yt-dlp first
-  try {
-    execSync('yt-dlp --version', { timeout: 5000 });
-    return 'yt-dlp';
-  } catch {}
-
-  // Download it
-  if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
-
-  console.log('[play] Downloading yt-dlp binary...');
+async function downloadYtDlp() {
+  const dir = path.dirname(BIN_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  console.log('[yt-dlp] Downloading binary...');
+  const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
   await new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(YT_DLP_PATH);
-    const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
-    https.get(url, (res) => {
-      if (res.statusCode === 302 || res.statusCode === 301) {
-        https.get(res.headers.location, (res2) => {
-          res2.pipe(file);
-          file.on('finish', () => { file.close(); resolve(); });
-        }).on('error', reject);
-      } else {
+    function get(u) {
+      https.get(u, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+        if (res.statusCode === 301 || res.statusCode === 302) return get(res.headers.location);
+        const file = fs.createWriteStream(BIN_PATH);
         res.pipe(file);
         file.on('finish', () => { file.close(); resolve(); });
-      }
-    }).on('error', reject);
+        file.on('error', reject);
+      }).on('error', reject);
+    }
+    get(url);
   });
+  fs.chmodSync(BIN_PATH, '755');
+  console.log('[yt-dlp] Downloaded OK');
+}
 
-  fs.chmodSync(YT_DLP_PATH, '755');
-  console.log('[play] yt-dlp downloaded successfully');
-  return YT_DLP_PATH;
+let ytDlpBin = null;
+async function getYtDlpBin() {
+  if (ytDlpBin) return ytDlpBin;
+  // Try system install first
+  try {
+    execFileSync('yt-dlp', ['--version'], { timeout: 5000 });
+    ytDlpBin = 'yt-dlp';
+    console.log('[yt-dlp] Using system binary');
+    return ytDlpBin;
+  } catch {}
+  // Try cached download
+  if (!fs.existsSync(BIN_PATH)) await downloadYtDlp();
+  ytDlpBin = BIN_PATH;
+  return ytDlpBin;
 }
 
 const COOKIE_STR = [
@@ -57,8 +58,6 @@ const COOKIE_STR = [
   'SSID=AH1T_BTRbgNBGEQq-',
   'APISID=NzQ-RC2HeBedA3gY/AHQBw8ewNjHdphGeY',
   'SAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
-  '__Secure-1PAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
-  '__Secure-3PAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
   'SID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuayV25PwsaNSXP3QeXk2SQwACgYKAQ0SARYSFQHGX2Midj2G3YqqA3Lv0ByAvfunuBoVAUF8yKqMuthW8dxc-hwQahpJQEIy0076',
   '__Secure-1PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5Lu7ryTV8p99kOeTdLd-4V8PAACgYKAdISARYSFQHGX2MigK4iuAyBPkh93LFGkCmOIhoVAUF8yKp19iblY_TrjbRPNlrx1s2H0076',
   '__Secure-3PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuGRDT5sNqA9OLyDwNmu9s7gACgYKAS0SARYSFQHGX2MiGQlu24jl_ApvNZAjc8_apBoVAUF8yKpiSINtLpzpyovr_su2c6BF0076',
@@ -69,23 +68,40 @@ const COOKIE_STR = [
   'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
 ].join('; ');
 
-function getAudioStream(binPath, url) {
-  const proc = spawn(binPath, [
-    '-f', 'bestaudio',
-    '--no-playlist',
-    '--no-warnings',
-    '--add-header', `Cookie:${COOKIE_STR}`,
-    '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-    '-o', '-',
-    url,
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+// Get audio stream — first try yt-dlp, fallback to ffmpeg+direct url
+async function getAudioStream(bin, url) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(bin, [
+      '--no-playlist',
+      '--no-warnings',
+      '-f', 'bestaudio[ext=webm]/bestaudio[ext=mp4]/bestaudio/best',
+      '--add-header', `Cookie:${COOKIE_STR}`,
+      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      '-o', '-',
+      url,
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-  proc.stderr.on('data', d => {
-    const msg = d.toString().trim();
-    if (msg) console.error('[yt-dlp]', msg);
+    let stderr = '';
+    proc.stderr.on('data', d => {
+      const line = d.toString().trim();
+      if (line) { stderr += line + '\n'; console.error('[yt-dlp]', line); }
+    });
+
+    // Wait briefly to make sure process doesn't immediately fail
+    const timeout = setTimeout(() => resolve(proc), 3000);
+
+    proc.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(new Error(`yt-dlp spawn failed: ${err.message}`));
+    });
+
+    proc.on('close', (code) => {
+      clearTimeout(timeout);
+      if (code !== 0 && code !== null) {
+        reject(new Error(`yt-dlp exited ${code}: ${stderr.slice(0, 200)}`));
+      }
+    });
   });
-
-  return proc;
 }
 
 module.exports = {
@@ -99,7 +115,7 @@ module.exports = {
 
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has('Connect') || !permissions.has('Speak')) {
-      return message.reply('❌ I need **Connect** and **Speak** permissions in your voice channel.');
+      return message.reply('❌ I need **Connect** and **Speak** permissions.');
     }
 
     if (!args.length) return message.reply('❌ Usage: `.play <song name or URL>`');
@@ -108,13 +124,12 @@ module.exports = {
     const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
 
     try {
-      // Search or use URL directly
       let videoUrl, videoTitle, videoDuration, videoThumbnail;
       const isUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(query);
 
       if (isUrl) {
         videoUrl = query;
-        videoTitle = 'Unknown Title';
+        videoTitle = query;
         videoDuration = 'Unknown';
         videoThumbnail = null;
       } else {
@@ -127,15 +142,13 @@ module.exports = {
         videoThumbnail = video.thumbnail || null;
       }
 
-      await statusMsg.edit(`⏳ Loading **${videoTitle}**...`);
+      await statusMsg.edit(`⏳ Connecting...`);
 
-      // Ensure yt-dlp is available
-      const binPath = await ensureYtDlp();
+      const bin = await getYtDlpBin();
+      const proc = await getAudioStream(bin, videoUrl);
 
-      const proc = getAudioStream(binPath, videoUrl);
       const resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary });
 
-      // Join VC
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: message.guild.id,
@@ -163,14 +176,14 @@ module.exports = {
 
       player.on(AudioPlayerStatus.Idle, () => {
         connection.destroy();
-        proc.kill();
+        try { proc.kill(); } catch {}
         message.client.musicStore.delete(message.guild.id);
       });
 
       player.on('error', (err) => {
         console.error('[PLAYER ERROR]', err.message);
         connection.destroy();
-        proc.kill();
+        try { proc.kill(); } catch {}
         message.client.musicStore.delete(message.guild.id);
         message.channel.send('❌ Playback error.').catch(() => {});
       });
@@ -183,7 +196,7 @@ module.exports = {
           ]);
         } catch {
           connection.destroy();
-          proc.kill();
+          try { proc.kill(); } catch {}
           message.client.musicStore.delete(message.guild.id);
         }
       });
