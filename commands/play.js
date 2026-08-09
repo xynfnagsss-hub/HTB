@@ -11,6 +11,7 @@ const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const play = require('play-dl');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
 
 function getFfmpeg() {
@@ -48,9 +49,24 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
+let scClientIdInit = false;
+async function initSoundCloud() {
+  if (!scClientIdInit) {
+    try {
+      const cid = await play.getFreeClientID();
+      if (cid) {
+        await play.setToken({ soundcloud: { client_id: cid } });
+        scClientIdInit = true;
+      }
+    } catch (e) {
+      console.warn('[SoundCloud Init]', e.message);
+    }
+  }
+}
+
 module.exports = {
   name: 'play',
-  description: 'Play music in your voice channel from YouTube or search queries',
+  description: 'Play music in your voice channel from SoundCloud, YouTube, or Spotify',
   usage: '.play <song title or URL>',
 
   async execute(message, args, client) {
@@ -74,58 +90,111 @@ module.exports = {
     const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
 
     const ffmpegPath = getFfmpeg();
-    let ytdlpPath;
+    await initSoundCloud();
+
+    let directAudioUrl;
+    let title = query;
+    let trackUrl = query;
+    let duration = '0:00';
+    let thumbnail = null;
+
     try {
-      ytdlpPath = await ensureYtDlp();
-    } catch (e) {
-      return statusMsg.edit(`❌ Error loading yt-dlp binary: \`${e.message}\``);
-    }
-
-    const playerClientArgs = ['--extractor-args', 'youtube:player_client=tv_embedded,android_vr,android'];
-
-    try {
-      let videoUrl;
-      let directAudioUrl;
-      let title = 'Unknown Track';
-      let duration = '0:00';
-      let thumbnail = null;
-
-      // Direct URL vs search query target
-      const targetQuery = isUrl ? query : `ytsearch1:${query}`;
-
-      const info = await runYtDlpJson(ytdlpPath, [
-        '--dump-single-json',
-        '--no-warnings',
-        ...playerClientArgs,
-        '-f', 'ba/ba*/b/best',
-        targetQuery,
-      ]);
-
-      const entry = (info.entries && info.entries[0]) ? info.entries[0] : info;
-      if (!entry) {
-        return statusMsg.edit('❌ No results found for that track.');
+      // 1. If it's a Spotify link, extract track info and search
+      if (isUrl && play.is_expired()) {
+        try { await play.refreshToken(); } catch {}
       }
 
-      directAudioUrl = entry.url;
-      videoUrl = entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query);
-      title = entry.title || query;
-      duration = formatDuration(entry.duration || 0);
-      thumbnail = (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null;
+      // Check if it's a SoundCloud URL or general search query
+      let resolved = false;
+
+      // Strategy A: If query is NOT a direct YouTube URL, search SoundCloud first (bypasses datacenter YouTube IP blocks 100%)
+      if (!isUrl || query.includes('soundcloud.com')) {
+        try {
+          const scResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
+          if (scResults && scResults.length > 0) {
+            const track = scResults[0];
+            const scStream = await play.stream(track.url);
+            directAudioUrl = scStream.url;
+            title = track.name || query;
+            trackUrl = track.url;
+            duration = formatDuration(track.durationInSec || (track.durationInMs ? track.durationInMs / 1000 : 0));
+            thumbnail = track.thumbnail || null;
+            resolved = true;
+          }
+        } catch (scErr) {
+          console.warn('[SoundCloud search error]', scErr.message);
+        }
+      }
+
+      // Strategy B: If not resolved yet (e.g. YouTube URL or direct link), try yt-dlp
+      if (!resolved) {
+        let ytdlpPath;
+        try {
+          ytdlpPath = await ensureYtDlp();
+        } catch (e) {
+          return statusMsg.edit(`❌ Error loading yt-dlp: \`${e.message}\``);
+        }
+
+        const playerClientArgs = ['--extractor-args', 'youtube:player_client=tv_embedded,android_vr,android'];
+
+        try {
+          const targetQuery = isUrl ? query : `scsearch1:${query}`;
+          const info = await runYtDlpJson(ytdlpPath, [
+            '--dump-single-json',
+            '--no-warnings',
+            ...playerClientArgs,
+            '-f', 'ba/ba*/b/best',
+            targetQuery,
+          ]);
+
+          const entry = (info.entries && info.entries[0]) ? info.entries[0] : info;
+          if (entry && entry.url) {
+            directAudioUrl = entry.url;
+            videoUrl = entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query);
+            title = entry.title || query;
+            trackUrl = videoUrl;
+            duration = formatDuration(entry.duration || 0);
+            thumbnail = (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null;
+            resolved = true;
+          }
+        } catch (ytErr) {
+          // If YouTube direct link failed with bot detection, fallback to searching the video title on SoundCloud
+          if (isUrl) {
+            try {
+              const scResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
+              if (scResults && scResults.length > 0) {
+                const track = scResults[0];
+                const scStream = await play.stream(track.url);
+                directAudioUrl = scStream.url;
+                title = track.name || query;
+                trackUrl = track.url;
+                duration = formatDuration(track.durationInSec || (track.durationInMs ? track.durationInMs / 1000 : 0));
+                thumbnail = track.thumbnail || null;
+                resolved = true;
+              }
+            } catch {}
+          }
+
+          if (!resolved) {
+            return statusMsg.edit(`❌ Could not stream this track: \`${ytErr.message || 'Stream extraction failed'}\``);
+          }
+        }
+      }
 
       if (!directAudioUrl) {
-        return statusMsg.edit('❌ Unable to extract direct audio stream for this track.');
+        return statusMsg.edit('❌ No playable audio stream could be found.');
       }
 
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
-      // Clean up previous playback session in this guild
+      // Clean up previous playback session on this guild
       const previousSession = client.musicStore.get(message.guild.id);
       if (previousSession) {
         try { previousSession.player?.stop(); } catch {}
         try { previousSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Stream directly from HTTPS audio URL using ffmpeg with auto-reconnect
+      // Stream via ffmpeg with auto-reconnection
       const ffmpegProc = spawn(ffmpegPath, [
         '-reconnect', '1',
         '-reconnect_streamed', '1',
@@ -184,7 +253,7 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(0x5765f2)
         .setTitle('🎵 Now Playing')
-        .setDescription(`**[${title}](${videoUrl})**`)
+        .setDescription(`**[${title}](${trackUrl})**`)
         .addFields({ name: 'Duration', value: duration, inline: true })
         .setThumbnail(thumbnail)
         .setFooter({ text: `Requested by ${message.author.tag}` })
