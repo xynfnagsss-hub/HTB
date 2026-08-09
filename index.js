@@ -28,6 +28,7 @@ client.snipeStore = new Map();
 // DisTube setup
 client.distube = new DisTube(client, {
   plugins: [new YtDlpPlugin({ update: false })],
+  ffmpeg: { path: require('ffmpeg-static') },
 });
 
 client.distube
