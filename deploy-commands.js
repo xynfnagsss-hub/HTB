@@ -15,17 +15,31 @@ for (const file of commandFiles) {
   }
 }
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-
-(async () => {
-  try {
-    console.log(`Registering ${commands.length} slash command(s)...`);
-    await rest.put(
-      Routes.applicationCommands(process.env.CLIENT_ID),
-      { body: commands },
-    );
-    console.log('✅ Slash commands registered globally.');
-  } catch (err) {
-    console.error(err);
+async function deploy(retries = 3) {
+  if (!process.env.TOKEN || !process.env.CLIENT_ID) {
+    console.error('❌ TOKEN or CLIENT_ID is missing from .env');
+    return;
   }
-})();
+
+  const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Registering ${commands.length} slash command(s) (attempt ${attempt}/${retries})...`);
+      await rest.put(
+        Routes.applicationCommands(process.env.CLIENT_ID),
+        { body: commands },
+      );
+      console.log('✅ Slash commands registered globally.');
+      return;
+    } catch (err) {
+      console.error(`Attempt ${attempt} failed:`, err.message || err);
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+}
+
+deploy().catch(err => {
+  console.error('❌ Failed to deploy slash commands:', err);
+});

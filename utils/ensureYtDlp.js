@@ -1,11 +1,13 @@
-const { execFileSync, execSync } = require('child_process');
+const { execSync } = require('child_process');
 const { createWriteStream } = require('fs');
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
+const isWin = process.platform === 'win32';
 const BIN_DIR = path.join(__dirname, '../bin');
-const BIN_PATH = path.join(BIN_DIR, 'yt-dlp');
+const BIN_NAME = isWin ? 'yt-dlp.exe' : 'yt-dlp';
+const BIN_PATH = path.join(BIN_DIR, BIN_NAME);
 
 function download(url, dest) {
   return new Promise((resolve, reject) => {
@@ -24,26 +26,31 @@ function download(url, dest) {
 }
 
 async function ensureYtDlp() {
-  // 1. Already downloaded
+  // 1. System install check
+  try {
+    execSync('yt-dlp --version', { timeout: 3000, stdio: 'pipe' });
+    console.log('[yt-dlp] Using system binary');
+    return 'yt-dlp';
+  } catch {}
+
+  // 2. Already downloaded check
   if (fs.existsSync(BIN_PATH)) {
     console.log('[yt-dlp] Using cached binary at', BIN_PATH);
     return BIN_PATH;
   }
 
-  // 2. System install
-  try {
-    execSync('yt-dlp --version', { timeout: 5000, stdio: 'pipe' });
-    console.log('[yt-dlp] Using system binary');
-    return 'yt-dlp';
-  } catch {}
-
-  // 3. Download from GitHub
-  console.log('[yt-dlp] Downloading binary from GitHub...');
+  // 3. Download appropriate platform binary from GitHub
+  console.log(`[yt-dlp] Downloading ${BIN_NAME} from GitHub...`);
   if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
 
-  const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+  const url = isWin
+    ? 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe'
+    : 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+
   await download(url, BIN_PATH);
-  fs.chmodSync(BIN_PATH, '755');
+  if (!isWin) {
+    fs.chmodSync(BIN_PATH, '755');
+  }
   console.log('[yt-dlp] Downloaded to', BIN_PATH);
   return BIN_PATH;
 }
