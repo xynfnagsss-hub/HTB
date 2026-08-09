@@ -7,66 +7,42 @@ function getRandom(arr) {
 }
 
 async function callAI(systemPrompt, userPrompt) {
-  const xaiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY || (process.env.AI_API_KEY?.startsWith('xai-') ? process.env.AI_API_KEY : null);
-  const geminiKey = process.env.GEMINI_API_KEY || (process.env.AI_API_KEY?.startsWith('AIza') ? process.env.AI_API_KEY : null);
-  const groqKey = process.env.GROQ_API_KEY || (process.env.AI_API_KEY?.startsWith('gsk_') ? process.env.AI_API_KEY : null);
-  const openaiKey = process.env.OPENAI_API_KEY || (process.env.AI_API_KEY?.startsWith('sk-') ? process.env.AI_API_KEY : null);
+  const xaiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY;
+  const geminiKey = process.env.GEMINI_API_KEY || process.env.AI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
-  // 1. xAI / Grok
-  if (xaiKey) {
-    try {
-      const res = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${xaiKey}`
-        },
-        body: JSON.stringify({
-          model: 'grok-beta',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          max_tokens: 250,
-          temperature: 0.9
-        }),
-        signal: AbortSignal.timeout(8000)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content?.trim();
-        if (text) return text;
-      }
-    } catch (e) {
-      console.warn('[xAI Grok error]', e.message);
-    }
-  }
-
-  // 2. Google Gemini
+  // 1. Google Gemini (tries fast models)
   if (geminiKey) {
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: { maxOutputTokens: 250, temperature: 0.9 }
-        }),
-        signal: AbortSignal.timeout(8000)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-        if (text) return text;
+    const models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+    for (const model of models) {
+      try {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userPrompt }] }],
+            generationConfig: { maxOutputTokens: 250, temperature: 0.9 }
+          }),
+          signal: AbortSignal.timeout(8000)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+          if (text) return text;
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`[Gemini ${model}]`, res.status, errData.error?.message || errData);
+        }
+      } catch (e) {
+        console.warn(`[Gemini ${model} error]`, e.message);
       }
-    } catch (e) {
-      console.warn('[Gemini AI error]', e.message);
     }
   }
 
-  // 3. Groq (Llama 3.3 / 3.1)
+  // 2. Groq (Llama 3.3)
   if (groqKey) {
     try {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -96,8 +72,38 @@ async function callAI(systemPrompt, userPrompt) {
     }
   }
 
+  // 3. xAI / Grok
+  if (xaiKey) {
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${xaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'grok-beta',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: 250,
+          temperature: 0.9
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      }
+    } catch (e) {
+      console.warn('[xAI Grok error]', e.message);
+    }
+  }
+
   // 4. OpenAI / OpenRouter
-  const standardKey = openaiKey || openRouterKey || (process.env.AI_API_KEY && !geminiKey && !groqKey && !xaiKey ? process.env.AI_API_KEY : null);
+  const standardKey = openaiKey || openRouterKey;
   const endpoint = openRouterKey
     ? 'https://openrouter.ai/api/v1/chat/completions'
     : (process.env.AI_BASE_URL || 'https://api.openai.com/v1/chat/completions');
@@ -395,7 +401,7 @@ async function handleBotMention(message, client) {
   // Send typing indicator while processing
   message.channel.sendTyping().catch(() => {});
 
-  // Build AI System Prompt for Grok / Gemini / OpenAI
+  // Build AI System Prompt for Gemini / Grok / OpenAI
   const displayName = isBitchNamed ? 'bitch' : message.author.username;
   const systemPrompt = `You are the official HTB (Hit The Block) Discord bot.
 Personality & Behavior Rules:
