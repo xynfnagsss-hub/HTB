@@ -8,12 +8,12 @@ const {
   StreamType,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const { YtDlp } = require('@distube/yt-dlp');
+const YtDlp = require('@distube/yt-dlp');
 const yts = require('yt-search');
 const { spawn } = require('child_process');
 const path = require('path');
 
-const ytDlp = new YtDlp();
+const ytDlp = YtDlp();
 
 const COOKIE_STR = [
   'HSID=AUolAcz8zuPf-xvQ1',
