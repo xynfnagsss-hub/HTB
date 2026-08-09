@@ -111,7 +111,7 @@ module.exports = {
       const ytProc = spawn(ytdlp, [
         '--no-warnings',
         '--cookies', COOKIES_FILE,
-        '-f', 'bestaudio/best',
+        '--format-sort', 'acodec:opus,acodec:vorbis,acodec:mp4a',
         '-o', '-',
         videoUrl,
       ]);
