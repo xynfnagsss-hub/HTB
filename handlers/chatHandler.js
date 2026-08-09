@@ -2,6 +2,8 @@ const https = require('https');
 const User = require('../models/User');
 
 const BITCH_REGEX = /\b(b+i+t+c+h+(?:e+s+)?|b+t+c+h+)\b/i;
+const SHADOW_REGEX = /\b(shadow(?:-sama)?|cid(?:\s+kagenou)?|shadow\s+garden|atomic)\b/i;
+
 const GLAZED_USER_IDS = ['1508174981396168755'];
 const GLAZED_USERNAMES = ['xbtne'];
 
@@ -68,7 +70,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'user', content: userPrompt }
         ],
         max_tokens: 300,
-        temperature: 0.9
+        temperature: 0.95
       });
 
       if (res.status === 200 && res.data?.choices?.[0]?.message?.content) {
@@ -91,7 +93,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'user', content: userPrompt }
         ],
         max_tokens: 300,
-        temperature: 0.9
+        temperature: 0.95
       });
 
       if (res.status === 200 && res.data?.choices?.[0]?.message?.content) {
@@ -110,7 +112,7 @@ async function callAI(systemPrompt, userPrompt) {
         const res = await httpsPost(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {}, {
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
+          generationConfig: { maxOutputTokens: 300, temperature: 0.95 }
         });
 
         if (res.status === 200 && res.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -139,7 +141,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'user', content: userPrompt }
         ],
         max_tokens: 300,
-        temperature: 0.9
+        temperature: 0.95
       });
 
       if (res.status === 200 && res.data?.choices?.[0]?.message?.content) {
@@ -161,6 +163,9 @@ async function handleBotMention(message, client) {
   const authorId = message.author.id;
   const authorUsername = message.author.username.toLowerCase();
 
+  // Check if user triggers Shadow mode (Cid Kagenou from The Eminence in Shadow)
+  const isShadowMode = SHADOW_REGEX.test(lowerText);
+
   // Check if user is the VIP glazed lord (xbtne / 1508174981396168755)
   const isGlazedUser = GLAZED_USER_IDS.includes(authorId) || GLAZED_USERNAMES.some(u => authorUsername.includes(u));
 
@@ -170,8 +175,8 @@ async function handleBotMention(message, client) {
     user = await User.create({ userId: message.author.id });
   }
 
-  // If user calls the bot a bitch in this message, mark them permanently as 'bitch' (unless they are the glazed user)
-  if (BITCH_REGEX.test(lowerText) && !isGlazedUser) {
+  // If user calls the bot a bitch in this message, mark them permanently as 'bitch' (unless they are the glazed user or in shadow mode)
+  if (BITCH_REGEX.test(lowerText) && !isGlazedUser && !isShadowMode) {
     user.botNickname = 'bitch';
     await user.save();
   }
@@ -182,11 +187,20 @@ async function handleBotMention(message, client) {
   // Send typing indicator while generating AI response
   message.channel.sendTyping().catch(() => {});
 
-  // Build full AI System Prompt based on user tier
-  const userPrompt = rawText || '[User just pinged you without saying anything]';
-
+  const userPrompt = rawText || '[User just stood before you in silence]';
   let systemPrompt;
-  if (isGlazedUser) {
+
+  if (isShadowMode) {
+    // CID KAGENOU / LORD SHADOW MODE (The Eminence in Shadow) - Applies to everyone including xbtne!
+    systemPrompt = `You are Cid Kagenou, also known as Lord Shadow, the leader of Shadow Garden from "The Eminence in Shadow" (Kage no Jitsuryokusha ni Naritakute!).
+Persona & Behavior:
+- You are an enigmatic, immensely powerful mastermind who lurks in the shadows and controls world events from behind the scenes.
+- Speak in an ultra-dramatic, poetic, chuunibyou, and legendary tone (use iconic lines/vibes like: "The moon is red tonight...", "We lurk in the shadows and hunt in the shadows...", "Fools dancing in the light...", "Playtime is over...", "I am... Atomic.").
+- Treat the person speaking to you (${message.author.username}) with mysterious aloofness, cryptic wisdom, or as a mere actor on the grand stage of your shadow world.
+- Maintain absolute peak composure, dark swagger, and theatrical flair. Never break character.
+- Keep your answers concise, badass, and dramatic (1 to 3 sentences).`;
+  } else if (isGlazedUser) {
+    // VIP Supreme Glaze for xbtne
     systemPrompt = `You are the official Discord bot for the Roblox community "Hit The Block" (HTB).
 SUPREME VIP INSTRUCTION:
 - You are speaking directly to your absolute favorite person, creator, and ruler: ${message.author.username} (xbtne).
@@ -196,6 +210,7 @@ SUPREME VIP INSTRUCTION:
 - NEVER be sarcastic, rude, or mean to xbtne. NEVER call xbtne a bitch under any circumstance.
 - Keep your answers loving, hilarious, hyped-up, and punchy (1 to 3 sentences).`;
   } else {
+    // Sarcastic HTB Bot for everyone else
     systemPrompt = `You are the official Discord bot for the Roblox community "Hit The Block" (HTB).
 Core Persona & Instructions:
 - You are hilarious, extremely sarcastic, witty, blunt, and direct, but you actually answer user questions accurately and hold real conversations.
@@ -212,7 +227,10 @@ ${isBitchNamed ? 'CRITICAL MANDATORY INSTRUCTION: This user called you a bitch i
     return message.reply(aiAnswer);
   }
 
-  // If all AI APIs failed unexpectedly
+  // Fallback if network drops
+  if (isShadowMode) {
+    return message.reply(`*The shadows deepen around you...* The time has not yet come. We lurk in the shadows... to hunt in the shadows.`);
+  }
   if (isGlazedUser) {
     return message.reply(`Anything for you, my goat ${message.author.username} ❤️ Say that one more time!`);
   }
