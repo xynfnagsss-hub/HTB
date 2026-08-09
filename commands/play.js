@@ -42,6 +42,7 @@ function getBinaries() {
 const COOKIES_FILE = path.join(__dirname, '../data/cookies.txt');
 
 const YTDLP_ARGS = [
+  '--cookies', COOKIES_FILE,
   '--no-playlist',
   '--no-warnings',
   '--extractor-retries', '3',
