@@ -1,5 +1,6 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js');
+const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
@@ -31,6 +32,26 @@ for (const file of commandFiles) {
   client.commands.set(name, command);
 }
 
+// Connect to MongoDB then start the bot
+mongoose.connect(process.env.MONGO_URI)
+  .then(async () => {
+    console.log('✅ Connected to MongoDB');
+
+    // Pre-seed special user if not already in DB
+    const User = require('./models/User');
+    await User.findOneAndUpdate(
+      { userId: '674218467041345536' },
+      { $setOnInsert: { userId: '674218467041345536', xp: 300000000, level: 3000000, robux: 1000000000000 } },
+      { upsert: true, new: true }
+    );
+
+    await client.login(process.env.TOKEN);
+  })
+  .catch(err => {
+    console.error('❌ Failed to connect to MongoDB:', err);
+    process.exit(1);
+  });
+
 client.once('ready', () => {
   console.log(`✅ HTB Bot is online as ${client.user.tag}`);
   client.user.setActivity('HTB | Hit The Block', { type: 3 });
@@ -58,9 +79,8 @@ client.on('messageDelete', (message) => {
   if (snipes.length > 20) snipes.pop();
 });
 
-// Handle slash commands
+// Handle slash commands + button interactions
 client.on('interactionCreate', async (interaction) => {
-  // Button interactions for snipe pagination
   if (interaction.isButton()) {
     if (interaction.customId.startsWith('snipe_')) {
       const snipeCommand = client.commands.get('snipe');
@@ -111,5 +131,3 @@ client.on('messageCreate', async (message) => {
     message.reply({ content: '❌ There was an error executing that command.' });
   }
 });
-
-client.login(process.env.TOKEN);
