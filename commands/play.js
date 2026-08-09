@@ -110,12 +110,27 @@ module.exports = {
       if (!videoUrl) return statusMsg.edit('❌ No results found.');
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
+      // First log available formats to Railway logs for debugging
+      const listProc = spawn(ytdlp, [
+        '--list-formats',
+        '--no-warnings',
+        '--extractor-args', 'youtube:player_client=web_creator,default',
+        '--cookies', COOKIES_FILE,
+        videoUrl,
+      ]);
+      let formatList = '';
+      listProc.stdout.on('data', d => { formatList += d.toString(); });
+      listProc.stderr.on('data', d => { formatList += d.toString(); });
+      await new Promise(r => listProc.on('close', r));
+      console.log('[yt-dlp formats]\n', formatList);
+
       // Stream via yt-dlp → ffmpeg → Discord
-      // Use web_creator client + PO token plugin to bypass bot detection on server IPs
+      // Use -f 'ba' (best audio) which works across all clients
       const ytProc = spawn(ytdlp, [
         '--no-warnings',
-        '--extractor-args', 'youtube:player_client=web_creator',
+        '--extractor-args', 'youtube:player_client=web_creator,default',
         '--cookies', COOKIES_FILE,
+        '-f', 'ba',
         '-o', '-',
         videoUrl,
       ]);
