@@ -5,39 +5,9 @@ const {
   AudioPlayerStatus,
   VoiceConnectionStatus,
   entersState,
-  StreamType,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
 const play = require('play-dl');
-const { ensureYtDlp } = require('../utils/ensureYtDlp');
-
-function getFfmpeg() {
-  const base = path.join(__dirname, '../node_modules/ffmpeg-static');
-  const win = path.join(base, 'ffmpeg.exe');
-  const linux = path.join(base, 'ffmpeg');
-  return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
-}
-
-function runYtDlpJson(ytdlp, args) {
-  return new Promise((resolve, reject) => {
-    let out = '', err = '';
-    const proc = spawn(ytdlp, args);
-    proc.stdout.on('data', d => { out += d; });
-    proc.stderr.on('data', d => { err += d.toString(); });
-    proc.on('close', code => {
-      if (code !== 0) return reject(new Error(`Extraction failed (${code}): ${err.slice(0, 300)}`));
-      try {
-        resolve(JSON.parse(out));
-      } catch {
-        reject(new Error('Failed to parse video metadata JSON'));
-      }
-    });
-    proc.on('error', reject);
-  });
-}
 
 function formatDuration(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -49,17 +19,17 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-let scClientIdInit = false;
-async function initSoundCloud() {
-  if (!scClientIdInit) {
+let scReady = false;
+async function ensureSoundCloud() {
+  if (!scReady) {
     try {
       const cid = await play.getFreeClientID();
       if (cid) {
         await play.setToken({ soundcloud: { client_id: cid } });
-        scClientIdInit = true;
+        scReady = true;
       }
     } catch (e) {
-      console.warn('[SoundCloud Init]', e.message);
+      console.warn('[SoundCloud ClientID]', e.message);
     }
   }
 }
@@ -88,148 +58,81 @@ module.exports = {
     const isUrl = /^https?:\/\//i.test(query);
 
     const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
-
-    const ffmpegPath = getFfmpeg();
-    await initSoundCloud();
-
-    let directAudioUrl;
-    let title = query;
-    let trackUrl = query;
-    let duration = '0:00';
-    let thumbnail = null;
+    await ensureSoundCloud();
 
     try {
-      // 1. If it's a Spotify link, extract track info and search
-      if (isUrl && play.is_expired()) {
-        try { await play.refreshToken(); } catch {}
-      }
+      let streamInfo;
+      let title = query;
+      let trackUrl = query;
+      let duration = '0:00';
+      let thumbnail = null;
 
-      // Check if it's a SoundCloud URL or general search query
-      let resolved = false;
-
-      // Strategy A: If query is NOT a direct YouTube URL, search SoundCloud first (bypasses datacenter YouTube IP blocks 100%)
-      if (!isUrl || query.includes('soundcloud.com')) {
-        try {
-          const scResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
-          if (scResults && scResults.length > 0) {
-            const track = scResults[0];
-            const scStream = await play.stream(track.url);
-            directAudioUrl = scStream.url;
-            title = track.name || query;
-            trackUrl = track.url;
-            duration = formatDuration(track.durationInSec || (track.durationInMs ? track.durationInMs / 1000 : 0));
-            thumbnail = track.thumbnail || null;
-            resolved = true;
-          }
-        } catch (scErr) {
-          console.warn('[SoundCloud search error]', scErr.message);
-        }
-      }
-
-      // Strategy B: If not resolved yet (e.g. YouTube URL or direct link), try yt-dlp
-      if (!resolved) {
-        let ytdlpPath;
-        try {
-          ytdlpPath = await ensureYtDlp();
-        } catch (e) {
-          return statusMsg.edit(`❌ Error loading yt-dlp: \`${e.message}\``);
-        }
-
-        const playerClientArgs = ['--extractor-args', 'youtube:player_client=tv_embedded,android_vr,android'];
-
-        try {
-          const targetQuery = isUrl ? query : `scsearch1:${query}`;
-          const info = await runYtDlpJson(ytdlpPath, [
-            '--dump-single-json',
-            '--no-warnings',
-            ...playerClientArgs,
-            '-f', 'ba/ba*/b/best',
-            targetQuery,
-          ]);
-
-          const entry = (info.entries && info.entries[0]) ? info.entries[0] : info;
-          if (entry && entry.url) {
-            directAudioUrl = entry.url;
-            videoUrl = entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query);
-            title = entry.title || query;
-            trackUrl = videoUrl;
-            duration = formatDuration(entry.duration || 0);
-            thumbnail = (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null;
-            resolved = true;
-          }
-        } catch (ytErr) {
-          // If YouTube direct link failed with bot detection, fallback to searching the video title on SoundCloud
-          if (isUrl) {
-            try {
-              const scResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
-              if (scResults && scResults.length > 0) {
-                const track = scResults[0];
-                const scStream = await play.stream(track.url);
-                directAudioUrl = scStream.url;
-                title = track.name || query;
-                trackUrl = track.url;
-                duration = formatDuration(track.durationInSec || (track.durationInMs ? track.durationInMs / 1000 : 0));
-                thumbnail = track.thumbnail || null;
-                resolved = true;
-              }
-            } catch {}
-          }
-
-          if (!resolved) {
-            return statusMsg.edit(`❌ Could not stream this track: \`${ytErr.message || 'Stream extraction failed'}\``);
+      if (isUrl) {
+        if (query.includes('spotify.com')) {
+          const sp = await play.spotify(query);
+          const scRes = await play.search(`${sp.name} ${sp.artists?.[0]?.name || ''}`, { source: { soundcloud: 'tracks' }, limit: 1 });
+          if (!scRes || !scRes.length) throw new Error('Could not find a playable stream for this Spotify track.');
+          streamInfo = await play.stream(scRes[0].url);
+          title = `${sp.name} - ${sp.artists?.map(a => a.name).join(', ')}`;
+          trackUrl = query;
+          duration = formatDuration(sp.durationInSec);
+          thumbnail = sp.thumbnail?.url || null;
+        } else if (query.includes('soundcloud.com')) {
+          const sc = await play.soundcloud(query);
+          streamInfo = await play.stream(query);
+          title = sc.name || query;
+          trackUrl = query;
+          duration = formatDuration(sc.durationInSec);
+          thumbnail = sc.thumbnail || null;
+        } else {
+          // YouTube / generic URL
+          try {
+            streamInfo = await play.stream(query);
+            const ytInfo = await play.video_basic_info(query).catch(() => null);
+            if (ytInfo?.video_details) {
+              title = ytInfo.video_details.title;
+              duration = formatDuration(ytInfo.video_details.durationInSec);
+              thumbnail = ytInfo.video_details.thumbnails?.[0]?.url || null;
+            }
+          } catch (ytErr) {
+            // YouTube blocked on datacenter IP -> search SoundCloud
+            const scRes = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
+            if (!scRes || !scRes.length) throw new Error('Could not stream this track.');
+            streamInfo = await play.stream(scRes[0].url);
+            title = scRes[0].name;
+            trackUrl = scRes[0].url;
+            duration = formatDuration(scRes[0].durationInSec);
+            thumbnail = scRes[0].thumbnail || null;
           }
         }
+      } else {
+        // Query search via SoundCloud (instant & immune to YouTube datacenter IP blocks)
+        const scRes = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
+        if (!scRes || !scRes.length) {
+          return statusMsg.edit('❌ No results found for that track.');
+        }
+
+        streamInfo = await play.stream(scRes[0].url);
+        title = scRes[0].name || query;
+        trackUrl = scRes[0].url;
+        duration = formatDuration(scRes[0].durationInSec);
+        thumbnail = scRes[0].thumbnail || null;
       }
 
-      if (!directAudioUrl) {
-        return statusMsg.edit('❌ No playable audio stream could be found.');
+      if (!streamInfo) {
+        return statusMsg.edit('❌ Failed to extract audio stream for this track.');
       }
 
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
-      // Clean up previous playback session on this guild
+      // Clean up previous playback session in this guild
       const previousSession = client.musicStore.get(message.guild.id);
       if (previousSession) {
         try { previousSession.player?.stop(); } catch {}
-        try { previousSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Stream via ffmpeg with auto-reconnection
-      const ffmpegProc = spawn(ffmpegPath, [
-        '-reconnect', '1',
-        '-reconnect_streamed', '1',
-        '-reconnect_delay_max', '5',
-        '-i', directAudioUrl,
-        '-ac', '2',
-        '-ar', '48000',
-        '-f', 's16le',
-        '-loglevel', 'warning',
-        'pipe:1',
-      ]);
-
-      let ffErr = '';
-      ffmpegProc.stderr.on('data', d => { ffErr += d.toString(); });
-      ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
-
-      // Wait for ffmpeg to start outputting PCM audio data
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Audio stream timed out.\n${ffErr.slice(0, 200)}`));
-        }, 20000);
-
-        ffmpegProc.stdout.once('data', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-
-        ffmpegProc.on('close', code => {
-          clearTimeout(timeout);
-          if (code !== 0) reject(new Error(`ffmpeg exited with code ${code}: ${ffErr.slice(0, 200)}`));
-        });
-      });
-
-      const resource = createAudioResource(ffmpegProc.stdout, {
-        inputType: StreamType.Raw,
+      const resource = createAudioResource(streamInfo.stream, {
+        inputType: streamInfo.type,
       });
 
       const connection = joinVoiceChannel({
@@ -247,7 +150,6 @@ module.exports = {
       client.musicStore.set(message.guild.id, {
         player,
         connection,
-        ffmpegProc,
       });
 
       const embed = new EmbedBuilder()
@@ -263,7 +165,6 @@ module.exports = {
 
       const cleanup = () => {
         try { connection.destroy(); } catch {}
-        try { ffmpegProc.kill(); } catch {}
         client.musicStore.delete(message.guild.id);
       };
 
@@ -271,7 +172,7 @@ module.exports = {
       player.on('error', err => {
         console.error('[player error]', err.message);
         cleanup();
-        message.channel.send('❌ Playback encountered an unexpected error.').catch(() => {});
+        message.channel.send('❌ Playback encountered an error.').catch(() => {});
       });
 
       connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -290,5 +191,4 @@ module.exports = {
       statusMsg.edit(`❌ Playback failed: \`${err.message || 'Unknown error'}\``).catch(() => {});
     }
   },
-  getFfmpeg,
 };
