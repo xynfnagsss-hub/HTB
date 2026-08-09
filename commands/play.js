@@ -42,9 +42,9 @@ function getBinaries() {
 const COOKIES_FILE = path.join(__dirname, '../data/cookies.txt');
 
 const YTDLP_ARGS = [
-  '--cookies', COOKIES_FILE,
   '--no-playlist',
   '--no-warnings',
+  '--extractor-retries', '3',
 ];
 
 module.exports = {
@@ -112,7 +112,6 @@ module.exports = {
 
       // Step 2: Stream audio via yt-dlp piped through ffmpeg -> Discord
       const ytProc = spawn(ytdlp, [
-        '-f', 'bestaudio/best',
         '-o', '-',
         ...YTDLP_ARGS,
         videoUrl,
