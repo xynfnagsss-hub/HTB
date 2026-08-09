@@ -12,23 +12,20 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-// Resolve binaries — use bundled ones so Railway always has them
+// Resolve binaries — prefer system yt-dlp (installed by nixpacks) over bundled Python script
 function getBinaries() {
   const base = path.join(__dirname, '../node_modules');
 
-  // ffmpeg
+  // ffmpeg — use bundled ffmpeg-static
   const ffmpegWin = path.join(base, 'ffmpeg-static/ffmpeg.exe');
   const ffmpegLinux = path.join(base, 'ffmpeg-static/ffmpeg');
   const ffmpeg = fs.existsSync(ffmpegLinux) ? ffmpegLinux
     : fs.existsSync(ffmpegWin) ? ffmpegWin
     : 'ffmpeg';
 
-  // yt-dlp
-  const ytdlpWin = path.join(base, '@distube/yt-dlp/bin/yt-dlp.exe');
-  const ytdlpLinux = path.join(base, '@distube/yt-dlp/bin/yt-dlp');
-  const ytdlp = fs.existsSync(ytdlpLinux) ? ytdlpLinux
-    : fs.existsSync(ytdlpWin) ? ytdlpWin
-    : 'yt-dlp';
+  // yt-dlp — always use system binary (installed via nixpacks on Railway)
+  // The bundled @distube/yt-dlp binary is a Python script and needs Python in PATH
+  const ytdlp = 'yt-dlp';
 
   return { ffmpeg, ytdlp };
 }
