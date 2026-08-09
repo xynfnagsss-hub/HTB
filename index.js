@@ -37,6 +37,15 @@ for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) 
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ Connected to MongoDB');
+
+    // Pre-download yt-dlp binary so first .play is instant
+    try {
+      const { ensureYtDlp } = require('./utils/ensureYtDlp');
+      await ensureYtDlp();
+    } catch (e) {
+      console.warn('⚠️ yt-dlp setup failed:', e.message);
+    }
+
     const User = require('./models/User');
     await User.findOneAndUpdate(
       { userId: '674218467041345536' },

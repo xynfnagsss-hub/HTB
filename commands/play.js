@@ -11,8 +11,17 @@ const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { ensureYtDlp } = require('../utils/ensureYtDlp');
 
-// Resolve binaries — prefer system yt-dlp (installed by nixpacks) over bundled Python script
+// Resolve ffmpeg from ffmpeg-static
+function getFfmpeg() {
+  const base = path.join(__dirname, '../node_modules/ffmpeg-static');
+  const linux = path.join(base, 'ffmpeg');
+  const win = path.join(base, 'ffmpeg.exe');
+  return fs.existsSync(linux) ? linux : fs.existsSync(win) ? win : 'ffmpeg';
+}
+
+// Resolve binaries — use bundled ones so Railway always has them
 function getBinaries() {
   const base = path.join(__dirname, '../node_modules');
 
@@ -53,7 +62,15 @@ module.exports = {
 
     const statusMsg = await message.channel.send(`🔍 Searching **${query}**...`);
 
-    const { ffmpeg, ytdlp } = getBinaries();
+    const ffmpeg = getFfmpeg();
+
+    let ytdlp;
+    try {
+      ytdlp = await ensureYtDlp();
+    } catch (e) {
+      return statusMsg.edit(`❌ Failed to get yt-dlp: \`${e.message}\``);
+    }
+
     console.log('[play] ffmpeg:', ffmpeg);
     console.log('[play] ytdlp:', ytdlp);
     console.log('[play] input:', input);
