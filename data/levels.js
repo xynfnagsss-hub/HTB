@@ -13,15 +13,15 @@ async function getUser(userId) {
 }
 
 async function addXP(userId) {
-  // Use atomic findOneAndUpdate to prevent race conditions causing duplicate level-up messages
+  // Atomically increment XP and get the updated document
   const user = await User.findOneAndUpdate(
     { userId },
-    { $setOnInsert: { userId, xp: 0, level: 0, robux: 0 } },
-    { upsert: true, new: true }
+    { $inc: { xp: XP_PER_MESSAGE }, $setOnInsert: { level: 0, robux: 0 } },
+    { upsert: true, returnDocument: 'after', new: true }
   );
 
+  const newXP = user.xp;
   const oldLevel = user.level;
-  const newXP = user.xp + XP_PER_MESSAGE;
   const newLevel = Math.floor(newXP / XP_PER_LEVEL);
   const leveledUp = newLevel > oldLevel;
 
@@ -30,19 +30,18 @@ async function addXP(userId) {
     for (let lvl = oldLevel + 1; lvl <= newLevel; lvl++) {
       if (lvl % 15 === 0) robuxEarned += ROBUX_PER_MILESTONE;
     }
+    // Update level and robux atomically
+    await User.updateOne(
+      { userId, level: oldLevel }, // only update if level hasn't changed (prevents race)
+      { $set: { level: newLevel }, $inc: { robux: robuxEarned } }
+    );
   }
-
-  // Atomic update — prevents two simultaneous saves fighting each other
-  await User.updateOne(
-    { userId },
-    { $set: { xp: newXP, level: newLevel, robux: user.robux + robuxEarned } }
-  );
 
   return { leveledUp, oldLevel, newLevel, robuxEarned };
 }
 
 async function setUser(userId, data) {
-  await User.findOneAndUpdate({ userId }, data, { upsert: true, new: true });
+  await User.findOneAndUpdate({ userId }, { $set: data }, { upsert: true, new: true });
 }
 
 async function getLeaderboard() {

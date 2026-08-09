@@ -68,40 +68,25 @@ const COOKIE_STR = [
   'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
 ].join('; ');
 
-// Get audio stream — first try yt-dlp, fallback to ffmpeg+direct url
-async function getAudioStream(bin, url) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(bin, [
-      '--no-playlist',
-      '--no-warnings',
-      '-f', 'bestaudio[ext=webm]/bestaudio[ext=mp4]/bestaudio/best',
-      '--add-header', `Cookie:${COOKIE_STR}`,
-      '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      '-o', '-',
-      url,
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+function getAudioStream(bin, url) {
+  const proc = spawn(bin, [
+    '--no-playlist',
+    '--no-warnings',
+    '-f', 'bestaudio[ext=webm]/bestaudio[ext=mp4]/bestaudio/best',
+    '--add-header', `Cookie:${COOKIE_STR}`,
+    '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+    '-o', '-',
+    url,
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-    let stderr = '';
-    proc.stderr.on('data', d => {
-      const line = d.toString().trim();
-      if (line) { stderr += line + '\n'; console.error('[yt-dlp]', line); }
-    });
-
-    // Wait briefly to make sure process doesn't immediately fail
-    const timeout = setTimeout(() => resolve(proc), 3000);
-
-    proc.on('error', (err) => {
-      clearTimeout(timeout);
-      reject(new Error(`yt-dlp spawn failed: ${err.message}`));
-    });
-
-    proc.on('close', (code) => {
-      clearTimeout(timeout);
-      if (code !== 0 && code !== null) {
-        reject(new Error(`yt-dlp exited ${code}: ${stderr.slice(0, 200)}`));
-      }
-    });
+  proc.stderr.on('data', d => {
+    const line = d.toString().trim();
+    if (line) console.error('[yt-dlp]', line);
   });
+
+  proc.on('error', (err) => console.error('[yt-dlp spawn error]', err.message));
+
+  return proc;
 }
 
 module.exports = {
@@ -145,7 +130,7 @@ module.exports = {
       await statusMsg.edit(`⏳ Connecting...`);
 
       const bin = await getYtDlpBin();
-      const proc = await getAudioStream(bin, videoUrl);
+      const proc = getAudioStream(bin, videoUrl);
 
       const resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary });
 
