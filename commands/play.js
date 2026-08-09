@@ -5,47 +5,31 @@ const {
   AudioPlayerStatus,
   VoiceConnectionStatus,
   entersState,
-  StreamType,
 } = require('@discordjs/voice');
-const ytdl = require('@distube/ytdl-core');
+const playdl = require('play-dl');
 const { EmbedBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
 
-// Load cookies to bypass YouTube 429 on cloud IPs
-function loadCookies() {
-  try {
-    const cookiePath = path.join(__dirname, '../data/cookies.txt');
-    const lines = fs.readFileSync(cookiePath, 'utf8').split('\n');
-    const cookies = [];
-    for (const line of lines) {
-      if (line.startsWith('#') || !line.trim()) continue;
-      const parts = line.split('\t');
-      if (parts.length < 7) continue;
-      cookies.push({ name: parts[5], value: parts[6] });
-    }
-    return cookies;
-  } catch {
-    return [];
-  }
-}
-
-const agent = ytdl.createAgent(loadCookies());
-
-// Search YouTube without API key
-async function searchYouTube(query) {
-  const encoded = encodeURIComponent(query);
-  const url = `https://www.youtube.com/results?search_query=${encoded}`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-    },
-  });
-  const html = await res.text();
-  const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
-  if (!match) return null;
-  return `https://www.youtube.com/watch?v=${match[1]}`;
-}
+// Set YouTube cookies once on load so play-dl bypasses bot detection
+playdl.setToken({
+  youtube: {
+    cookie: [
+      'HSID=AUolAcz8zuPf-xvQ1',
+      'SSID=AH1T_BTRbgNBGEQq-',
+      'APISID=NzQ-RC2HeBedA3gY/AHQBw8ewNjHdphGeY',
+      'SAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
+      '__Secure-1PAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
+      '__Secure-3PAPISID=sBWBF6e56Kp83vUo/AufRiJF3yXRsryCR7',
+      'SID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuayV25PwsaNSXP3QeXk2SQwACgYKAQ0SARYSFQHGX2Midj2G3YqqA3Lv0ByAvfunuBoVAUF8yKqMuthW8dxc-hwQahpJQEIy0076',
+      '__Secure-1PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5Lu7ryTV8p99kOeTdLd-4V8PAACgYKAdISARYSFQHGX2MigK4iuAyBPkh93LFGkCmOIhoVAUF8yKp19iblY_TrjbRPNlrx1s2H0076',
+      '__Secure-3PSID=g.a000BQnkHqZ-CNI5YymIojqN92SA7Z7jCTIFLzXKiEgwQSo-b5LuGRDT5sNqA9OLyDwNmu9s7gACgYKAS0SARYSFQHGX2MiGQlu24jl_ApvNZAjc8_apBoVAUF8yKpiSINtLpzpyovr_su2c6BF0076',
+      'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
+      'SIDCC=AKEyXzU61hMDWrX8n0hwIRzhqaK6RsrG_wcaTwHQ_e0GvezIYZQhpbXdU37WE8TjoZU0thD3sQ',
+      '__Secure-1PSIDCC=AKEyXzW0GY_DSFKPQd6Wr6tYdndDXi5p5cSLWncPrnlZTJLGmPWHNcVlfCyYcoJQFBwyia5s',
+      '__Secure-3PSIDCC=AKEyXzWukke57_8MpeD4cj0pyQqp90a1Cqmn9chs6gFXowQsFEqESXDtYV87lXO69m143q8d',
+      'VISITOR_INFO1_LIVE=wHzK3izM8mc',
+    ].join('; '),
+  },
+});
 
 module.exports = {
   name: 'play',
@@ -71,22 +55,30 @@ module.exports = {
     const searching = await message.reply(`🔍 Searching for **${query}**...`);
 
     try {
-      // Resolve URL
-      let videoUrl;
-      if (ytdl.validateURL(query)) {
+      let videoUrl, videoTitle, videoDuration, videoThumbnail;
+
+      // Direct URL or search
+      if (playdl.yt_validate(query) === 'video') {
+        const info = await playdl.video_info(query);
         videoUrl = query;
+        videoTitle = info.video_details.title;
+        videoDuration = info.video_details.durationRaw;
+        videoThumbnail = info.video_details.thumbnails?.at(-1)?.url;
       } else {
-        videoUrl = await searchYouTube(query);
-        if (!videoUrl) {
+        const results = await playdl.search(query, { limit: 1 });
+        if (!results || results.length === 0) {
           return searching.edit('❌ No results found for that search.');
         }
+        const video = results[0];
+        videoUrl = video.url;
+        videoTitle = video.title;
+        videoDuration = video.durationRaw;
+        videoThumbnail = video.thumbnails?.at(-1)?.url;
       }
 
-      // Get video info with cookies
-      const info = await ytdl.getInfo(videoUrl, { agent });
-      const videoTitle = info.videoDetails.title;
-      const videoDuration = formatDuration(parseInt(info.videoDetails.lengthSeconds));
-      const videoThumbnail = info.videoDetails.thumbnails?.at(-1)?.url;
+      // Get audio stream
+      const stream = await playdl.stream(videoUrl, { quality: 2 });
+      const resource = createAudioResource(stream.stream, { inputType: stream.type });
 
       // Join VC
       const connection = joinVoiceChannel({
@@ -96,18 +88,6 @@ module.exports = {
       });
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
-
-      // Create stream with cookies
-      const stream = ytdl(videoUrl, {
-        filter: 'audioonly',
-        quality: 'highestaudio',
-        highWaterMark: 1 << 25,
-        agent,
-      });
-
-      const resource = createAudioResource(stream, {
-        inputType: StreamType.Arbitrary,
-      });
 
       const player = createAudioPlayer();
       connection.subscribe(player);
@@ -121,7 +101,7 @@ module.exports = {
         .setColor(0xff0000)
         .setTitle('🎵 Now Playing')
         .setDescription(`**[${videoTitle}](${videoUrl})**`)
-        .addFields({ name: 'Duration', value: videoDuration, inline: true })
+        .addFields({ name: 'Duration', value: videoDuration || 'Unknown', inline: true })
         .setThumbnail(videoThumbnail || null)
         .setFooter({ text: `Requested by ${message.author.tag}` })
         .setTimestamp();
@@ -158,11 +138,3 @@ module.exports = {
     }
   },
 };
-
-function formatDuration(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
