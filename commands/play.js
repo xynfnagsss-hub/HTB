@@ -20,18 +20,18 @@ function getFfmpeg() {
   return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
 }
 
-function runYtDlp(ytdlp, args) {
+function runYtDlpJson(ytdlp, args) {
   return new Promise((resolve, reject) => {
     let out = '', err = '';
     const proc = spawn(ytdlp, args);
-    proc.stdout.on('data', d => out += d);
+    proc.stdout.on('data', d => { out += d; });
     proc.stderr.on('data', d => { err += d.toString(); });
     proc.on('close', code => {
-      if (code !== 0) return reject(new Error(`yt-dlp exited with code ${code}: ${err.slice(0, 400)}`));
+      if (code !== 0) return reject(new Error(`Extraction failed (${code}): ${err.slice(0, 300)}`));
       try {
         resolve(JSON.parse(out));
       } catch {
-        reject(new Error('Failed to parse yt-dlp response JSON'));
+        reject(new Error('Failed to parse video metadata JSON'));
       }
     });
     proc.on('error', reject);
@@ -40,71 +40,83 @@ function runYtDlp(ytdlp, args) {
 
 function formatDuration(seconds) {
   if (!seconds || isNaN(seconds)) return '0:00';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  return `${m}:${String(s).padStart(2, '0')}`;
+  const s = Math.floor(Number(seconds));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
 module.exports = {
   name: 'play',
-  description: 'Play a song in your voice channel',
-  usage: '.play <song name or URL>',
+  description: 'Play music in your voice channel from YouTube or search queries',
+  usage: '.play <song title or URL>',
 
   async execute(message, args, client) {
     const voiceChannel = message.member?.voice?.channel;
-    if (!voiceChannel) return message.reply('❌ Join a voice channel first.');
-
-    const perms = voiceChannel.permissionsFor(message.client.user);
-    if (!perms || !perms.has('Connect') || !perms.has('Speak'))
-      return message.reply('❌ I need Connect and Speak permissions in your VC.');
-
-    if (!args.length) return message.reply('❌ Usage: `.play <song name or URL>`');
-
-    const query = args.join(' ');
-    const isUrl = /^https?:\/\//.test(query);
-
-    const statusMsg = await message.channel.send(`🔍 Searching **${query}**...`);
-
-    const ffmpeg = getFfmpeg();
-    let ytdlp;
-    try {
-      ytdlp = await ensureYtDlp();
-    } catch (e) {
-      return statusMsg.edit(`❌ Failed to prepare yt-dlp: \`${e.message}\``);
+    if (!voiceChannel) {
+      return message.reply('❌ You must join a voice channel first.');
     }
 
+    const permissions = voiceChannel.permissionsFor(message.client.user);
+    if (!permissions || !permissions.has('Connect') || !permissions.has('Speak')) {
+      return message.reply('❌ I do not have permission to connect and speak in your voice channel.');
+    }
+
+    if (!args.length) {
+      return message.reply('❌ Please specify a song name or URL: `.play <song name / URL>`');
+    }
+
+    const query = args.join(' ').trim();
+    const isUrl = /^https?:\/\//i.test(query);
+
+    const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
+
+    const ffmpegPath = getFfmpeg();
+    let ytdlpPath;
     try {
-      let videoUrl, title, duration, thumbnail;
+      ytdlpPath = await ensureYtDlp();
+    } catch (e) {
+      return statusMsg.edit(`❌ Error loading yt-dlp binary: \`${e.message}\``);
+    }
+
+    // Extractor args to bypass bot detection on datacenter IPs without requiring cookies
+    const playerClientArgs = ['--extractor-args', 'youtube:player_client=tv_embedded,android_vr,android'];
+
+    try {
+      let videoUrl;
+      let title = 'Unknown Track';
+      let duration = '0:00';
+      let thumbnail = null;
 
       if (isUrl) {
-        // Direct URL
-        const info = await runYtDlp(ytdlp, [
+        // Direct URL info extraction
+        const info = await runYtDlpJson(ytdlpPath, [
           '--dump-single-json',
           '--skip-download',
           '--no-warnings',
-          '--js-runtimes', 'node',
+          ...playerClientArgs,
           query,
         ]);
         videoUrl = info.webpage_url || info.url || query;
-        title = info.title || 'Unknown Title';
+        title = info.title || query;
         duration = formatDuration(info.duration || 0);
         thumbnail = info.thumbnail || (info.thumbnails && info.thumbnails[0]?.url) || null;
       } else {
-        // Search query
-        const searchInfo = await runYtDlp(ytdlp, [
+        // Search query via ytsearch1
+        const searchInfo = await runYtDlpJson(ytdlpPath, [
           '--dump-single-json',
           '--skip-download',
           '--flat-playlist',
           '--no-warnings',
-          '--js-runtimes', 'node',
+          ...playerClientArgs,
           `ytsearch1:${query}`,
         ]);
 
         const entry = searchInfo.entries?.[0] || searchInfo;
         if (!entry || (!entry.id && !entry.url)) {
-          return statusMsg.edit('❌ No results found for that query.');
+          return statusMsg.edit('❌ No search results found for that query.');
         }
 
         videoUrl = entry.url?.startsWith('http') ? entry.url : `https://www.youtube.com/watch?v=${entry.id || entry.url}`;
@@ -113,27 +125,31 @@ module.exports = {
         thumbnail = entry.thumbnails?.[0]?.url || entry.thumbnail || null;
       }
 
-      if (!videoUrl) return statusMsg.edit('❌ Could not resolve a playable URL.');
-      await statusMsg.edit(`⏳ Loading **${title}**...`);
-
-      // Clean up previous playback on this guild
-      const existing = client.musicStore.get(message.guild.id);
-      if (existing) {
-        try { existing.player?.stop(); } catch {}
-        try { existing.ytProc?.kill(); } catch {}
-        try { existing.ffmpegProc?.kill(); } catch {}
+      if (!videoUrl) {
+        return statusMsg.edit('❌ Unable to resolve video URL.');
       }
 
-      // Stream via yt-dlp -> ffmpeg -> raw PCM -> Discord
-      const ytProc = spawn(ytdlp, [
+      await statusMsg.edit(`⏳ Loading **${title}**...`);
+
+      // Clean up previous playback in this guild if active
+      const previousSession = client.musicStore.get(message.guild.id);
+      if (previousSession) {
+        try { previousSession.player?.stop(); } catch {}
+        try { previousSession.ytProc?.kill(); } catch {}
+        try { previousSession.ffmpegProc?.kill(); } catch {}
+      }
+
+      // Spawn yt-dlp audio stream
+      const ytProc = spawn(ytdlpPath, [
         '--no-warnings',
-        '--js-runtimes', 'node',
+        ...playerClientArgs,
         '-f', 'ba/ba*/b/best',
         '-o', '-',
         videoUrl,
       ]);
 
-      const ffmpegProc = spawn(ffmpeg, [
+      // Spawn ffmpeg to convert to 48kHz stereo 16-bit PCM for Discord
+      const ffmpegProc = spawn(ffmpegPath, [
         '-i', 'pipe:0',
         '-ac', '2',
         '-ar', '48000',
@@ -144,7 +160,7 @@ module.exports = {
 
       ytProc.stdout.pipe(ffmpegProc.stdin);
 
-      // Prevent uncaught pipe errors from crashing
+      // Handle stream errors
       ffmpegProc.stdin.on('error', () => {});
       ytProc.stdout.on('error', () => {});
 
@@ -152,20 +168,25 @@ module.exports = {
       let ffErr = '';
       ytProc.stderr.on('data', d => { ytErr += d.toString(); });
       ffmpegProc.stderr.on('data', d => { ffErr += d.toString(); });
-      ytProc.on('error', e => console.error('[yt-dlp stream error]', e.message));
-      ffmpegProc.on('error', e => console.error('[ffmpeg stream error]', e.message));
+      ytProc.on('error', err => console.error('[yt-dlp error]', err.message));
+      ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
 
-      // Wait for ffmpeg to start producing raw PCM audio data
+      // Wait for ffmpeg to output initial PCM audio data before connecting
       await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Audio stream initialization timed out.')), 25000);
+        const timeout = setTimeout(() => {
+          reject(new Error(`Audio stream timed out.\n${ytErr.slice(0, 200)}`));
+        }, 25000);
+
         ffmpegProc.stdout.once('data', () => {
           clearTimeout(timeout);
           resolve();
         });
+
         ffmpegProc.on('close', code => {
           clearTimeout(timeout);
           if (code !== 0) reject(new Error(`ffmpeg exited with code ${code}: ${ffErr.slice(0, 200)}`));
         });
+
         ytProc.on('close', code => {
           if (code !== 0) {
             clearTimeout(timeout);
@@ -174,7 +195,9 @@ module.exports = {
         });
       });
 
-      const resource = createAudioResource(ffmpegProc.stdout, { inputType: StreamType.Raw });
+      const resource = createAudioResource(ffmpegProc.stdout, {
+        inputType: StreamType.Raw,
+      });
 
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
@@ -188,7 +211,12 @@ module.exports = {
       connection.subscribe(player);
       player.play(resource);
 
-      client.musicStore.set(message.guild.id, { player, connection, ytProc, ffmpegProc });
+      client.musicStore.set(message.guild.id, {
+        player,
+        connection,
+        ytProc,
+        ffmpegProc,
+      });
 
       const embed = new EmbedBuilder()
         .setColor(0x5765f2)
@@ -212,7 +240,7 @@ module.exports = {
       player.on('error', err => {
         console.error('[player error]', err.message);
         cleanup();
-        message.channel.send('❌ Playback encountered an error.').catch(() => {});
+        message.channel.send('❌ Playback encountered an unexpected error.').catch(() => {});
       });
 
       connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -228,7 +256,7 @@ module.exports = {
 
     } catch (err) {
       console.error('[PLAY ERROR]', err.message || err);
-      statusMsg.edit(`❌ Something went wrong: \`${err.message || 'Unknown error'}\``).catch(() => {});
+      statusMsg.edit(`❌ Playback failed: \`${err.message || 'Unknown error'}\``).catch(() => {});
     }
   },
   getFfmpeg,
