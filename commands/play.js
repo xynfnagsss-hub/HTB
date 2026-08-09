@@ -8,12 +8,20 @@ const {
   StreamType,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const { YtDlp } = require('@distube/yt-dlp');
 const yts = require('yt-search');
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
 
-const ytDlp = new YtDlp();
+// Resolve bundled yt-dlp binary path (works on Linux/Railway and Windows)
+function getYtDlpBinary() {
+  const base = path.join(__dirname, '../node_modules/@distube/yt-dlp/bin');
+  const win = path.join(base, 'yt-dlp.exe');
+  const linux = path.join(base, 'yt-dlp');
+  if (fs.existsSync(linux)) return linux;
+  if (fs.existsSync(win)) return win;
+  return 'yt-dlp'; // fallback to system PATH
+}
 
 const COOKIE_STR = [
   'HSID=AUolAcz8zuPf-xvQ1',
@@ -34,7 +42,7 @@ const COOKIE_STR = [
 
 // Get audio stream via bundled yt-dlp binary
 function getAudioStream(url) {
-  const binPath = ytDlp.binaryPath;
+  const binPath = getYtDlpBinary();
   const proc = spawn(binPath, [
     '-f', 'bestaudio',
     '--no-playlist',
