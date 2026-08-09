@@ -81,76 +81,56 @@ module.exports = {
       return statusMsg.edit(`❌ Error loading yt-dlp binary: \`${e.message}\``);
     }
 
-    // Extractor args to bypass bot detection on datacenter IPs without requiring cookies
     const playerClientArgs = ['--extractor-args', 'youtube:player_client=tv_embedded,android_vr,android'];
 
     try {
       let videoUrl;
+      let directAudioUrl;
       let title = 'Unknown Track';
       let duration = '0:00';
       let thumbnail = null;
 
-      if (isUrl) {
-        // Direct URL info extraction
-        const info = await runYtDlpJson(ytdlpPath, [
-          '--dump-single-json',
-          '--skip-download',
-          '--no-warnings',
-          ...playerClientArgs,
-          query,
-        ]);
-        videoUrl = info.webpage_url || info.url || query;
-        title = info.title || query;
-        duration = formatDuration(info.duration || 0);
-        thumbnail = info.thumbnail || (info.thumbnails && info.thumbnails[0]?.url) || null;
-      } else {
-        // Search query via ytsearch1
-        const searchInfo = await runYtDlpJson(ytdlpPath, [
-          '--dump-single-json',
-          '--skip-download',
-          '--flat-playlist',
-          '--no-warnings',
-          ...playerClientArgs,
-          `ytsearch1:${query}`,
-        ]);
+      // Direct URL vs search query target
+      const targetQuery = isUrl ? query : `ytsearch1:${query}`;
 
-        const entry = searchInfo.entries?.[0] || searchInfo;
-        if (!entry || (!entry.id && !entry.url)) {
-          return statusMsg.edit('❌ No search results found for that query.');
-        }
+      const info = await runYtDlpJson(ytdlpPath, [
+        '--dump-single-json',
+        '--no-warnings',
+        ...playerClientArgs,
+        '-f', 'ba/ba*/b/best',
+        targetQuery,
+      ]);
 
-        videoUrl = entry.url?.startsWith('http') ? entry.url : `https://www.youtube.com/watch?v=${entry.id || entry.url}`;
-        title = entry.title || query;
-        duration = formatDuration(entry.duration || 0);
-        thumbnail = entry.thumbnails?.[0]?.url || entry.thumbnail || null;
+      const entry = (info.entries && info.entries[0]) ? info.entries[0] : info;
+      if (!entry) {
+        return statusMsg.edit('❌ No results found for that track.');
       }
 
-      if (!videoUrl) {
-        return statusMsg.edit('❌ Unable to resolve video URL.');
+      directAudioUrl = entry.url;
+      videoUrl = entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query);
+      title = entry.title || query;
+      duration = formatDuration(entry.duration || 0);
+      thumbnail = (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null;
+
+      if (!directAudioUrl) {
+        return statusMsg.edit('❌ Unable to extract direct audio stream for this track.');
       }
 
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
-      // Clean up previous playback in this guild if active
+      // Clean up previous playback session in this guild
       const previousSession = client.musicStore.get(message.guild.id);
       if (previousSession) {
         try { previousSession.player?.stop(); } catch {}
-        try { previousSession.ytProc?.kill(); } catch {}
         try { previousSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Spawn yt-dlp audio stream
-      const ytProc = spawn(ytdlpPath, [
-        '--no-warnings',
-        ...playerClientArgs,
-        '-f', 'ba/ba*/b/best',
-        '-o', '-',
-        videoUrl,
-      ]);
-
-      // Spawn ffmpeg to convert to 48kHz stereo 16-bit PCM for Discord
+      // Stream directly from HTTPS audio URL using ffmpeg with auto-reconnect
       const ffmpegProc = spawn(ffmpegPath, [
-        '-i', 'pipe:0',
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
+        '-i', directAudioUrl,
         '-ac', '2',
         '-ar', '48000',
         '-f', 's16le',
@@ -158,24 +138,15 @@ module.exports = {
         'pipe:1',
       ]);
 
-      ytProc.stdout.pipe(ffmpegProc.stdin);
-
-      // Handle stream errors
-      ffmpegProc.stdin.on('error', () => {});
-      ytProc.stdout.on('error', () => {});
-
-      let ytErr = '';
       let ffErr = '';
-      ytProc.stderr.on('data', d => { ytErr += d.toString(); });
       ffmpegProc.stderr.on('data', d => { ffErr += d.toString(); });
-      ytProc.on('error', err => console.error('[yt-dlp error]', err.message));
       ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
 
-      // Wait for ffmpeg to output initial PCM audio data before connecting
+      // Wait for ffmpeg to start outputting PCM audio data
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error(`Audio stream timed out.\n${ytErr.slice(0, 200)}`));
-        }, 25000);
+          reject(new Error(`Audio stream timed out.\n${ffErr.slice(0, 200)}`));
+        }, 20000);
 
         ffmpegProc.stdout.once('data', () => {
           clearTimeout(timeout);
@@ -185,13 +156,6 @@ module.exports = {
         ffmpegProc.on('close', code => {
           clearTimeout(timeout);
           if (code !== 0) reject(new Error(`ffmpeg exited with code ${code}: ${ffErr.slice(0, 200)}`));
-        });
-
-        ytProc.on('close', code => {
-          if (code !== 0) {
-            clearTimeout(timeout);
-            reject(new Error(`yt-dlp exited with code ${code}: ${ytErr.slice(0, 200)}`));
-          }
         });
       });
 
@@ -214,7 +178,6 @@ module.exports = {
       client.musicStore.set(message.guild.id, {
         player,
         connection,
-        ytProc,
         ffmpegProc,
       });
 
@@ -231,7 +194,6 @@ module.exports = {
 
       const cleanup = () => {
         try { connection.destroy(); } catch {}
-        try { ytProc.kill(); } catch {}
         try { ffmpegProc.kill(); } catch {}
         client.musicStore.delete(message.guild.id);
       };
