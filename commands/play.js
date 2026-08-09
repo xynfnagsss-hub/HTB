@@ -11,8 +11,12 @@ module.exports = {
 
     const query = args.join(' ');
 
+    // If not a URL, prefix with ytsearch: so yt-dlp knows to search YouTube
+    const isUrl = /^https?:\/\//.test(query);
+    const input = isUrl ? query : `ytsearch:${query}`;
+
     try {
-      await client.distube.play(voiceChannel, query, {
+      await client.distube.play(voiceChannel, input, {
         member: message.member,
         textChannel: message.channel,
         message,
