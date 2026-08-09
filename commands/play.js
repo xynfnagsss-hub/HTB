@@ -65,15 +65,20 @@ module.exports = {
         videoDuration = info.video_details.durationRaw;
         videoThumbnail = info.video_details.thumbnails?.at(-1)?.url;
       } else {
-        const results = await playdl.search(query, { limit: 1 });
-        if (!results || results.length === 0) {
+        const results = await playdl.search(query, { limit: 5, source: { youtube: 'video' } });
+        const video = results?.find(r => r?.url && playdl.yt_validate(r.url) === 'video');
+        if (!video) {
           return searching.edit('❌ No results found for that search.');
         }
-        const video = results[0];
         videoUrl = video.url;
         videoTitle = video.title;
         videoDuration = video.durationRaw;
         videoThumbnail = video.thumbnails?.at(-1)?.url;
+      }
+
+      // Validate URL before streaming
+      if (!videoUrl || playdl.yt_validate(videoUrl) !== 'video') {
+        return searching.edit('❌ Could not find a valid video for that search.');
       }
 
       // Get audio stream
