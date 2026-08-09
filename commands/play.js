@@ -8,12 +8,9 @@ const {
   StreamType,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const YtDlp = require('@distube/yt-dlp');
+const youtubedl = require('youtube-dl-exec');
 const yts = require('yt-search');
-const { spawn } = require('child_process');
 const path = require('path');
-
-const ytDlp = YtDlp();
 
 const COOKIE_STR = [
   'HSID=AUolAcz8zuPf-xvQ1',
@@ -32,18 +29,22 @@ const COOKIE_STR = [
   'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
 ].join('; ');
 
-// Get audio stream via bundled yt-dlp binary
+// Get audio stream via bundled yt-dlp binary (youtube-dl-exec)
 function getAudioStream(url) {
-  const binPath = ytDlp.binaryPath;
-  const proc = spawn(binPath, [
-    '-f', 'bestaudio',
-    '--no-playlist',
-    '--no-warnings',
-    '--add-header', `Cookie:${COOKIE_STR}`,
-    '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-    '-o', '-',
+  const proc = youtubedl.exec(
     url,
-  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+    {
+      format: 'bestaudio',
+      noPlaylist: true,
+      noWarnings: true,
+      addHeader: [
+        `Cookie:${COOKIE_STR}`,
+        'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+      ],
+      output: '-',
+    },
+    { stdio: ['ignore', 'pipe', 'pipe'] }
+  );
 
   proc.stderr.on('data', d => {
     const msg = d.toString().trim();
