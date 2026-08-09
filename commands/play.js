@@ -79,7 +79,8 @@ module.exports = {
           '--dump-single-json',
           '--skip-download',
           '--no-warnings',
-          '--extractor-args', 'youtube:player_client=tv_embedded',
+          '--extractor-args', 'youtube:player_client=mweb',
+          '--cookies', COOKIES_FILE,
           query,
         ]);
         videoUrl = info.webpage_url || info.url;
@@ -93,7 +94,8 @@ module.exports = {
           '--skip-download',
           '--flat-playlist',
           '--no-warnings',
-          '--extractor-args', 'youtube:player_client=tv_embedded',
+          '--extractor-args', 'youtube:player_client=mweb',
+          '--cookies', COOKIES_FILE,
           `ytsearch1:${query}`,
         ]);
 
@@ -112,7 +114,8 @@ module.exports = {
       const listProc = spawn(ytdlp, [
         '--list-formats',
         '--no-warnings',
-        '--extractor-args', 'youtube:player_client=tv_embedded',
+        '--extractor-args', 'youtube:player_client=mweb',
+        '--cookies', COOKIES_FILE,
         videoUrl,
       ]);
       let formatList = '';
@@ -124,7 +127,8 @@ module.exports = {
       // Stream via yt-dlp → ffmpeg → Discord
       const ytProc = spawn(ytdlp, [
         '--no-warnings',
-        '--extractor-args', 'youtube:player_client=tv_embedded',
+        '--extractor-args', 'youtube:player_client=mweb',
+        '--cookies', COOKIES_FILE,
         '-o', '-',
         videoUrl,
       ]);
