@@ -3,11 +3,7 @@ const User = require('../models/User');
 
 const BITCH_REGEX = /\b(b+i+t+c+h+(?:e+s+)?|b+t+c+h+)\b/i;
 
-function getRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function httpsPost(urlStr, headers, bodyObj, timeoutMs = 8000) {
+function httpsPost(urlStr, headers, bodyObj, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
     try {
       const u = new URL(urlStr);
@@ -58,7 +54,7 @@ async function callAI(systemPrompt, userPrompt) {
   const openaiKey = process.env.OPENAI_API_KEY;
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
-  // 1. Groq (Fast Llama 3.3 70B)
+  // 1. Groq (Llama 3.3 70B Versatile)
   if (groqKey) {
     try {
       const res = await httpsPost('https://api.groq.com/openai/v1/chat/completions', {
@@ -69,7 +65,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 250,
+        max_tokens: 300,
         temperature: 0.9
       });
 
@@ -92,7 +88,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 250,
+        max_tokens: 300,
         temperature: 0.9
       });
 
@@ -112,7 +108,7 @@ async function callAI(systemPrompt, userPrompt) {
         const res = await httpsPost(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {}, {
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: { maxOutputTokens: 250, temperature: 0.9 }
+          generationConfig: { maxOutputTokens: 300, temperature: 0.9 }
         });
 
         if (res.status === 200 && res.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -140,7 +136,7 @@ async function callAI(systemPrompt, userPrompt) {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_tokens: 250,
+        max_tokens: 300,
         temperature: 0.9
       });
 
@@ -155,149 +151,48 @@ async function callAI(systemPrompt, userPrompt) {
   return null;
 }
 
-function solveMath(text) {
-  const clean = text
-    .replace(/what('s|\s+is)?/gi, '')
-    .replace(/calculate/gi, '')
-    .replace(/evaluate/gi, '')
-    .replace(/solve/gi, '')
-    .replace(/how\s+much\s+is/gi, '')
-    .trim();
-
-  const match = clean.match(/^[\d\s\+\-\*\/\%\^\(\)\.\,]+$/);
-  if (!match) return null;
-
-  try {
-    const expr = clean.replace(/\^/g, '**').replace(/,/g, '');
-    if (!/^[0-9+\-*/%().\s]+$/.test(expr)) return null;
-    const result = Function(`'use strict'; return (${expr})`)();
-    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
-      return result;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function getIntelligentSarcasticAnswer(text, authorName, isBitch, userDoc) {
-  const t = text.toLowerCase().trim();
-  const name = isBitch ? 'bitch' : authorName;
-
-  const mathResult = solveMath(t);
-  if (mathResult !== null) {
-    return getRandom([
-      `The answer is **${mathResult}**. Did you seriously need a Discord bot to do basic math for you, ${name}?`,
-      `It's **${mathResult}**. I'm a Hit The Block bot, not your private math tutor, but you're welcome, ${name}.`,
-      `**${mathResult}**. Try using your brain next time, ${name}.`,
-    ]);
-  }
-
-  if (t.includes('am i tall') || t.includes('am i short') || t.includes('my height')) {
-    return getRandom([
-      `How am I supposed to know how tall you are through Discord, ${name}? But asking that gives off strong 5'4 energy.`,
-      `You're asking code on a screen if you're tall, ${name}. Stand up and check a mirror.`,
-      `Probably built like a default Roblox noob, ${name}.`,
-    ]);
-  }
-
-  if (t.includes('am i ugly') || t.includes('am i cute') || t.includes('am i handsome')) {
-    return `You're asking a Discord bot to rate your looks, ${name}. Have some shame.`;
-  }
-
-  if (t.includes('am i rich') || t.includes('am i broke')) {
-    const robux = userDoc ? userDoc.robux : 0;
-    return `You have **${robux.toLocaleString()} Robux** in your account, ${name}. You tell me if that's broke or not.`;
-  }
-
-  if (t.includes('who asked') || t.includes('who tf asked')) {
-    return `Literally you did, ${name}, when you pinged me 2 seconds ago.`;
-  }
-
-  if (t.includes('roast me') || t.includes('cook me')) {
-    return getRandom([
-      `I would roast you, ${name}, but nature already did the job.`,
-      `You're the reason the shampoo bottle has instructions, ${name}.`,
-      `Your brain is like a browser with 400 tabs open, and 399 of them are frozen, ${name}.`,
-    ]);
-  }
-
-  return getRandom([
-    `Fascinating story, ${name}. Tell it to someone who has time.`,
-    `I processed your message and decided it wasn't worth my CPU cycles, ${name}.`,
-    `Is this really the most productive thing you could be doing right now, ${name}?`,
-    `Cool, ${name}. Anything else you want to waste my time with?`,
-  ]);
-}
-
 async function handleBotMention(message, client) {
-  const botMentionRegex = new RegExp(`^<@!?${client.user.id}>|<@!?${client.user.id}>$|<@!?${client.user.id}>`);
-  if (!botMentionRegex.test(message.content)) return;
-
+  const botMentionRegex = new RegExp(`^<@!?${client.user.id}>|<@!?${client.user.id}>$|<@!?${client.user.id}>`, 'g');
   const rawText = message.content.replace(botMentionRegex, '').trim();
   const lowerText = rawText.toLowerCase();
 
-  // Find or create user in DB
+  // Find or create user record in MongoDB
   let user = await User.findOne({ userId: message.author.id });
   if (!user) {
     user = await User.create({ userId: message.author.id });
   }
 
-  const isBitchNamed = user.botNickname === 'bitch';
-  const calledBitch = BITCH_REGEX.test(lowerText);
-
-  // If user calls the bot a bitch
-  if (calledBitch) {
+  // If user calls the bot a bitch in this message, mark them permanently as 'bitch'
+  if (BITCH_REGEX.test(lowerText)) {
     user.botNickname = 'bitch';
     await user.save();
-
-    const bitchClapbacks = [
-      `Oh that's how it is? Bet. Your new name to me is **bitch**. What's good, bitch?`,
-      `Calling me a bitch? Aight bitch, that's your official government name from now on.`,
-      `Big talk coming from a bitch. That's your name forever now, bitch.`,
-      `Did you just call me a bitch? Cool, you're **bitch** to me now. What do you want, bitch?`,
-      `Aight bitch, I see how you wanna play it. You're permanently bitch in my book.`,
-    ];
-    return message.reply(getRandom(bitchClapbacks));
   }
 
-  // If empty ping
-  if (!rawText) {
-    if (isBitchNamed) {
-      return message.reply(getRandom([
-        `What do you want, bitch?`,
-        `Why you pinging me, bitch?`,
-        `Yeah? Speak up, bitch.`,
-      ]));
-    }
-    return message.reply(getRandom([
-      `You pinged me just to say nothing, ${message.author.username}? Quality conversation.`,
-      `Yeah? What do you want, ${message.author.username}?`,
-    ]));
-  }
+  const isBitchNamed = user.botNickname === 'bitch';
+  const displayName = isBitchNamed ? 'bitch' : message.author.username;
 
-  // Send typing indicator while generating response
+  // Send typing indicator while generating AI response
   message.channel.sendTyping().catch(() => {});
 
-  // Build AI System Prompt
-  const displayName = isBitchNamed ? 'bitch' : message.author.username;
-  const systemPrompt = `You are the official HTB (Hit The Block) Discord bot.
-Personality & Behavior Rules:
-- You are hilarious, extremely sarcastic, witty, blunt, and direct, but you actually answer questions accurately and hold real conversations.
-- Server theme: "Hit The Block" (HTB), a gritty Roblox group with economy, XP, Robux, grinding, and block swagger.
-- The person talking to you is ${displayName}.
-${isBitchNamed ? 'CRITICAL MANDATORY INSTRUCTION: This user called you a bitch in the past, so their official permanent nickname to you is "bitch". You MUST address them directly as "bitch" in your reply with heavy sarcasm (for example: "Listen here bitch...", "The answer is 42, bitch", "Whatever you say, bitch").' : ''}
-- Keep your answers concise (1 to 3 sentences maximum), punchy, sharp, and conversational. Never be boring or generic. Never say you are an AI or language model.`;
+  // Build full AI System Prompt
+  const userPrompt = rawText || '[User just pinged you without saying anything]';
+  const systemPrompt = `You are the official Discord bot for the Roblox community "Hit The Block" (HTB).
+Core Persona & Instructions:
+- You are hilarious, extremely sarcastic, witty, blunt, and direct, but you actually answer user questions accurately and hold real conversations.
+- Server context: "Hit The Block" (HTB), a competitive Roblox group with economy, grinding, XP, Robux, and block swagger. The user currently has ${user.robux || 0} Robux and Level ${user.level || 0}.
+- The user's name is ${displayName}.
+${isBitchNamed ? 'CRITICAL MANDATORY INSTRUCTION: This user called you a bitch in the past (or just now), so their official permanent name to you is "bitch". You MUST address them directly as "bitch" naturally in your reply with heavy sarcasm (e.g. "Listen here bitch...", "The answer is 42, bitch", "Whatever you say, bitch").' : ''}
+- Keep your answers punchy, sharp, conversational, and concise (1 to 3 sentences).
+- Never break character. Never mention you are an AI model, LLM, or language model.`;
 
-  // Call real AI LLM
-  const aiAnswer = await callAI(systemPrompt, rawText);
+  // 100% Pure Real AI generation
+  const aiAnswer = await callAI(systemPrompt, userPrompt);
   if (aiAnswer) {
     return message.reply(aiAnswer);
   }
 
-  // Sarcastic fallback if offline
-  const response = getIntelligentSarcasticAnswer(rawText, message.author.username, isBitchNamed, user);
-  return message.reply(response);
+  // If all AI APIs failed unexpectedly
+  return message.reply(`My brain briefly lagged, ${displayName}. Say that again.`);
 }
 
 module.exports = { handleBotMention };
