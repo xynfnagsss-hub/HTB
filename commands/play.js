@@ -78,7 +78,8 @@ module.exports = {
         const info = await runYtDlp(ytdlp, [
           '--dump-single-json',
           '--skip-download',
-          ...baseArgs,
+          '--no-warnings',
+          '--extractor-args', 'youtube:player_client=ios',
           query,
         ]);
         videoUrl = info.webpage_url || info.url;
@@ -92,7 +93,7 @@ module.exports = {
           '--skip-download',
           '--flat-playlist',
           '--no-warnings',
-          '--cookies', COOKIES_FILE,
+          '--extractor-args', 'youtube:player_client=ios',
           `ytsearch1:${query}`,
         ]);
 
@@ -108,10 +109,10 @@ module.exports = {
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
       // Stream via yt-dlp → ffmpeg → Discord
+      // Use iOS client which bypasses YouTube's bot detection without needing cookies
       const ytProc = spawn(ytdlp, [
         '--no-warnings',
-        '--cookies', COOKIES_FILE,
-        '--format-sort', 'acodec:opus,acodec:vorbis,acodec:mp4a',
+        '--extractor-args', 'youtube:player_client=ios',
         '-o', '-',
         videoUrl,
       ]);
