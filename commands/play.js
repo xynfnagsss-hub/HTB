@@ -79,8 +79,7 @@ module.exports = {
           '--dump-single-json',
           '--skip-download',
           '--no-warnings',
-          '--extractor-args', 'youtube:player_client=web_creator',
-          '--cookies', COOKIES_FILE,
+          '--extractor-args', 'youtube:player_client=tv_embedded',
           query,
         ]);
         videoUrl = info.webpage_url || info.url;
@@ -94,8 +93,7 @@ module.exports = {
           '--skip-download',
           '--flat-playlist',
           '--no-warnings',
-          '--extractor-args', 'youtube:player_client=web_creator',
-          '--cookies', COOKIES_FILE,
+          '--extractor-args', 'youtube:player_client=tv_embedded',
           `ytsearch1:${query}`,
         ]);
 
@@ -114,8 +112,7 @@ module.exports = {
       const listProc = spawn(ytdlp, [
         '--list-formats',
         '--no-warnings',
-        '--extractor-args', 'youtube:player_client=web_creator,default',
-        '--cookies', COOKIES_FILE,
+        '--extractor-args', 'youtube:player_client=tv_embedded',
         videoUrl,
       ]);
       let formatList = '';
@@ -125,12 +122,9 @@ module.exports = {
       console.log('[yt-dlp formats]\n', formatList);
 
       // Stream via yt-dlp → ffmpeg → Discord
-      // Use -f 'ba' (best audio) which works across all clients
       const ytProc = spawn(ytdlp, [
         '--no-warnings',
-        '--extractor-args', 'youtube:player_client=web_creator,default',
-        '--cookies', COOKIES_FILE,
-        '-f', 'ba',
+        '--extractor-args', 'youtube:player_client=tv_embedded',
         '-o', '-',
         videoUrl,
       ]);
