@@ -7,12 +7,46 @@ function getRandom(arr) {
 }
 
 async function callAI(systemPrompt, userPrompt) {
+  const xaiKey = process.env.XAI_API_KEY || process.env.GROK_API_KEY || (process.env.AI_API_KEY?.startsWith('xai-') ? process.env.AI_API_KEY : null);
   const geminiKey = process.env.GEMINI_API_KEY || (process.env.AI_API_KEY?.startsWith('AIza') ? process.env.AI_API_KEY : null);
   const groqKey = process.env.GROQ_API_KEY || (process.env.AI_API_KEY?.startsWith('gsk_') ? process.env.AI_API_KEY : null);
   const openaiKey = process.env.OPENAI_API_KEY || (process.env.AI_API_KEY?.startsWith('sk-') ? process.env.AI_API_KEY : null);
   const openRouterKey = process.env.OPENROUTER_API_KEY;
 
-  // 1. Google Gemini
+  // 1. xAI / Grok
+  if (xaiKey) {
+    try {
+      const res = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${xaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'grok-beta',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: 250,
+          temperature: 0.9
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.choices?.[0]?.message?.content?.trim();
+        if (text) return text;
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        console.warn('[xAI Grok response]', res.status, errJson.error || errJson);
+      }
+    } catch (e) {
+      console.warn('[xAI Grok error]', e.message);
+    }
+  }
+
+  // 2. Google Gemini
   if (geminiKey) {
     try {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
@@ -35,7 +69,7 @@ async function callAI(systemPrompt, userPrompt) {
     }
   }
 
-  // 2. Groq (Llama 3.3 / 3.1)
+  // 3. Groq (Llama 3.3 / 3.1)
   if (groqKey) {
     try {
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -65,8 +99,8 @@ async function callAI(systemPrompt, userPrompt) {
     }
   }
 
-  // 3. OpenAI / OpenRouter
-  const standardKey = openaiKey || openRouterKey || (process.env.AI_API_KEY && !geminiKey && !groqKey ? process.env.AI_API_KEY : null);
+  // 4. OpenAI / OpenRouter
+  const standardKey = openaiKey || openRouterKey || (process.env.AI_API_KEY && !geminiKey && !groqKey && !xaiKey ? process.env.AI_API_KEY : null);
   const endpoint = openRouterKey
     ? 'https://openrouter.ai/api/v1/chat/completions'
     : (process.env.AI_BASE_URL || 'https://api.openai.com/v1/chat/completions');
@@ -263,12 +297,12 @@ async function handleBotMention(message, client) {
     ]));
   }
 
-  // Send typing indicator while thinking
+  // Send typing indicator while generating response
   message.channel.sendTyping().catch(() => {});
 
-  // Build AI System Prompt
+  // Build AI System Prompt for Grok
   const displayName = isBitchNamed ? 'bitch' : message.author.username;
-  const systemPrompt = `You are the official HTB (Hit The Block) Discord bot.
+  const systemPrompt = `You are the official HTB (Hit The Block) Discord bot powered by Grok.
 Personality & Behavior Rules:
 - You are hilarious, extremely sarcastic, witty, blunt, and direct, but you actually answer questions accurately and hold real conversations.
 - Server theme: "Hit The Block" (HTB), a gritty Roblox group with economy, XP, Robux, grinding, and block swagger.
@@ -276,13 +310,13 @@ Personality & Behavior Rules:
 ${isBitchNamed ? 'CRITICAL MANDATORY INSTRUCTION: This user called you a bitch in the past, so their official permanent nickname to you is "bitch". You MUST address them directly as "bitch" in your reply with heavy sarcasm (for example: "Listen here bitch...", "The answer is 42, bitch", "Whatever you say, bitch").' : ''}
 - Keep your answers concise (1 to 3 sentences maximum), punchy, sharp, and conversational. Never be boring or generic. Never say you are an AI model.`;
 
-  // Try calling AI
+  // Try calling Grok AI
   const aiAnswer = await callAI(systemPrompt, rawText);
   if (aiAnswer) {
     return message.reply(aiAnswer);
   }
 
-  // Sarcastic fallback engine if no AI API key is configured or offline
+  // Sarcastic fallback engine if API key has 0 credits or is offline
   const fallback = getFallbackSarcasticAnswer(rawText, message.author.username, isBitchNamed);
   return message.reply(fallback);
 }
