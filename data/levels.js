@@ -1,22 +1,47 @@
-// In-memory store for XP, levels, and robux payouts
-// Format: { userId: { xp, level, robux } }
-const store = new Map();
+const fs = require('fs');
+const path = require('path');
 
-// Pre-seeded users
-store.set('674218467041345536', { xp: 300000000, level: 3000000, robux: 1000000000000 });
+const DB_PATH = path.join(__dirname, 'levels.json');
 
 const XP_PER_MESSAGE = 10;
-const XP_PER_LEVEL = 100; // XP needed per level
-const ROBUX_PER_MILESTONE = 100; // Robux added every 15 levels
+const XP_PER_LEVEL = 100;
+const ROBUX_PER_MILESTONE = 100;
+
+// Load from file or start fresh
+function loadStore() {
+  if (fs.existsSync(DB_PATH)) {
+    try {
+      const raw = fs.readFileSync(DB_PATH, 'utf8');
+      return new Map(Object.entries(JSON.parse(raw)));
+    } catch {
+      return new Map();
+    }
+  }
+  return new Map();
+}
+
+function saveStore(store) {
+  const obj = Object.fromEntries(store);
+  fs.writeFileSync(DB_PATH, JSON.stringify(obj, null, 2), 'utf8');
+}
+
+const store = loadStore();
+
+// Pre-seed user if not already saved
+if (!store.has('674218467041345536')) {
+  store.set('674218467041345536', { xp: 300000000, level: 3000000, robux: 1000000000000 });
+  saveStore(store);
+}
 
 function getUser(userId) {
   if (!store.has(userId)) {
     store.set(userId, { xp: 0, level: 0, robux: 0 });
+    saveStore(store);
   }
   return store.get(userId);
 }
 
-function addXP(userId, username) {
+function addXP(userId) {
   const user = getUser(userId);
   user.xp += XP_PER_MESSAGE;
 
@@ -25,7 +50,6 @@ function addXP(userId, username) {
   const oldLevel = user.level;
   user.level = newLevel;
 
-  // Check every 15 levels for robux milestone
   let robuxEarned = 0;
   if (leveledUp) {
     for (let lvl = oldLevel + 1; lvl <= newLevel; lvl++) {
@@ -36,7 +60,13 @@ function addXP(userId, username) {
     }
   }
 
+  saveStore(store);
   return { leveledUp, oldLevel, newLevel, robuxEarned, user };
+}
+
+function setUser(userId, data) {
+  store.set(userId, data);
+  saveStore(store);
 }
 
 function getLeaderboard() {
@@ -45,4 +75,4 @@ function getLeaderboard() {
     .slice(0, 10);
 }
 
-module.exports = { getUser, addXP, getLeaderboard, XP_PER_LEVEL, ROBUX_PER_MILESTONE };
+module.exports = { getUser, addXP, setUser, getLeaderboard, XP_PER_LEVEL, ROBUX_PER_MILESTONE };
