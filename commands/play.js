@@ -69,24 +69,42 @@ const COOKIE_STR = [
 ].join('; ');
 
 function getAudioStream(bin, url) {
-  const proc = spawn(bin, [
+  // yt-dlp pipes raw audio to ffmpeg, ffmpeg converts to opus for Discord
+  const ytProc = spawn(bin, [
     '--no-playlist',
     '--no-warnings',
-    '-f', 'bestaudio[ext=webm]/bestaudio[ext=mp4]/bestaudio/best',
+    '-f', 'bestaudio',
     '--add-header', `Cookie:${COOKIE_STR}`,
     '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
     '-o', '-',
     url,
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-  proc.stderr.on('data', d => {
+  ytProc.stderr.on('data', d => {
     const line = d.toString().trim();
     if (line) console.error('[yt-dlp]', line);
   });
 
-  proc.on('error', (err) => console.error('[yt-dlp spawn error]', err.message));
+  // Pipe through ffmpeg to convert to s16le PCM which Discord voice can handle
+  const ffmpeg = spawn('ffmpeg', [
+    '-i', 'pipe:0',
+    '-ac', '2',
+    '-ar', '48000',
+    '-f', 's16le',
+    '-loglevel', 'error',
+    'pipe:1',
+  ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
-  return proc;
+  ffmpeg.stderr.on('data', d => {
+    const line = d.toString().trim();
+    if (line) console.error('[ffmpeg]', line);
+  });
+
+  ytProc.stdout.pipe(ffmpeg.stdin);
+  ytProc.on('error', err => console.error('[yt-dlp error]', err.message));
+  ffmpeg.on('error', err => console.error('[ffmpeg error]', err.message));
+
+  return { stream: ffmpeg.stdout, ytProc, ffmpeg };
 }
 
 module.exports = {
@@ -132,9 +150,9 @@ module.exports = {
       const bin = await getYtDlpBin();
       console.log('[play] Using binary:', bin);
       console.log('[play] Video URL:', videoUrl);
-      const proc = getAudioStream(bin, videoUrl);
+      const { stream, ytProc, ffmpeg } = getAudioStream(bin, videoUrl);
 
-      const resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary });
+      const resource = createAudioResource(stream, { inputType: StreamType.Raw });
 
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
@@ -154,7 +172,7 @@ module.exports = {
       connection.subscribe(player);
       player.play(resource);
 
-      message.client.musicStore.set(message.guild.id, { player, connection, proc });
+      message.client.musicStore.set(message.guild.id, { player, connection, ytProc, ffmpeg });
 
       const embed = new EmbedBuilder()
         .setColor(0xff0000)
@@ -169,14 +187,16 @@ module.exports = {
 
       player.on(AudioPlayerStatus.Idle, () => {
         connection.destroy();
-        try { proc.kill(); } catch {}
+        try { ytProc.kill(); } catch {}
+        try { ffmpeg.kill(); } catch {}
         message.client.musicStore.delete(message.guild.id);
       });
 
       player.on('error', (err) => {
         console.error('[PLAYER ERROR]', err.message);
         connection.destroy();
-        try { proc.kill(); } catch {}
+        try { ytProc.kill(); } catch {}
+        try { ffmpeg.kill(); } catch {}
         message.client.musicStore.delete(message.guild.id);
         message.channel.send('❌ Playback error.').catch(() => {});
       });
@@ -189,7 +209,8 @@ module.exports = {
           ]);
         } catch {
           connection.destroy();
-          try { proc.kill(); } catch {}
+          try { ytProc.kill(); } catch {}
+          try { ffmpeg.kill(); } catch {}
           message.client.musicStore.delete(message.guild.id);
         }
       });
