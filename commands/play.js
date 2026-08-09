@@ -9,8 +9,30 @@ const {
 } = require('@discordjs/voice');
 const ytdl = require('@distube/ytdl-core');
 const { EmbedBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 
-// Search YouTube without API key using a simple fetch
+// Load cookies to bypass YouTube 429 on cloud IPs
+function loadCookies() {
+  try {
+    const cookiePath = path.join(__dirname, '../data/cookies.txt');
+    const lines = fs.readFileSync(cookiePath, 'utf8').split('\n');
+    const cookies = [];
+    for (const line of lines) {
+      if (line.startsWith('#') || !line.trim()) continue;
+      const parts = line.split('\t');
+      if (parts.length < 7) continue;
+      cookies.push({ name: parts[5], value: parts[6] });
+    }
+    return cookies;
+  } catch {
+    return [];
+  }
+}
+
+const agent = ytdl.createAgent(loadCookies());
+
+// Search YouTube without API key
 async function searchYouTube(query) {
   const encoded = encodeURIComponent(query);
   const url = `https://www.youtube.com/results?search_query=${encoded}`;
@@ -20,7 +42,6 @@ async function searchYouTube(query) {
     },
   });
   const html = await res.text();
-  // Extract first video ID from ytInitialData
   const match = html.match(/"videoId":"([a-zA-Z0-9_-]{11})"/);
   if (!match) return null;
   return `https://www.youtube.com/watch?v=${match[1]}`;
@@ -32,7 +53,6 @@ module.exports = {
   usage: '.play <song name or URL>',
 
   async execute(message, args) {
-    // Must be in a voice channel
     const voiceChannel = message.member?.voice?.channel;
     if (!voiceChannel) {
       return message.reply('❌ You need to be in a voice channel first.');
@@ -62,8 +82,8 @@ module.exports = {
         }
       }
 
-      // Get video info
-      const info = await ytdl.getInfo(videoUrl);
+      // Get video info with cookies
+      const info = await ytdl.getInfo(videoUrl, { agent });
       const videoTitle = info.videoDetails.title;
       const videoDuration = formatDuration(parseInt(info.videoDetails.lengthSeconds));
       const videoThumbnail = info.videoDetails.thumbnails?.at(-1)?.url;
@@ -77,11 +97,12 @@ module.exports = {
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
 
-      // Create stream
+      // Create stream with cookies
       const stream = ytdl(videoUrl, {
         filter: 'audioonly',
         quality: 'highestaudio',
         highWaterMark: 1 << 25,
+        agent,
       });
 
       const resource = createAudioResource(stream, {
