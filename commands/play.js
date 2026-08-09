@@ -8,8 +8,12 @@ const {
   StreamType,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const { spawn } = require('child_process');
+const { YtDlp } = require('@distube/yt-dlp');
 const yts = require('yt-search');
+const { spawn } = require('child_process');
+const path = require('path');
+
+const ytDlp = new YtDlp();
 
 const COOKIE_STR = [
   'HSID=AUolAcz8zuPf-xvQ1',
@@ -28,20 +32,25 @@ const COOKIE_STR = [
   'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
 ].join('; ');
 
-// Stream audio directly from yt-dlp as a Node.js readable stream
-function ytdlpStream(url) {
-  const args = [
-    '-f', 'bestaudio[ext=webm]/bestaudio/best',
+// Get audio stream via bundled yt-dlp binary
+function getAudioStream(url) {
+  const binPath = ytDlp.binaryPath;
+  const proc = spawn(binPath, [
+    '-f', 'bestaudio',
     '--no-playlist',
     '--no-warnings',
     '--add-header', `Cookie:${COOKIE_STR}`,
     '--add-header', 'User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
-    '-o', '-',  // output to stdout
+    '-o', '-',
     url,
-  ];
-  const proc = spawn('yt-dlp', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-  proc.stderr.on('data', d => console.error('[yt-dlp]', d.toString().trim()));
-  return proc.stdout;
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+  proc.stderr.on('data', d => {
+    const msg = d.toString().trim();
+    if (msg) console.error('[yt-dlp stderr]', msg);
+  });
+
+  return proc;
 }
 
 module.exports = {
@@ -61,11 +70,11 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Please provide a song name or URL. Usage: `.play <song>`');
+      return message.reply('❌ Usage: `.play <song name or URL>`');
     }
 
     const query = args.join(' ');
-    const searching = await message.channel.send(`🔍 Searching for **${query}**...`);
+    const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
 
     try {
       let videoUrl, videoTitle, videoDuration, videoThumbnail;
@@ -73,33 +82,27 @@ module.exports = {
       const isUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(query);
       if (isUrl) {
         videoUrl = query;
-        videoTitle = 'Unknown Title';
+        videoTitle = query;
         videoDuration = 'Unknown';
         videoThumbnail = null;
-        // Try to get info
-        try {
-          const r = await yts({ videoId: query.match(/(?:v=|youtu\.be\/)([^&\s]+)/)?.[1] || '' });
-          if (r?.title) {
-            videoTitle = r.title;
-            videoDuration = r.timestamp;
-            videoThumbnail = r.thumbnail;
-          }
-        } catch {}
       } else {
         const result = await yts(query);
         const video = result?.videos?.[0];
-        if (!video) return searching.edit('❌ No results found for that search.');
+        if (!video) return statusMsg.edit('❌ No results found.');
         videoUrl = video.url;
         videoTitle = video.title;
         videoDuration = video.timestamp || 'Unknown';
         videoThumbnail = video.thumbnail || null;
       }
 
-      await searching.edit(`⏳ Joining and loading **${videoTitle}**...`);
+      await statusMsg.edit(`⏳ Loading **${videoTitle}**...`);
 
-      // Stream via yt-dlp
-      const audioStream = ytdlpStream(videoUrl);
-      const resource = createAudioResource(audioStream, { inputType: StreamType.Arbitrary });
+      // Spawn yt-dlp and pipe stdout as audio
+      const proc = getAudioStream(videoUrl);
+
+      const resource = createAudioResource(proc.stdout, {
+        inputType: StreamType.Arbitrary,
+      });
 
       // Join VC
       const connection = joinVoiceChannel({
@@ -114,7 +117,7 @@ module.exports = {
       connection.subscribe(player);
       player.play(resource);
 
-      message.client.musicStore.set(message.guild.id, { player, connection });
+      message.client.musicStore.set(message.guild.id, { player, connection, proc });
 
       const embed = new EmbedBuilder()
         .setColor(0xff0000)
@@ -125,18 +128,20 @@ module.exports = {
         .setFooter({ text: `Requested by ${message.author.tag}` })
         .setTimestamp();
 
-      await searching.edit({ content: '', embeds: [embed] });
+      await statusMsg.edit({ content: '', embeds: [embed] });
 
       player.on(AudioPlayerStatus.Idle, () => {
         connection.destroy();
+        proc.kill();
         message.client.musicStore.delete(message.guild.id);
       });
 
       player.on('error', (err) => {
         console.error('[PLAYER ERROR]', err.message);
         connection.destroy();
+        proc.kill();
         message.client.musicStore.delete(message.guild.id);
-        message.channel.send('❌ Playback error occurred.').catch(() => {});
+        message.channel.send('❌ Playback error.').catch(() => {});
       });
 
       connection.on(VoiceConnectionStatus.Disconnected, async () => {
@@ -147,13 +152,14 @@ module.exports = {
           ]);
         } catch {
           connection.destroy();
+          proc.kill();
           message.client.musicStore.delete(message.guild.id);
         }
       });
 
     } catch (err) {
       console.error('[PLAY ERROR]', err.message);
-      searching.edit(`❌ Something went wrong: \`${err.message}\``).catch(() => {});
+      statusMsg.edit(`❌ Something went wrong: \`${err.message}\``).catch(() => {});
     }
   },
 };

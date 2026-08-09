@@ -12,6 +12,7 @@ module.exports = {
 
     music.player.stop();
     music.connection.destroy();
+    if (music.proc) music.proc.kill();
     client.musicStore.delete(message.guild.id);
 
     message.reply('⏹️ Stopped the music and left the voice channel.');
