@@ -51,4 +51,53 @@ module.exports = {
       interaction.reply({ content: '❌ Failed to unban that user. Please verify my permissions and try again.', ephemeral: true });
     }
   },
+
+  // Prefix command support (.unban <userId> [reason])
+  async prefixExecute(message, args, client) {
+    if (!message.member.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+      return message.reply('❌ You do not have permission to unban members.');
+    }
+
+    if (!message.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
+      return message.reply('❌ I do not have permission to unban members in this server.');
+    }
+
+    if (!args.length) {
+      return message.reply('❌ Usage: `.unban <userId> [reason]` or `/unban user:<userId>`');
+    }
+
+    const rawUser = args[0];
+    const userId = rawUser.replace(/[^0-9]/g, '');
+    const reason = args.slice(1).join(' ') || 'No reason provided';
+
+    if (!userId || userId.length < 17 || userId.length > 20) {
+      return message.reply('❌ Please provide a valid 17-20 digit user ID.');
+    }
+
+    try {
+      const ban = await message.guild.bans.fetch(userId).catch(() => null);
+      if (!ban) {
+        return message.reply('❌ That user is not currently banned in this server.');
+      }
+
+      await message.guild.members.unban(userId, `${reason} | Unbanned by ${message.author.tag}`);
+
+      const userDisplay = ban.user ? `${ban.user.tag} (${userId})` : userId;
+
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle('✅ Member Unbanned')
+        .addFields(
+          { name: 'User', value: userDisplay, inline: true },
+          { name: 'Moderator', value: message.author.tag, inline: true },
+          { name: 'Reason', value: reason },
+        )
+        .setTimestamp();
+
+      await message.reply({ embeds: [embed] });
+    } catch (err) {
+      console.error('[UNBAN ERROR]', err);
+      message.reply('❌ Failed to unban that user. Please verify my permissions and try again.');
+    }
+  },
 };

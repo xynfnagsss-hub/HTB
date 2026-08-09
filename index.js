@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, Partials, REST, Routes } = require('discord.js');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
@@ -60,9 +60,26 @@ mongoose.connect(process.env.MONGO_URI)
     process.exit(1);
   });
 
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ HTB Bot is online as ${client.user.tag}`);
   client.user.setActivity('HTB | Hit The Block', { type: 3 });
+
+  // Automatically register and sync slash commands on startup
+  try {
+    const slashCommands = [];
+    for (const cmd of client.commands.values()) {
+      if (cmd.data) slashCommands.push(cmd.data.toJSON());
+    }
+
+    const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: slashCommands }
+    );
+    console.log(`✅ Synced ${slashCommands.length} slash command(s) globally with Discord.`);
+  } catch (err) {
+    console.warn('⚠️ Slash command sync warning:', err.message);
+  }
 });
 
 client.on('messageDelete', (message) => {
@@ -114,9 +131,14 @@ client.on('messageCreate', async (message) => {
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
   const command = client.commands.get(commandName);
-  if (!command || command.data) return;
+  if (!command) return;
+
   try {
-    await command.execute(message, args, client);
+    if (command.prefixExecute) {
+      await command.prefixExecute(message, args, client);
+    } else if (!command.data) {
+      await command.execute(message, args, client);
+    }
   } catch (err) {
     console.error(`[ERROR] .${commandName}:`, err);
     message.reply('❌ There was an error executing that command.');
