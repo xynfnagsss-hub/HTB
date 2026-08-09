@@ -13,7 +13,6 @@ const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
 
-// Resolve ffmpeg from ffmpeg-static
 function getFfmpeg() {
   const base = path.join(__dirname, '../node_modules/ffmpeg-static');
   const linux = path.join(base, 'ffmpeg');
@@ -21,32 +20,21 @@ function getFfmpeg() {
   return fs.existsSync(linux) ? linux : fs.existsSync(win) ? win : 'ffmpeg';
 }
 
-// Resolve binaries — use bundled ones so Railway always has them
-function getBinaries() {
-  const base = path.join(__dirname, '../node_modules');
-
-  // ffmpeg — use bundled ffmpeg-static
-  const ffmpegWin = path.join(base, 'ffmpeg-static/ffmpeg.exe');
-  const ffmpegLinux = path.join(base, 'ffmpeg-static/ffmpeg');
-  const ffmpeg = fs.existsSync(ffmpegLinux) ? ffmpegLinux
-    : fs.existsSync(ffmpegWin) ? ffmpegWin
-    : 'ffmpeg';
-
-  // yt-dlp — always use system binary (installed via nixpacks on Railway)
-  // The bundled @distube/yt-dlp binary is a Python script and needs Python in PATH
-  const ytdlp = 'yt-dlp';
-
-  return { ffmpeg, ytdlp };
-}
-
 const COOKIES_FILE = path.join(__dirname, '../data/cookies.txt');
 
-const YTDLP_ARGS = [
-  '--cookies', COOKIES_FILE,
-  '--no-playlist',
-  '--no-warnings',
-  '--extractor-retries', '3',
-];
+function runYtDlp(ytdlp, args) {
+  return new Promise((resolve, reject) => {
+    let out = '', err = '';
+    const proc = spawn(ytdlp, args);
+    proc.stdout.on('data', d => out += d);
+    proc.stderr.on('data', d => { err += d.toString(); console.error('[yt-dlp]', d.toString().trim()); });
+    proc.on('close', code => {
+      if (code !== 0) return reject(new Error(`yt-dlp failed (${code}): ${err.slice(0, 400)}`));
+      try { resolve(JSON.parse(out)); } catch { reject(new Error('Failed to parse yt-dlp output')); }
+    });
+    proc.on('error', reject);
+  });
+}
 
 module.exports = {
   name: 'play',
@@ -65,12 +53,10 @@ module.exports = {
 
     const query = args.join(' ');
     const isUrl = /^https?:\/\//.test(query);
-    const input = isUrl ? query : `ytsearch1:${query}`;
 
     const statusMsg = await message.channel.send(`🔍 Searching **${query}**...`);
 
     const ffmpeg = getFfmpeg();
-
     let ytdlp;
     try {
       ytdlp = await ensureYtDlp();
@@ -78,43 +64,55 @@ module.exports = {
       return statusMsg.edit(`❌ Failed to get yt-dlp: \`${e.message}\``);
     }
 
-    console.log('[play] ffmpeg:', ffmpeg);
-    console.log('[play] ytdlp:', ytdlp);
-    console.log('[play] input:', input);
+    const baseArgs = [
+      '--cookies', COOKIES_FILE,
+      '--no-playlist',
+      '--no-warnings',
+    ];
 
     try {
-      // Step 1: Get video info as JSON
-      const info = await new Promise((resolve, reject) => {
-        let out = '', err = '';
-        const proc = spawn(ytdlp, [
+      let videoUrl, title, duration, thumbnail;
+
+      if (isUrl) {
+        // Direct URL — get info
+        const info = await runYtDlp(ytdlp, [
           '--dump-single-json',
-          ...YTDLP_ARGS,
-          input,
+          '--skip-download',
+          ...baseArgs,
+          query,
         ]);
-        proc.stdout.on('data', d => out += d);
-        proc.stderr.on('data', d => { err += d; console.error('[yt-dlp info]', d.toString().trim()); });
-        proc.on('close', code => {
-          if (code !== 0) return reject(new Error(`yt-dlp info failed (${code}): ${err.slice(0, 300)}`));
-          try { resolve(JSON.parse(out)); } catch (e) { reject(new Error('Failed to parse yt-dlp JSON')); }
-        });
-        proc.on('error', reject);
-      });
+        videoUrl = info.webpage_url || info.url;
+        title = info.title || 'Unknown';
+        duration = formatDuration(info.duration || 0);
+        thumbnail = info.thumbnail || null;
+      } else {
+        // Search — use ytsearch to get first result URL, then get its info
+        const searchInfo = await runYtDlp(ytdlp, [
+          '--dump-single-json',
+          '--skip-download',
+          '--flat-playlist',
+          '--no-warnings',
+          '--cookies', COOKIES_FILE,
+          `ytsearch1:${query}`,
+        ]);
 
-      // Handle search results (entries array) vs direct video
-      const video = info.entries ? info.entries[0] : info;
-      if (!video) return statusMsg.edit('❌ No results found.');
+        // flat-playlist gives us entries with just id/url
+        const entry = searchInfo.entries?.[0] || searchInfo;
+        videoUrl = entry.url?.startsWith('http') ? entry.url : `https://www.youtube.com/watch?v=${entry.id || entry.url}`;
+        title = entry.title || query;
+        duration = formatDuration(entry.duration || 0);
+        thumbnail = entry.thumbnail || null;
+      }
 
-      const videoUrl = video.webpage_url || video.url;
-      const title = video.title || 'Unknown';
-      const duration = formatDuration(video.duration || 0);
-      const thumbnail = video.thumbnail || null;
-
+      if (!videoUrl) return statusMsg.edit('❌ No results found.');
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
-      // Step 2: Stream audio via yt-dlp piped through ffmpeg -> Discord
+      // Stream via yt-dlp → ffmpeg → Discord
       const ytProc = spawn(ytdlp, [
+        '--no-warnings',
+        '--cookies', COOKIES_FILE,
+        '-f', 'bestaudio/best',
         '-o', '-',
-        ...YTDLP_ARGS,
         videoUrl,
       ]);
 
@@ -135,7 +133,6 @@ module.exports = {
 
       const resource = createAudioResource(ffmpegProc.stdout, { inputType: StreamType.Raw });
 
-      // Step 3: Join VC
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: message.guild.id,
@@ -150,7 +147,6 @@ module.exports = {
 
       client.musicStore.set(message.guild.id, { player, connection, ytProc, ffmpegProc });
 
-      // Step 4: Now playing embed
       const embed = new EmbedBuilder()
         .setColor(0xff0000)
         .setTitle('🎵 Now Playing')
@@ -162,7 +158,6 @@ module.exports = {
 
       await statusMsg.edit({ content: '', embeds: [embed] });
 
-      // Cleanup on finish
       const cleanup = () => {
         connection.destroy();
         try { ytProc.kill(); } catch {}
