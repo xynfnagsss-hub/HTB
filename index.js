@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
+const { handleBotMention } = require('./handlers/chatHandler');
 
 const client = new Client({
   intents: [
@@ -98,6 +99,17 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   await handleLevelXP(message);
+
+  // Handle bot mentions / conversational chat
+  if (!message.content.startsWith(PREFIX) && message.mentions.has(client.user)) {
+    try {
+      await handleBotMention(message, client);
+    } catch (err) {
+      console.error('[ERROR] handleBotMention:', err);
+    }
+    return;
+  }
+
   if (!message.content.startsWith(PREFIX)) return;
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
