@@ -130,6 +130,8 @@ module.exports = {
       await statusMsg.edit(`⏳ Connecting...`);
 
       const bin = await getYtDlpBin();
+      console.log('[play] Using binary:', bin);
+      console.log('[play] Video URL:', videoUrl);
       const proc = getAudioStream(bin, videoUrl);
 
       const resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary });
@@ -140,7 +142,13 @@ module.exports = {
         adapterCreator: message.guild.voiceAdapterCreator,
       });
 
-      await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      try {
+        await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      } catch {
+        connection.destroy();
+        try { proc.kill(); } catch {}
+        return statusMsg.edit('❌ Could not connect to the voice channel in time.').catch(() => {});
+      }
 
       const player = createAudioPlayer();
       connection.subscribe(player);
