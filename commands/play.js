@@ -9,18 +9,47 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const yts = require('yt-search');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 
-// Resolve bundled yt-dlp binary path (works on Linux/Railway and Windows)
-function getYtDlpBinary() {
-  const base = path.join(__dirname, '../node_modules/@distube/yt-dlp/bin');
-  const win = path.join(base, 'yt-dlp.exe');
-  const linux = path.join(base, 'yt-dlp');
-  if (fs.existsSync(linux)) return linux;
-  if (fs.existsSync(win)) return win;
-  return 'yt-dlp'; // fallback to system PATH
+const BIN_DIR = path.join(__dirname, '../bin');
+const YT_DLP_PATH = path.join(BIN_DIR, 'yt-dlp');
+
+// Download yt-dlp binary for Linux if not present
+async function ensureYtDlp() {
+  if (fs.existsSync(YT_DLP_PATH)) return YT_DLP_PATH;
+
+  // Try system yt-dlp first
+  try {
+    execSync('yt-dlp --version', { timeout: 5000 });
+    return 'yt-dlp';
+  } catch {}
+
+  // Download it
+  if (!fs.existsSync(BIN_DIR)) fs.mkdirSync(BIN_DIR, { recursive: true });
+
+  console.log('[play] Downloading yt-dlp binary...');
+  await new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(YT_DLP_PATH);
+    const url = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp';
+    https.get(url, (res) => {
+      if (res.statusCode === 302 || res.statusCode === 301) {
+        https.get(res.headers.location, (res2) => {
+          res2.pipe(file);
+          file.on('finish', () => { file.close(); resolve(); });
+        }).on('error', reject);
+      } else {
+        res.pipe(file);
+        file.on('finish', () => { file.close(); resolve(); });
+      }
+    }).on('error', reject);
+  });
+
+  fs.chmodSync(YT_DLP_PATH, '755');
+  console.log('[play] yt-dlp downloaded successfully');
+  return YT_DLP_PATH;
 }
 
 const COOKIE_STR = [
@@ -40,9 +69,7 @@ const COOKIE_STR = [
   'LOGIN_INFO=AFmmF2swRQIhAJnOv74IhwkOI5PiCX-icn6kLUdf1fPqfK4O0l5-g6crAiBAopo_ZxyDTuI8TtEEZt8q2Y4y4i7CmQ2ZvrrDE7kaeQ:QUQ3MjNmeGpyRzRGRjZ4QnZvLTVYcE1tejZSeGx3ckJ0R092M1QwcEQ0YUFVb2ltRjQtd01NYThyOW9HZWJXZWI4YnVDOXdZMFFxTHpLRGpCYkRSWllTY2Z2WTdtRXl2TVJOcnVUeDdQVHF3M3hrdGhPZ0hwUEZMTXM1VmZmemUzc3hTXzFTTld5aTFLcHAwSFgzRDVSOG56Ung1eWRFQld3',
 ].join('; ');
 
-// Get audio stream via bundled yt-dlp binary
-function getAudioStream(url) {
-  const binPath = getYtDlpBinary();
+function getAudioStream(binPath, url) {
   const proc = spawn(binPath, [
     '-f', 'bestaudio',
     '--no-playlist',
@@ -55,7 +82,7 @@ function getAudioStream(url) {
 
   proc.stderr.on('data', d => {
     const msg = d.toString().trim();
-    if (msg) console.error('[yt-dlp stderr]', msg);
+    if (msg) console.error('[yt-dlp]', msg);
   });
 
   return proc;
@@ -68,29 +95,26 @@ module.exports = {
 
   async execute(message, args) {
     const voiceChannel = message.member?.voice?.channel;
-    if (!voiceChannel) {
-      return message.reply('❌ You need to be in a voice channel first.');
-    }
+    if (!voiceChannel) return message.reply('❌ You need to be in a voice channel first.');
 
     const permissions = voiceChannel.permissionsFor(message.client.user);
     if (!permissions.has('Connect') || !permissions.has('Speak')) {
       return message.reply('❌ I need **Connect** and **Speak** permissions in your voice channel.');
     }
 
-    if (!args.length) {
-      return message.reply('❌ Usage: `.play <song name or URL>`');
-    }
+    if (!args.length) return message.reply('❌ Usage: `.play <song name or URL>`');
 
     const query = args.join(' ');
     const statusMsg = await message.channel.send(`🔍 Searching for **${query}**...`);
 
     try {
+      // Search or use URL directly
       let videoUrl, videoTitle, videoDuration, videoThumbnail;
-
       const isUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(query);
+
       if (isUrl) {
         videoUrl = query;
-        videoTitle = query;
+        videoTitle = 'Unknown Title';
         videoDuration = 'Unknown';
         videoThumbnail = null;
       } else {
@@ -105,12 +129,11 @@ module.exports = {
 
       await statusMsg.edit(`⏳ Loading **${videoTitle}**...`);
 
-      // Spawn yt-dlp and pipe stdout as audio
-      const proc = getAudioStream(videoUrl);
+      // Ensure yt-dlp is available
+      const binPath = await ensureYtDlp();
 
-      const resource = createAudioResource(proc.stdout, {
-        inputType: StreamType.Arbitrary,
-      });
+      const proc = getAudioStream(binPath, videoUrl);
+      const resource = createAudioResource(proc.stdout, { inputType: StreamType.Arbitrary });
 
       // Join VC
       const connection = joinVoiceChannel({
