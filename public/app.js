@@ -587,14 +587,11 @@ if (checkoutBtn) {
             <i class="fa-solid fa-bolt"></i> <span>DIRECT CASHAPP PURCHASE (NO TICKET NEEDED)</span>
           </div>
           <p style="font-size: 0.82rem; color: #a3b2c9; margin-bottom: 12px; line-height: 1.4;">
-            Send <strong>$${total}</strong> to either CashApp below and include <code style="color: var(--gold-light); background: #000; padding: 2px 6px; border-radius: 4px;">${orderId}</code> in the CashApp payment note:
+            Send <strong>$${total}</strong> to the official HTB CashApp below and include <code style="color: var(--gold-light); background: #000; padding: 2px 6px; border-radius: 4px;">${orderId}</code> in the payment note:
           </p>
 
           <div style="display: flex; flex-direction: column; gap: 8px;">
-            <a href="https://cash.app/$CKHEADTAPP/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 12px; font-size: 0.95rem;">
-              <i class="fa-solid fa-dollar-sign"></i> Pay with CashApp: $CKHEADTAPP
-            </a>
-            <a href="https://cash.app/$itsnabula/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 12px; font-size: 0.95rem;">
+            <a href="https://cash.app/$itsnabula/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 13px; font-size: 1rem;">
               <i class="fa-solid fa-dollar-sign"></i> Pay with CashApp: $itsnabula
             </a>
           </div>
