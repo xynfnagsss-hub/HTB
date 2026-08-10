@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
   <title>HTB MARKET | Hit The Block Official Store</title>
   <meta name="description" content="Official HTB (Hit The Block) Market. Official roles, server access passes, staff clearance, and high command ranks for 17,000+ verified members.">
   
@@ -57,10 +58,19 @@
       </nav>
 
       <div class="nav-actions">
+        <!-- Auth Container (Switches between Login Button & User Profile Pill) -->
+        <div id="authContainer">
+          <button class="btn btn-auth" id="loginModalBtn">
+            <i class="fa-solid fa-user-lock"></i>
+            <span>Login</span>
+          </button>
+        </div>
+
         <a href="https://discord.gg/htbw" target="_blank" rel="noopener" class="btn btn-discord" id="discordJoinBtn">
           <i class="fa-brands fa-discord"></i>
-          <span>Join 17k+ Server</span>
+          <span>17k+ Server</span>
         </a>
+
         <button class="cart-trigger-btn" id="cartToggleBtn" aria-label="Open Order List">
           <i class="fa-solid fa-ticket"></i>
           <span class="cart-badge" id="cartCountBadge">0</span>
@@ -363,7 +373,39 @@
     </div>
   </aside>
 
-  <!-- Ticket Modal -->
+  <!-- Login Modal (Discord & Google OAuth) -->
+  <div class="modal-backdrop" id="loginModalBackdrop">
+    <div class="modal-card" id="loginModalCard">
+      <button class="modal-close" id="loginModalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="login-modal-content">
+        <div class="login-logo-wrap">
+          <img src="logo.png" alt="HTB Emblem" class="login-logo">
+        </div>
+        <h2 class="login-title">LOGIN TO HTB MARKET</h2>
+        <p class="login-desc">Authorize your account to sync your roles, order tickets, and community perks.</p>
+
+        <div class="oauth-buttons-wrap">
+          <!-- Discord OAuth Button (Bot Authorization) -->
+          <a href="#" class="btn-oauth btn-oauth-discord" id="discordAuthBtn">
+            <i class="fa-brands fa-discord"></i>
+            <span>Continue with Discord</span>
+          </a>
+
+          <!-- Google Sign-in Button -->
+          <button class="btn-oauth btn-oauth-google" id="googleAuthBtn">
+            <i class="fa-brands fa-google"></i>
+            <span>Continue with Google</span>
+          </button>
+        </div>
+
+        <p class="oauth-disclaimer">
+          By continuing, you agree to HTB terms and allow our official bot to verify your member status.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Order Modal -->
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal-card" id="modalCard">
       <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>

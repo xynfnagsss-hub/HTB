@@ -1,7 +1,10 @@
 /**
  * HTB (HIT THE BLOCK) OFFICIAL MARKETPLACE
  * Real In-Server Roles, Access Passes & Command Tiers (Lifetime & Monthly)
+ * Discord & Google OAuth Authentication System
  */
+
+const BOT_CLIENT_ID = '1535426505599881297';
 
 const MARKET_ITEMS = [
   // 1. Entry & Custom Roles
@@ -209,6 +212,7 @@ const MARKET_ITEMS = [
 
 // State
 let cart = JSON.parse(localStorage.getItem('htb_market_cart_v2') || '[]');
+let currentUser = JSON.parse(localStorage.getItem('htb_auth_user') || 'null');
 let activeCategory = 'all';
 let billingCycle = 'lifetime'; // 'lifetime' | 'monthly'
 
@@ -216,6 +220,13 @@ let billingCycle = 'lifetime'; // 'lifetime' | 'monthly'
 const productsGrid = document.getElementById('productsGrid');
 const filterTabs = document.getElementById('filterTabs');
 const billingToggle = document.getElementById('billingToggle');
+const authContainer = document.getElementById('authContainer');
+const loginModalBackdrop = document.getElementById('loginModalBackdrop');
+const loginModalBtn = document.getElementById('loginModalBtn');
+const loginModalCloseBtn = document.getElementById('loginModalCloseBtn');
+const discordAuthBtn = document.getElementById('discordAuthBtn');
+const googleAuthBtn = document.getElementById('googleAuthBtn');
+
 const cartDrawer = document.getElementById('cartDrawer');
 const cartBackdrop = document.getElementById('cartBackdrop');
 const cartToggleBtn = document.getElementById('cartToggleBtn');
@@ -231,6 +242,122 @@ const modalBackdrop = document.getElementById('modalBackdrop');
 const modalContent = document.getElementById('modalContent');
 const modalCloseBtn = document.getElementById('modalCloseBtn');
 const faqAccordion = document.getElementById('faqAccordion');
+
+// Check OAuth Hash Callback from Discord
+function handleOAuthCallback() {
+  const hash = window.location.hash;
+  if (hash && hash.includes('access_token=')) {
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+
+    if (accessToken) {
+      // Fetch user profile from Discord
+      fetch('https://discord.com/api/users/@me', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      })
+      .then(res => res.json())
+      .then(userData => {
+        if (userData && userData.id) {
+          const avatarUrl = userData.avatar
+            ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png?size=128`
+            : `https://cdn.discordapp.com/embed/avatars/${parseInt(userData.discriminator || '0') % 5}.png`;
+
+          currentUser = {
+            id: userData.id,
+            username: userData.global_name || userData.username,
+            tag: userData.discriminator !== '0' ? `${userData.username}#${userData.discriminator}` : `@${userData.username}`,
+            avatar: avatarUrl,
+            provider: 'discord',
+          };
+
+          localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+          updateAuthUI();
+          showToast(`Logged in as ${currentUser.username}!`);
+          window.history.replaceState(null, null, window.location.pathname);
+        }
+      })
+      .catch(err => {
+        console.error('Discord Auth Error:', err);
+      });
+    }
+  }
+}
+
+// Auth UI Manager
+function updateAuthUI() {
+  if (!authContainer) return;
+
+  if (currentUser) {
+    authContainer.innerHTML = `
+      <div class="user-profile-pill" title="Logged in as ${currentUser.tag}">
+        <img src="${currentUser.avatar}" alt="Avatar" class="user-avatar-img">
+        <div class="user-info-text">
+          <span class="user-display-name">${currentUser.username}</span>
+          <span class="user-status-tag"><i class="fa-solid fa-circle"></i> Verified</span>
+        </div>
+        <button class="btn-logout-pill" onclick="logoutUser()" title="Logout">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    `;
+  } else {
+    authContainer.innerHTML = `
+      <button class="btn btn-auth" id="loginModalBtn" onclick="openLoginModal()">
+        <i class="fa-solid fa-user-lock"></i>
+        <span>Login</span>
+      </button>
+    `;
+  }
+}
+
+function openLoginModal() {
+  if (loginModalBackdrop) {
+    const currentOrigin = window.location.origin + window.location.pathname;
+    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(currentOrigin)}&scope=identify+guilds+guilds.join`;
+    if (discordAuthBtn) discordAuthBtn.href = discordAuthUrl;
+    loginModalBackdrop.classList.add('open');
+  }
+}
+
+function closeLoginModal() {
+  if (loginModalBackdrop) loginModalBackdrop.classList.remove('open');
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('htb_auth_user');
+  updateAuthUI();
+  showToast('Logged out');
+}
+
+// Google Auth Simulation / Popup
+if (googleAuthBtn) {
+  googleAuthBtn.addEventListener('click', () => {
+    const email = prompt('Enter your Google email for HTB account sync:');
+    if (email && email.includes('@')) {
+      const name = email.split('@')[0];
+      currentUser = {
+        id: 'G-' + Math.floor(100000 + Math.random() * 900000),
+        username: name,
+        tag: email,
+        avatar: 'https://cdn-icons-png.flaticon.com/512/300/300221.png',
+        provider: 'google',
+      };
+      localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+      updateAuthUI();
+      closeLoginModal();
+      showToast(`Logged in as ${currentUser.username}!`);
+    }
+  });
+}
+
+if (loginModalBtn) loginModalBtn.addEventListener('click', openLoginModal);
+if (loginModalCloseBtn) loginModalCloseBtn.addEventListener('click', closeLoginModal);
+if (loginModalBackdrop) {
+  loginModalBackdrop.addEventListener('click', (e) => {
+    if (e.target === loginModalBackdrop) closeLoginModal();
+  });
+}
 
 function renderProducts() {
   const filtered = activeCategory === 'all'
@@ -416,6 +543,7 @@ if (checkoutBtn) {
     const orderId = 'HTB-' + Math.floor(100000 + Math.random() * 900000);
     const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
     const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x) — $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
+    const userTag = currentUser ? `${currentUser.tag} (ID: ${currentUser.id})` : 'Unlinked (Authorize on site for auto-grant)';
 
     modalContent.innerHTML = `
       <div style="text-align: center;">
@@ -423,17 +551,20 @@ if (checkoutBtn) {
           <i class="fa-solid fa-ticket"></i>
         </div>
         <h2 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; color: #fff;">TICKET ORDER READY</h2>
-        <p style="color: #8892a7; font-size: 0.95rem; margin-bottom: 20px;">Order Code: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
+        <p style="color: #8892a7; font-size: 0.95rem; margin-bottom: 16px;">Order Code: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
         
-        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 20px;">
+        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 16px;">
           <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--gold-light); font-weight: 800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
             <span>Selected Roles / Access</span>
             <span>Total: $${total}</span>
           </div>
-          <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0; line-height: 1.6;">${itemList}</pre>
+          <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0 0 10px 0; line-height: 1.6;">${itemList}</pre>
+          <div style="font-size: 0.8rem; color: #8892a7; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+            Buyer: <strong style="color: #57f287;">${userTag}</strong>
+          </div>
         </div>
 
-        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 22px; font-size: 0.84rem; color: #ff8585; text-align: left;">
+        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 20px; font-size: 0.84rem; color: #ff8585; text-align: left;">
           <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> NO REFUNDS. Open a ticket in Discord to purchase.
         </div>
 
@@ -499,6 +630,8 @@ if (faqAccordion) {
   });
 }
 
-// Init
+// Init & OAuth Check
+handleOAuthCallback();
+updateAuthUI();
 renderProducts();
 updateCartUI();
