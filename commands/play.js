@@ -4,6 +4,7 @@ const {
   createAudioResource,
   AudioPlayerStatus,
   VoiceConnectionStatus,
+  NoSubscriberBehavior,
   entersState,
   StreamType,
   getVoiceConnection,
@@ -108,7 +109,6 @@ async function extractTrackInfo(ytdlp, query) {
           duration: formatDuration(entry.duration || 0),
           thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
           directAudioUrl: directUrl,
-          source: 'YouTube',
         };
       }
     } catch (e) {
@@ -139,7 +139,6 @@ async function extractTrackInfo(ytdlp, query) {
         duration: formatDuration(scEntry.duration || 0),
         thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
         directAudioUrl: scDirectUrl,
-        source: 'YouTube (Audio Stream)',
       };
     }
   } catch (scErr) {
@@ -216,18 +215,26 @@ module.exports = {
         inputType: StreamType.OggOpus,
       });
 
+      // Join or get voice connection with selfDeaf
       let connection = getVoiceConnection(message.guild.id);
-      if (!connection || connection.joinConfig.channelId !== voiceChannel.id) {
+      if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed || connection.joinConfig.channelId !== voiceChannel.id) {
         connection = joinVoiceChannel({
           channelId: voiceChannel.id,
           guildId: message.guild.id,
           adapterCreator: message.guild.voiceAdapterCreator,
+          selfDeaf: true,
         });
       }
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
 
-      const player = createAudioPlayer();
+      // Create audio player configured to never pause during handshake
+      const player = createAudioPlayer({
+        behaviors: {
+          noSubscriber: NoSubscriberBehavior.Play,
+        },
+      });
+
       connection.subscribe(player);
 
       const sessionObj = {
