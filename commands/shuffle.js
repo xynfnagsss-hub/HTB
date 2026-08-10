@@ -1,55 +1,27 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { MusicManager } = require('../utils/musicManager');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('shuffle')
-    .setDescription('Shuffle the current queue'),
+    .setDescription('Shuffle the songs in the queue'),
 
   async execute(interaction) {
-    const musicManager = new MusicManager(interaction.client);
-    const queue = musicManager.getQueue(interaction.guild.id);
-
-    if (!queue || queue.tracks.length < 2) {
-      return interaction.reply({ content: '❌ Need at least 2 songs in the queue to shuffle.', ephemeral: true });
+    const queue = interaction.client.distube.getQueue(interaction.guildId);
+    if (!queue || queue.songs.length <= 1) {
+      return interaction.reply({ content: '❌ Not enough songs in the queue to shuffle.', ephemeral: true });
     }
 
-    // Fisher-Yates shuffle
-    for (let i = queue.tracks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue.tracks[i], queue.tracks[j]] = [queue.tracks[j], queue.tracks[i]];
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0x5765f2)
-      .setTitle('🔀 Queue Shuffled')
-      .setDescription(`Successfully shuffled **${queue.tracks.length}** tracks in the queue!`)
-      .setFooter({ text: `Shuffled by ${interaction.user.tag}` })
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
+    await queue.shuffle();
+    await interaction.reply('🔀 Queue shuffled successfully!');
   },
 
   async prefixExecute(message, args, client) {
-    const musicManager = new MusicManager(client);
-    const queue = musicManager.getQueue(message.guild.id);
-
-    if (!queue || queue.tracks.length < 2) {
-      return message.reply('❌ Need at least 2 songs in the queue to shuffle.');
+    const queue = client.distube.getQueue(message.guildId);
+    if (!queue || queue.songs.length <= 1) {
+      return message.reply('❌ Not enough songs in the queue to shuffle.');
     }
 
-    for (let i = queue.tracks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [queue.tracks[i], queue.tracks[j]] = [queue.tracks[j], queue.tracks[i]];
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0x5765f2)
-      .setTitle('🔀 Queue Shuffled')
-      .setDescription(`Successfully shuffled **${queue.tracks.length}** tracks in the queue!`)
-      .setFooter({ text: `Shuffled by ${message.author.tag}` })
-      .setTimestamp();
-
-    await message.reply({ embeds: [embed] });
-  },
+    await queue.shuffle();
+    await message.reply('🔀 Queue shuffled successfully!');
+  }
 };

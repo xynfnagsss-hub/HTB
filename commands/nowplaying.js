@@ -1,51 +1,53 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { MusicManager } = require('../utils/musicManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('nowplaying')
-    .setDescription('Display information about the currently playing song'),
+    .setDescription('Display the currently playing song details'),
 
   async execute(interaction) {
-    const musicManager = new MusicManager(interaction.client);
-    const queue = musicManager.getQueue(interaction.guild.id);
-
-    if (!queue || !queue.currentTrack) {
-      return interaction.reply({ content: '❌ Nothing is currently playing.', ephemeral: true });
+    const queue = interaction.client.distube.getQueue(interaction.guildId);
+    if (!queue || !queue.songs.length) {
+      return interaction.reply({ content: '❌ Nothing is playing right now.', ephemeral: true });
     }
 
-    const embed = this.buildNPEmbed(queue);
+    const song = queue.songs[0];
+    const embed = new EmbedBuilder()
+      .setColor(0xF5AF19)
+      .setTitle('🎵 Now Playing')
+      .setDescription(`**[${song.name}](${song.url})**`)
+      .addFields(
+        { name: 'Progress', value: `\`${queue.formattedCurrentTime} / ${song.formattedDuration}\``, inline: true },
+        { name: 'Requested By', value: `<@${song.user.id}>`, inline: true },
+        { name: 'Volume', value: `${queue.volume}%`, inline: true }
+      )
+      .setThumbnail(song.thumbnail)
+      .setFooter({ text: 'HTB Music' })
+      .setTimestamp();
+
     await interaction.reply({ embeds: [embed] });
   },
 
   async prefixExecute(message, args, client) {
-    const musicManager = new MusicManager(client);
-    const queue = musicManager.getQueue(message.guild.id);
-
-    if (!queue || !queue.currentTrack) {
-      return message.reply('❌ Nothing is currently playing.');
+    const queue = client.distube.getQueue(message.guildId);
+    if (!queue || !queue.songs.length) {
+      return message.reply('❌ Nothing is playing right now.');
     }
 
-    const embed = this.buildNPEmbed(queue);
-    await message.reply({ embeds: [embed] });
-  },
-
-  buildNPEmbed(queue) {
-    const track = queue.currentTrack;
+    const song = queue.songs[0];
     const embed = new EmbedBuilder()
-      .setColor(0x5765f2)
+      .setColor(0xF5AF19)
       .setTitle('🎵 Now Playing')
-      .setDescription(`**[${track.title}](${track.url})**`)
+      .setDescription(`**[${song.name}](${song.url})**`)
       .addFields(
-        { name: 'Duration', value: track.duration || 'Unknown', inline: true },
-        { name: 'Status', value: queue.isPaused ? '⏸️ Paused' : '▶️ Playing', inline: true },
-        { name: 'Loop Mode', value: queue.loopMode.toUpperCase(), inline: true },
-        { name: 'Requested By', value: track.requestedBy?.tag || 'User', inline: true },
-        { name: 'Tracks in Queue', value: `${queue.tracks.length}`, inline: true },
+        { name: 'Progress', value: `\`${queue.formattedCurrentTime} / ${song.formattedDuration}\``, inline: true },
+        { name: 'Requested By', value: `<@${song.user.id}>`, inline: true },
+        { name: 'Volume', value: `${queue.volume}%`, inline: true }
       )
-      .setThumbnail(track.thumbnail)
+      .setThumbnail(song.thumbnail)
+      .setFooter({ text: 'HTB Music' })
       .setTimestamp();
 
-    return embed;
-  },
+    await message.reply({ embeds: [embed] });
+  }
 };

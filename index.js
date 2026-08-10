@@ -54,6 +54,79 @@ client.commands.set('repeat', client.commands.get('loop'));
 client.commands.set('link', client.commands.get('verify'));
 client.commands.set('rblx', client.commands.get('roblox'));
 
+// DisTube Music Engine (Permanent Zero-Drop Voice Playback)
+const { DisTube } = require('distube');
+const { YtDlpPlugin } = require('@distube/yt-dlp');
+const { SpotifyPlugin } = require('@distube/spotify');
+const { SoundCloudPlugin } = require('@distube/soundcloud');
+const { EmbedBuilder } = require('discord.js');
+
+client.distube = new DisTube(client, {
+  emitNewSongOnly: true,
+  emitAddSongWhenCreatingQueue: false,
+  emitAddListWhenCreatingQueue: false,
+  plugins: [
+    new YtDlpPlugin({ update: true }),
+    new SpotifyPlugin({ emitEventsAfterFetching: true }),
+    new SoundCloudPlugin(),
+  ],
+});
+
+client.distube
+  .on('playSong', (queue, song) => {
+    const embed = new EmbedBuilder()
+      .setColor(0xF5AF19)
+      .setTitle('🎵 Now Playing')
+      .setDescription(`**[${song.name}](${song.url})**`)
+      .addFields(
+        { name: 'Duration', value: song.formattedDuration || 'Live / Audio', inline: true },
+        { name: 'Requested By', value: `<@${song.user?.id || song.member?.id}>`, inline: true },
+        { name: 'Volume', value: `${queue.volume}%`, inline: true }
+      )
+      .setThumbnail(song.thumbnail)
+      .setFooter({ text: 'HTB Music System • 17k+ Community', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+      .setTimestamp();
+
+    queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
+  })
+  .on('addSong', (queue, song) => {
+    const embed = new EmbedBuilder()
+      .setColor(0xF5AF19)
+      .setTitle('➕ Added to Queue')
+      .setDescription(`**[${song.name}](${song.url})**`)
+      .addFields(
+        { name: 'Duration', value: song.formattedDuration || 'Live / Audio', inline: true },
+        { name: 'Position in Queue', value: `#${queue.songs.length}`, inline: true }
+      )
+      .setThumbnail(song.thumbnail)
+      .setFooter({ text: `Requested by ${song.user?.tag || 'User'}` })
+      .setTimestamp();
+
+    queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
+  })
+  .on('addList', (queue, playlist) => {
+    const embed = new EmbedBuilder()
+      .setColor(0xF5AF19)
+      .setTitle('📑 Playlist Added to Queue')
+      .setDescription(`Added **${playlist.songs.length}** songs from **${playlist.name}**`)
+      .setFooter({ text: `Requested by ${playlist.user?.tag || 'User'}` })
+      .setTimestamp();
+
+    queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
+  })
+  .on('error', (channel, error) => {
+    console.error('[DisTube Error]:', error);
+    if (channel) {
+      channel.send(`❌ Music playback error: \`${error.message || 'Could not stream track'}\``).catch(() => {});
+    }
+  })
+  .on('empty', (queue) => {
+    queue.textChannel?.send('👋 Left voice channel because it was empty.').catch(() => {});
+  })
+  .on('finish', (queue) => {
+    queue.textChannel?.send('✅ Finished playing all songs in the queue.').catch(() => {});
+  });
+
 // Roblox Integration Service
 const { initRoblox, startGroupJoinWatcher } = require('./utils/robloxManager');
 

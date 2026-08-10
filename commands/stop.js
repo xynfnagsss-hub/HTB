@@ -1,48 +1,25 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { MusicManager } = require('../utils/musicManager');
+const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('stop')
-    .setDescription('Stop music playback, clear the queue, and leave the voice channel'),
+    .setDescription('Stop music playback and clear the queue'),
 
   async execute(interaction) {
-    const musicManager = new MusicManager(interaction.client);
-    const queue = musicManager.getQueue(interaction.guild.id);
-
-    if (!queue || (!queue.isPlaying && queue.tracks.length === 0 && !queue.currentTrack)) {
+    const queue = interaction.client.distube.getQueue(interaction.guildId);
+    if (!queue) {
       return interaction.reply({ content: '❌ Nothing is playing right now.', ephemeral: true });
     }
-
-    queue.destroy();
-
-    const embed = new EmbedBuilder()
-      .setColor(0xed4245)
-      .setTitle('⏹️ Music Stopped')
-      .setDescription('Playback stopped, queue cleared, and disconnected from voice.')
-      .setFooter({ text: `Stopped by ${interaction.user.tag}` })
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
+    await queue.stop();
+    await interaction.reply('⏹️ Music stopped and queue cleared.');
   },
 
   async prefixExecute(message, args, client) {
-    const musicManager = new MusicManager(client);
-    const queue = musicManager.getQueue(message.guild.id);
-
-    if (!queue || (!queue.isPlaying && queue.tracks.length === 0 && !queue.currentTrack)) {
+    const queue = client.distube.getQueue(message.guildId);
+    if (!queue) {
       return message.reply('❌ Nothing is playing right now.');
     }
-
-    queue.destroy();
-
-    const embed = new EmbedBuilder()
-      .setColor(0xed4245)
-      .setTitle('⏹️ Music Stopped')
-      .setDescription('Playback stopped, queue cleared, and disconnected from voice.')
-      .setFooter({ text: `Stopped by ${message.author.tag}` })
-      .setTimestamp();
-
-    await message.reply({ embeds: [embed] });
-  },
+    await queue.stop();
+    await message.reply('⏹️ Music stopped and queue cleared.');
+  }
 };
