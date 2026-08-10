@@ -389,7 +389,7 @@ if (checkoutBtn) {
           <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> NO REFUNDS. Open a ticket in Discord to purchase.
         </div>
 
-        <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
+        <a href="https://discord.gg/htbw" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
           <i class="fa-brands fa-discord"></i> Open Ticket In Discord (17k+)
         </a>
       </div>
