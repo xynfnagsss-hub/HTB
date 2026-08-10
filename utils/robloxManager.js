@@ -132,23 +132,32 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
   const linked = await getLinkedRobloxUser(member.id);
   if (!linked) return null;
 
-  // Default Role-to-Roblox Rank mapping (or customizable per server)
+  // Exact Role-to-Roblox Rank mapping for HTB Group 316559660
   const ROLE_RANK_MAP = [
-    { roleName: 'First in Command', rankName: 'First in Command' },
-    { roleName: 'Second in Command', rankName: 'Second in Command' },
-    { roleName: 'Third in Command', rankName: 'Third in Command' },
-    { roleName: 'Command Officer', rankName: 'Command Officer' },
-    { roleName: 'Sergeant', rankName: 'Sergeant' },
-    { roleName: 'OVERSEER', rankName: 'Overseer' },
-    { roleName: 'Ranking Staff', rankName: 'Ranking Staff' },
-    { roleName: 'Lead Moderator', rankName: 'Lead Moderator' },
-    { roleName: 'Administrator', rankName: 'Administrator' },
-    { roleName: 'Ticket Support', rankName: 'Ticket Support' },
-    { roleName: 'CHAT/VC MOD', rankName: 'Moderator' },
-    { roleName: 'ONE-TAP ACCESS', rankName: 'One-Tap Access' },
-    { roleName: 'Hitta Access', rankName: 'Hitta Member' },
-    { roleName: 'Half Access', rankName: 'Half Access' },
-    { roleName: 'Noted Member', rankName: 'Noted Member' },
+    // Co Creator (Rank 254)
+    { roleName: 'First in Command', rankName: 'Co Creator' },
+    { roleName: 'Second in Command', rankName: 'Co Creator' },
+    { roleName: 'Third in Command', rankName: 'Co Creator' },
+    { roleName: 'Command Officer', rankName: 'Co Creator' },
+
+    // Admin (Rank 253)
+    { roleName: 'Sergeant', rankName: 'Admin' },
+    { roleName: 'OVERSEER', rankName: 'Admin' },
+    { roleName: 'Ranking Staff', rankName: 'Admin' },
+    { roleName: 'Lead Moderator', rankName: 'Admin' },
+    { roleName: 'Administrator', rankName: 'Admin' },
+    { roleName: 'Ticket Support', rankName: 'Admin' },
+    { roleName: 'CHAT/VC MOD', rankName: 'Admin' },
+
+    // TNM FAM (Rank 3)
+    { roleName: 'ONE-TAP ACCESS', rankName: 'TNM FAM' },
+    { roleName: 'Hitta Access', rankName: 'TNM FAM' },
+    { roleName: 'Half Access', rankName: 'TNM FAM' },
+    { roleName: 'CUSTOM ROLE', rankName: 'TNM FAM' },
+    { roleName: 'Noted Member', rankName: 'TNM FAM' },
+
+    // Base Member (Rank 1)
+    { roleName: 'Member', rankName: 'Member' },
   ];
 
   // Find highest matching role
