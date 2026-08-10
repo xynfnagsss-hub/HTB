@@ -265,23 +265,23 @@ checkoutBtn.addEventListener('click', () => {
 
   modalContent.innerHTML = `
     <div style="text-align: center;">
-      <div style="width: 60px; height: 60px; background: rgba(88,101,242,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: #5865f2; font-size: 1.8rem;">
+      <div style="width: 64px; height: 64px; background: rgba(245,175,25,0.15); border: 1px solid var(--border-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: var(--gold-glow); font-size: 2rem; box-shadow: var(--shadow-gold);">
         <i class="fa-brands fa-discord"></i>
       </div>
-      <h2 style="font-family: var(--font-heading); font-size: 1.6rem; margin-bottom: 8px;">Order Ready!</h2>
-      <p style="color: #929db2; font-size: 0.95rem; margin-bottom: 20px;">Order ID: <strong style="color: #00f0ff; font-family: var(--font-mono);">${orderId}</strong></p>
+      <h2 style="font-family: var(--font-heading); font-size: 1.7rem; font-weight: 800; margin-bottom: 8px;">Order Ready!</h2>
+      <p style="color: #929db2; font-size: 0.95rem; margin-bottom: 20px;">Order ID: <strong style="color: var(--gold-glow); font-family: var(--font-mono); font-size: 1.1rem;">${orderId}</strong></p>
       
-      <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; text-align: left; margin-bottom: 22px;">
-        <div style="font-size: 0.82rem; color: #8892a7; text-transform: uppercase; margin-bottom: 6px;">Order Summary ($${total})</div>
-        <pre style="font-family: var(--font-mono); font-size: 0.85rem; color: #f1f3f9; white-space: pre-wrap; margin: 0;">${itemList}</pre>
+      <div style="background: rgba(245,175,25,0.04); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 22px;">
+        <div style="font-size: 0.82rem; color: var(--gold-light); font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">Order Summary ($${total})</div>
+        <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0; line-height: 1.6;">${itemList}</pre>
       </div>
 
-      <p style="font-size: 0.9rem; color: #a9b3c7; margin-bottom: 24px; line-height: 1.5;">
-        Join our 17k+ Discord server and open a ticket or paste your Order ID in <strong>#store-orders</strong> for instant delivery!
+      <p style="font-size: 0.92rem; color: #b4bccd; margin-bottom: 24px; line-height: 1.6;">
+        Join our <strong>17k+ Discord server</strong> and paste your Order ID in <strong>#store-orders</strong> for instant automated delivery!
       </p>
 
-      <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 14px;">
-        <i class="fa-brands fa-discord"></i> Open Ticket In Discord
+      <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
+        <i class="fa-brands fa-discord"></i> Complete In Discord
       </a>
     </div>
   `;
