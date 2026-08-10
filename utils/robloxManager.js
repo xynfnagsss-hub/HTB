@@ -16,9 +16,10 @@ async function initRoblox(cookie = process.env.ROBLOX_COOKIE) {
     return false;
   }
   try {
-    currentRobloxUser = await noblox.setCookie(cookie.trim());
+    await noblox.setCookie(cookie.trim());
+    currentRobloxUser = await noblox.getAuthenticatedUser();
     isRobloxAuthenticated = true;
-    console.log(`✅ [Roblox Manager]: Authenticated as Roblox Bot: ${currentRobloxUser.UserName} (ID: ${currentRobloxUser.UserID})`);
+    console.log(`✅ [Roblox Manager]: Authenticated as Roblox User: ${currentRobloxUser.name} (ID: ${currentRobloxUser.id})`);
     return true;
   } catch (err) {
     console.error('❌ [Roblox Manager]: Failed to authenticate cookie:', err.message);
