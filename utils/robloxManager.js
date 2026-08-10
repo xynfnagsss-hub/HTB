@@ -73,18 +73,48 @@ async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP
  */
 async function setPlayerRank(groupId, targetUserId, rankIdentifier) {
   if (!isRobloxAuthenticated) {
-    throw new Error('Roblox bot session is not logged in. Set ROBLOX_COOKIE in .env to enable group ranking.');
+    throw new Error('Roblox bot session is not logged in. Set ROBLOX_COOKIE in environment variables to enable group ranking.');
   }
 
   const cleanGroupId = parseInt(groupId || process.env.ROBLOX_GROUP_ID);
   if (!cleanGroupId) throw new Error('Roblox Group ID is not configured.');
 
   let targetId = targetUserId;
+  let targetName = targetUserId;
+
   if (typeof targetUserId === 'string' && !/^\d+$/.test(targetUserId)) {
-    targetId = await noblox.getIdFromUsername(targetUserId);
+    try {
+      targetId = await noblox.getIdFromUsername(targetUserId);
+    } catch {
+      throw new Error(`Roblox player "${targetUserId}" not found on Roblox.`);
+    }
+  } else {
+    try {
+      const info = await noblox.getPlayerInfo(parseInt(targetId));
+      targetName = info.username;
+    } catch {}
   }
 
-  return await noblox.setRank(cleanGroupId, parseInt(targetId), rankIdentifier);
+  if (!targetId) throw new Error(`Roblox player "${targetUserId}" not found.`);
+
+  // Check if target player is in the group
+  const currentRankId = await noblox.getRankInGroup(cleanGroupId, parseInt(targetId)).catch(() => 0);
+  if (currentRankId === 0) {
+    throw new Error(`Player "${targetName}" is not currently in the HTB Roblox Group. They must join the group (https://www.roblox.com/groups/${cleanGroupId}) before they can be ranked.`);
+  }
+
+  if (currentRankId === 255) {
+    throw new Error(`Cannot change the rank of the Roblox Group Owner.`);
+  }
+
+  try {
+    return await noblox.setRank(cleanGroupId, parseInt(targetId), rankIdentifier);
+  } catch (err) {
+    if (err.message.includes('The user is invalid') || err.message.includes('code":3')) {
+      throw new Error(`Player "${targetName}" is not in the group or could not be ranked.`);
+    }
+    throw err;
+  }
 }
 
 /**
