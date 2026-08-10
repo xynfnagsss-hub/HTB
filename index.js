@@ -60,7 +60,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/health', (req, res) => {
-  res.json({
+  res.status(200).json({
     status: 'online',
     service: 'HTB Storefront & Discord Bot',
     bot: client.user?.tag || 'connecting...',
@@ -75,6 +75,14 @@ app.use((req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 HTB Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
 });
+
+if (String(PORT) !== '3000') {
+  try {
+    app.listen(3000, '0.0.0.0', () => {
+      console.log(`🌐 Also listening on port 3000 for Railway target port`);
+    });
+  } catch {}
+}
 
 // Global Process Guard so the server never crashes
 process.on('unhandledRejection', (reason) => {
