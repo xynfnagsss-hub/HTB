@@ -143,7 +143,6 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ytProc = spawn(ytdlpPath, [
     '--no-warnings',
     '--retries', '10',
-    '--fragment-retries', '10',
     '-f', 'ba/ba*/b/best/bestaudio',
     '-o', '-',
     target,
@@ -152,11 +151,9 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
     '-filter:a', 'volume=1.1',
-    '-c:a', 'libopus',
-    '-b:a', '128k',
-    '-ar', '48000',
     '-ac', '2',
-    '-f', 'opus',
+    '-ar', '48000',
+    '-f', 's16le',
     '-loglevel', 'error',
     'pipe:1',
   ]);
@@ -168,7 +165,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.OggOpus,
+    inputType: StreamType.Raw,
   });
 
   return { ytProc, ffProc, resource };
