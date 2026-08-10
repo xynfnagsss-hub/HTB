@@ -3,24 +3,27 @@ const { MusicManager } = require('../utils/musicManager');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('stop')
-    .setDescription('Stop music playback, clear the queue, and leave the voice channel'),
+    .setName('pause')
+    .setDescription('Pause the current music playback'),
 
   async execute(interaction) {
     const musicManager = new MusicManager(interaction.client);
     const queue = musicManager.getQueue(interaction.guild.id);
 
-    if (!queue || (!queue.isPlaying && queue.tracks.length === 0 && !queue.currentTrack)) {
+    if (!queue || !queue.currentTrack) {
       return interaction.reply({ content: '❌ Nothing is playing right now.', ephemeral: true });
     }
 
-    queue.destroy();
+    if (queue.isPaused) {
+      return interaction.reply({ content: '⏸️ Playback is already paused.', ephemeral: true });
+    }
 
+    queue.pause();
     const embed = new EmbedBuilder()
-      .setColor(0xed4245)
-      .setTitle('⏹️ Music Stopped')
-      .setDescription('Playback stopped, queue cleared, and disconnected from voice.')
-      .setFooter({ text: `Stopped by ${interaction.user.tag}` })
+      .setColor(0xfee75c)
+      .setTitle('⏸️ Playback Paused')
+      .setDescription('Use `/resume` or `.resume` to continue playing.')
+      .setFooter({ text: `Paused by ${interaction.user.tag}` })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -30,17 +33,20 @@ module.exports = {
     const musicManager = new MusicManager(client);
     const queue = musicManager.getQueue(message.guild.id);
 
-    if (!queue || (!queue.isPlaying && queue.tracks.length === 0 && !queue.currentTrack)) {
+    if (!queue || !queue.currentTrack) {
       return message.reply('❌ Nothing is playing right now.');
     }
 
-    queue.destroy();
+    if (queue.isPaused) {
+      return message.reply('⏸️ Playback is already paused.');
+    }
 
+    queue.pause();
     const embed = new EmbedBuilder()
-      .setColor(0xed4245)
-      .setTitle('⏹️ Music Stopped')
-      .setDescription('Playback stopped, queue cleared, and disconnected from voice.')
-      .setFooter({ text: `Stopped by ${message.author.tag}` })
+      .setColor(0xfee75c)
+      .setTitle('⏸️ Playback Paused')
+      .setDescription('Use `.resume` to continue playing.')
+      .setFooter({ text: `Paused by ${message.author.tag}` })
       .setTimestamp();
 
     await message.reply({ embeds: [embed] });

@@ -42,6 +42,15 @@ for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) 
 // Aliases
 client.commands.set('purge', client.commands.get('clear'));
 client.commands.set('nuke', client.commands.get('clear'));
+client.commands.set('p', client.commands.get('play'));
+client.commands.set('q', client.commands.get('queue'));
+client.commands.set('np', client.commands.get('nowplaying'));
+client.commands.set('next', client.commands.get('skip'));
+client.commands.set('leave', client.commands.get('stop'));
+client.commands.set('disconnect', client.commands.get('stop'));
+client.commands.set('dc', client.commands.get('stop'));
+client.commands.set('unpause', client.commands.get('resume'));
+client.commands.set('repeat', client.commands.get('loop'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
@@ -182,7 +191,7 @@ client.on('messageCreate', async (message) => {
   try {
     if (command.prefixExecute) {
       await command.prefixExecute(message, args, client);
-    } else if (!command.data) {
+    } else if (typeof command.execute === 'function') {
       await command.execute(message, args, client);
     }
   } catch (err) {
