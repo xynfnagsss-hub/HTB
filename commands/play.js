@@ -11,6 +11,7 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
+const yts = require('yt-search');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
@@ -40,30 +41,24 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-function runYtDlpSingleJson(ytdlp, args) {
+function getDirectStreamUrl(ytdlp, target, clientConfigs = ['android,web,tv_embedded', 'android', 'web_embedded']) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(ytdlp, [
-      '--dump-single-json',
-      '--no-warnings',
-      ...args,
-    ]);
+    const isSc = target.startsWith('scsearch1:');
+    const args = isSc
+      ? ['-g', '--no-warnings', '-f', 'ba/ba*/b/best/bestaudio', target]
+      : ['-g', '--no-warnings', '--extractor-args', `youtube:player_client=${clientConfigs[0]}`, '-f', 'ba/ba*/b/best/bestaudio', target];
 
+    const proc = spawn(ytdlp, args);
     let out = '', err = '';
     proc.stdout.on('data', d => { out += d.toString(); });
     proc.stderr.on('data', d => { err += d.toString(); });
 
     proc.on('close', code => {
-      if (code === 0) {
-        try {
-          const j = JSON.parse(out);
-          const entry = (j.entries && j.entries.length > 0) ? j.entries[0] : j;
-          if (entry) resolve(entry);
-          else reject(new Error('No entry found'));
-        } catch {
-          reject(new Error('Failed to parse metadata JSON'));
-        }
+      const url = out.trim().split('\n')[0];
+      if (code === 0 && url && url.startsWith('http')) {
+        resolve(url);
       } else {
-        reject(new Error(err || `Exit code ${code}`));
+        reject(new Error(err.trim() || `Exit code ${code}`));
       }
     });
 
@@ -71,63 +66,65 @@ function runYtDlpSingleJson(ytdlp, args) {
   });
 }
 
-async function extractTrackInfo(ytdlp, query) {
+async function resolveTrack(ytdlp, query) {
   const isUrl = /^https?:\/\//i.test(query);
-  const target = isUrl ? query : `ytsearch1:${query}`;
 
-  const clientConfigs = [
-    'android,web,tv_embedded',
-    'android',
-    'tv_embedded,android',
-    'web_embedded,mweb',
-    'web',
-  ];
+  let title = query;
+  let trackUrl = query;
+  let duration = '0:00';
+  let thumbnail = null;
+  let searchTitle = query;
 
-  let lastErr = '';
-  for (const clients of clientConfigs) {
-    try {
-      const entry = await runYtDlpSingleJson(ytdlp, [
-        '--extractor-args', `youtube:player_client=${clients}`,
-        '-f', 'ba/ba*/b/best/bestaudio',
-        target,
-      ]);
-
-      const directUrl = entry.url || (entry.formats && entry.formats.reverse().find(f => f.url)?.url);
-      if (directUrl) {
-        return {
-          title: cleanTitle(entry.title || query),
-          trackUrl: entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query),
-          duration: formatDuration(entry.duration || 0),
-          thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
-          directAudioUrl: directUrl,
-        };
+  if (isUrl) {
+    if (query.includes('youtube.com') || query.includes('youtu.be')) {
+      const vidMatch = query.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+      if (vidMatch && vidMatch[1]) {
+        const info = await yts({ videoId: vidMatch[1] }).catch(() => null);
+        if (info) {
+          title = cleanTitle(info.title);
+          trackUrl = info.url;
+          duration = info.timestamp || '0:00';
+          thumbnail = info.thumbnail;
+          searchTitle = info.title;
+        }
       }
-    } catch (e) {
-      lastErr = e.message;
+    }
+  } else {
+    const r = await yts(query);
+    if (r.videos && r.videos.length > 0) {
+      const v = r.videos[0];
+      title = cleanTitle(v.title);
+      trackUrl = v.url;
+      duration = v.timestamp || '0:00';
+      thumbnail = v.thumbnail;
+      searchTitle = v.title;
     }
   }
 
-  // Fallback search
-  if (!isUrl) {
+  // 1. Try YouTube stream extraction
+  let directAudioUrl = null;
+  try {
+    directAudioUrl = await getDirectStreamUrl(ytdlp, isUrl ? query : trackUrl);
+  } catch (ytErr) {
+    // 2. YouTube blocked by datacenter IP bot-detection -> stream track audio via SoundCloud
     try {
-      const scEntry = await runYtDlpSingleJson(ytdlp, [
-        '-f', 'ba/ba*/b/best/bestaudio',
-        `scsearch1:${query}`,
-      ]);
-      const scUrl = scEntry.url || (scEntry.formats && scEntry.formats.reverse().find(f => f.url)?.url);
-      if (scUrl) {
-        return {
-          title: cleanTitle(scEntry.title || query),
-          trackUrl: scEntry.webpage_url || query,
-          duration: formatDuration(scEntry.duration || 0),
-          thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
-          directAudioUrl: scUrl,
-        };
-      }
-    } catch {}
+      directAudioUrl = await getDirectStreamUrl(ytdlp, `scsearch1:${searchTitle}`);
+    } catch (scErr) {
+      throw new Error('Could not find a playable stream for this track. Please try a different song.');
+    }
   }
 
-  throw new Error(`Could not find a playable stream: ${lastErr.slice(0, 200)}`);
+  if (!directAudioUrl) {
+    throw new Error('Could not extract direct stream URL.');
+  }
+
+  return {
+    title,
+    trackUrl,
+    duration,
+    thumbnail,
+    directAudioUrl,
+  };
 }
 
 module.exports = {
@@ -157,13 +154,13 @@ module.exports = {
     try {
       ytdlpPath = await ensureYtDlp();
     } catch (e) {
-      return statusMsg.edit(`❌ Error loading yt-dlp: \`${e.message}\``);
+      return statusMsg.edit(`❌ Error loading audio engine: \`${e.message}\``);
     }
 
     const ffmpegPath = getFfmpeg();
 
     try {
-      const track = await extractTrackInfo(ytdlpPath, query);
+      const track = await resolveTrack(ytdlpPath, query);
 
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
