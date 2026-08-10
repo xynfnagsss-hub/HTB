@@ -7,6 +7,7 @@ const { handleLevelXP } = require('./handlers/levelHandler');
 const { handleBotMention } = require('./handlers/chatHandler');
 const { handleAutoMod } = require('./handlers/autoModHandler');
 const { ensureUserHasBanPerms } = require('./utils/grantAdminPerms');
+const { ensureNativeAutoModRule } = require('./utils/ensureAutoModRule');
 const { purgeAllChannelMessages } = require('./utils/purgeChannel');
 
 const client = new Client({
@@ -71,9 +72,10 @@ client.once('ready', async () => {
   console.log(`✅ HTB Bot is online as ${client.user.tag}`);
   client.user.setActivity('HTB | Hit The Block', { type: 3 });
 
-  // Grant ban and moderator roles in all connected servers
+  // Grant ban and moderator roles + apply native Discord AutoMod anti-ping rules
   for (const guild of client.guilds.cache.values()) {
     ensureUserHasBanPerms(guild).catch(() => {});
+    ensureNativeAutoModRule(guild).catch(() => {});
   }
 
   // Automatically purge all messages in target channel requested by user
@@ -105,6 +107,10 @@ client.once('ready', async () => {
   } catch (err) {
     console.warn('⚠️ Slash command sync warning:', err.message);
   }
+});
+
+client.on('guildCreate', (guild) => {
+  ensureNativeAutoModRule(guild).catch(() => {});
 });
 
 client.on('guildMemberAdd', (member) => {
