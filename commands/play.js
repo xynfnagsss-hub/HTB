@@ -21,31 +21,50 @@ function getFfmpeg() {
   return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
 }
 
-function extractDirectUrl(ytdlp, target) {
-  return new Promise((resolve, reject) => {
-    let out = '', err = '';
-    const proc = spawn(ytdlp, [
-      '-g',
-      '--no-warnings',
-      '--extractor-args', 'youtube:player_client=android_vr,tv_embedded,android',
-      '-f', 'ba/ba*/b/best',
-      target,
-    ]);
+async function extractDirectUrl(ytdlp, target) {
+  const clientConfigs = [
+    'android,web,tv_embedded',
+    'android',
+    'tv_embedded,android',
+    'web_embedded,mweb',
+    'web',
+  ];
 
-    proc.stdout.on('data', d => { out += d.toString(); });
-    proc.stderr.on('data', d => { err += d.toString(); });
+  let lastErr = '';
+  for (const clients of clientConfigs) {
+    try {
+      const url = await new Promise((resolve, reject) => {
+        const proc = spawn(ytdlp, [
+          '-g',
+          '--no-warnings',
+          '--extractor-args', `youtube:player_client=${clients}`,
+          '-f', 'ba/ba*/b/best/bestaudio',
+          target,
+        ]);
 
-    proc.on('close', code => {
-      const directUrl = out.trim().split('\n')[0];
-      if (directUrl && code === 0) {
-        resolve(directUrl);
-      } else {
-        reject(new Error(`Stream extraction failed (${code}): ${err.slice(0, 200)}`));
-      }
-    });
+        let out = '', err = '';
+        proc.stdout.on('data', d => { out += d.toString(); });
+        proc.stderr.on('data', d => { err += d.toString(); });
 
-    proc.on('error', reject);
-  });
+        proc.on('close', code => {
+          const directUrl = out.trim().split('\n')[0];
+          if (directUrl && code === 0) {
+            resolve(directUrl);
+          } else {
+            reject(new Error(err || `Exit code ${code}`));
+          }
+        });
+
+        proc.on('error', reject);
+      });
+
+      if (url) return url;
+    } catch (e) {
+      lastErr = e.message;
+    }
+  }
+
+  throw new Error(`Stream extraction failed: ${lastErr.slice(0, 250)}`);
 }
 
 function extractYouTubeId(url) {
@@ -124,7 +143,7 @@ module.exports = {
 
       await statusMsg.edit(`⏳ Loading **${title}**...`);
 
-      // 2. Extract direct audio stream URL with player clients
+      // 2. Extract direct audio stream URL with multi-client fallback
       let directAudioUrl;
       try {
         directAudioUrl = await extractDirectUrl(ytdlpPath, target);
