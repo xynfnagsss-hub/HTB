@@ -1,6 +1,6 @@
 /**
  * HTB (HIT THE BLOCK) OFFICIAL MARKETPLACE
- * Real In-Server Roles, Access Passes & Command Tiers
+ * Real In-Server Roles, Access Passes & Command Tiers (Lifetime & Monthly)
  */
 
 const MARKET_ITEMS = [
@@ -10,7 +10,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Noted Member',
     category: 'roles',
     tier: 'MEMBER',
-    price: 2.00,
+    lifetimePrice: 2.00,
+    monthlyPrice: 0.99,
     badge: 'ENTRY',
     icon: 'fa-solid fa-tag',
     desc: 'Official recognized community status with special chat privileges and hoisted role.',
@@ -21,11 +22,12 @@ const MARKET_ITEMS = [
     title: 'CUSTOM ROLE',
     category: 'roles',
     tier: 'EXCLUSIVE',
-    price: 3.00,
+    lifetimePrice: 3.00,
+    monthlyPrice: 1.49,
     badge: 'POPULAR',
     icon: 'fa-solid fa-paintbrush',
     desc: 'Create your own fully customized colored role with custom name and icon.',
-    perks: ['Custom Hex Color', 'Custom Role Name & Emoji', 'Permanent Lifetime Access'],
+    perks: ['Custom Hex Color', 'Custom Role Name & Emoji', 'Permanent / Active Role Access'],
   },
 
   // 2. Access Passes
@@ -34,7 +36,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Half Access',
     category: 'access',
     tier: 'ACCESS',
-    price: 5.00,
+    lifetimePrice: 5.00,
+    monthlyPrice: 2.49,
     badge: 'PASS',
     icon: 'fa-solid fa-unlock-keyhole',
     desc: 'Unlocks half server permissions, media channels, and priority bot usage.',
@@ -45,7 +48,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Hitta Access',
     category: 'access',
     tier: 'ACCESS',
-    price: 7.00,
+    lifetimePrice: 7.00,
+    monthlyPrice: 3.49,
     badge: 'HITTA',
     icon: 'fa-solid fa-key',
     desc: 'Hitta tier clearance with access to private lobbies and underground channels.',
@@ -56,7 +60,8 @@ const MARKET_ITEMS = [
     title: 'HTB | ONE-TAP ACCESS',
     category: 'access',
     tier: 'TOP ACCESS',
-    price: 9.00,
+    lifetimePrice: 9.00,
+    monthlyPrice: 4.49,
     badge: 'BEST VALUE',
     icon: 'fa-solid fa-bolt',
     desc: 'Full one-tap access across private rooms, giveaways, and drops.',
@@ -69,7 +74,8 @@ const MARKET_ITEMS = [
     title: 'HTB | CHAT/VC MOD',
     category: 'staff',
     tier: 'STAFF (CANT SELL)',
-    price: 22.00,
+    lifetimePrice: 22.00,
+    monthlyPrice: 9.99,
     badge: 'STAFF',
     icon: 'fa-solid fa-shield-halved',
     desc: 'Official Chat & Voice Channel moderation privileges in the 17k server.',
@@ -80,7 +86,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Ticket Support',
     category: 'staff',
     tier: 'STAFF',
-    price: 25.00,
+    lifetimePrice: 25.00,
+    monthlyPrice: 11.99,
     badge: 'SUPPORT',
     icon: 'fa-solid fa-ticket',
     desc: 'Join the support team to claim, manage, and assist member tickets.',
@@ -91,7 +98,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Administrator',
     category: 'staff',
     tier: 'ADMIN (CANT SELL)',
-    price: 32.00,
+    lifetimePrice: 32.00,
+    monthlyPrice: 14.99,
     badge: 'ADMIN',
     icon: 'fa-solid fa-gears',
     desc: 'High-tier administrator clearance with broad server management tools.',
@@ -102,7 +110,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Lead Moderator',
     category: 'staff',
     tier: 'LEAD (CANT SELL)',
-    price: 38.00,
+    lifetimePrice: 38.00,
+    monthlyPrice: 17.99,
     badge: 'LEAD',
     icon: 'fa-solid fa-clipboard-check',
     desc: 'Direct and oversee junior moderators with elevated moderation tools.',
@@ -113,7 +122,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Ranking Staff',
     category: 'staff',
     tier: 'RANKING',
-    price: 44.00,
+    lifetimePrice: 44.00,
+    monthlyPrice: 19.99,
     badge: 'RANKING',
     icon: 'fa-solid fa-chart-simple',
     desc: 'Executive ranking staff permissions across server management and operations.',
@@ -126,7 +136,8 @@ const MARKET_ITEMS = [
     title: 'HTB | OVERSEER',
     category: 'command',
     tier: 'OVERSEER',
-    price: 49.00,
+    lifetimePrice: 49.00,
+    monthlyPrice: 22.99,
     badge: 'OVERSEER',
     icon: 'fa-solid fa-eye',
     desc: 'Direct server oversight authority with top-level administrative access.',
@@ -137,7 +148,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Sergeant',
     category: 'command',
     tier: 'HIGH COMMAND',
-    price: 75.00,
+    lifetimePrice: 75.00,
+    monthlyPrice: 34.99,
     badge: 'HIGH COMMAND',
     icon: 'fa-solid fa-shield',
     desc: 'Elite disciplinary and tactical leadership role over all server divisions.',
@@ -148,7 +160,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Command Officer',
     category: 'command',
     tier: 'HIGH COMMAND',
-    price: 80.00,
+    lifetimePrice: 80.00,
+    monthlyPrice: 37.99,
     badge: 'OFFICER',
     icon: 'fa-solid fa-medal',
     desc: 'High-ranking command officer authority over server security and moderation.',
@@ -161,7 +174,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Third in Command',
     category: 'supreme',
     tier: '3RD IN COMMAND',
-    price: 123.00,
+    lifetimePrice: 123.00,
+    monthlyPrice: 54.99,
     badge: 'SUPREME',
     icon: 'fa-solid fa-award',
     desc: 'Third-highest executive leadership rank in the entire 17,000+ member server.',
@@ -172,7 +186,8 @@ const MARKET_ITEMS = [
     title: 'HTB | Second in Command',
     category: 'supreme',
     tier: '2ND IN COMMAND',
-    price: 150.00,
+    lifetimePrice: 150.00,
+    monthlyPrice: 69.99,
     badge: 'SUPREME',
     icon: 'fa-solid fa-crown',
     desc: 'Direct second-in-command to server ownership with full executive authority.',
@@ -183,7 +198,8 @@ const MARKET_ITEMS = [
     title: 'HTB | First in Command',
     category: 'supreme',
     tier: '1ST IN COMMAND',
-    price: 175.00,
+    lifetimePrice: 175.00,
+    monthlyPrice: 79.99,
     badge: 'SUPREME #1',
     icon: 'fa-solid fa-trophy',
     desc: 'The pinnacle of leadership in Hit The Block. Highest obtainable command rank.',
@@ -192,12 +208,14 @@ const MARKET_ITEMS = [
 ];
 
 // State
-let cart = JSON.parse(localStorage.getItem('htb_market_cart') || '[]');
+let cart = JSON.parse(localStorage.getItem('htb_market_cart_v2') || '[]');
 let activeCategory = 'all';
+let billingCycle = 'lifetime'; // 'lifetime' | 'monthly'
 
 // DOM Elements
 const productsGrid = document.getElementById('productsGrid');
 const filterTabs = document.getElementById('filterTabs');
+const billingToggle = document.getElementById('billingToggle');
 const cartDrawer = document.getElementById('cartDrawer');
 const cartBackdrop = document.getElementById('cartBackdrop');
 const cartToggleBtn = document.getElementById('cartToggleBtn');
@@ -219,40 +237,59 @@ function renderProducts() {
     ? MARKET_ITEMS
     : MARKET_ITEMS.filter(p => p.category === activeCategory);
 
-  productsGrid.innerHTML = filtered.map(item => `
-    <div class="product-card">
-      <div class="card-glow"></div>
-      <div class="card-header-top">
-        <span class="tier-tag">${item.tier}</span>
-        <span class="product-badge">${item.badge}</span>
-      </div>
-      
-      <div class="card-content">
-        <div class="product-icon-wrap">
-          <i class="${item.icon}"></i>
-        </div>
-        <h3 class="product-title">${item.title}</h3>
-        <p class="product-desc">${item.desc}</p>
-        
-        <ul class="product-perks">
-          ${item.perks.map(perk => `<li><i class="fa-solid fa-circle-check"></i> ${perk}</li>`).join('')}
-        </ul>
-      </div>
+  productsGrid.innerHTML = filtered.map(item => {
+    const isMonthly = billingCycle === 'monthly';
+    const price = isMonthly ? item.monthlyPrice : item.lifetimePrice;
+    const priceSuffix = isMonthly ? '/mo' : ' (Lifetime)';
 
-      <div class="product-footer">
-        <div class="product-price-box">
-          <span class="price-lbl">Official Price</span>
-          <span class="price-amount">$${item.price.toFixed(2)}</span>
+    return `
+      <div class="product-card">
+        <div class="card-header-top">
+          <span class="tier-tag">${item.tier}</span>
+          <span class="product-badge">${item.badge}</span>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addToCart('${item.id}')">
-          <i class="fa-solid fa-cart-plus"></i> Select
-        </button>
+        
+        <div class="card-content">
+          <div class="product-icon-wrap">
+            <i class="${item.icon}"></i>
+          </div>
+          <h3 class="product-title">${item.title}</h3>
+          <p class="product-desc">${item.desc}</p>
+          
+          <ul class="product-perks">
+            ${item.perks.map(perk => `<li><i class="fa-solid fa-circle-check"></i> ${perk}</li>`).join('')}
+          </ul>
+        </div>
+
+        <div class="product-footer">
+          <div class="product-price-box">
+            <span class="price-lbl">${isMonthly ? 'Monthly Price' : 'Lifetime Access'}</span>
+            <span class="price-amount">$${price.toFixed(2)}<span class="price-suffix">${priceSuffix}</span></span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addToCart('${item.id}', '${billingCycle}')">
+            <i class="fa-solid fa-cart-plus"></i> Select
+          </button>
+        </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-// Filter Tabs
+// Billing Toggle Handler
+if (billingToggle) {
+  billingToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('.billing-btn');
+    if (!btn) return;
+
+    document.querySelectorAll('.billing-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    billingCycle = btn.dataset.cycle;
+    renderProducts();
+    showToast(`Switched to ${billingCycle === 'monthly' ? 'Monthly Subscriptions' : 'Lifetime Access'}`);
+  });
+}
+
+// Filter Tabs Handler
 if (filterTabs) {
   filterTabs.addEventListener('click', (e) => {
     const tab = e.target.closest('.filter-tab');
@@ -266,38 +303,49 @@ if (filterTabs) {
 }
 
 // Cart System
-function addToCart(productId) {
+function addToCart(productId, cycle = billingCycle) {
   const item = MARKET_ITEMS.find(p => p.id === productId);
   if (!item) return;
 
-  const existing = cart.find(i => i.id === productId);
+  const cartId = `${item.id}-${cycle}`;
+  const price = cycle === 'monthly' ? item.monthlyPrice : item.lifetimePrice;
+  const planLabel = cycle === 'monthly' ? 'Monthly Sub' : 'Lifetime';
+
+  const existing = cart.find(i => i.cartId === cartId);
   if (existing) {
     existing.quantity = (existing.quantity || 1) + 1;
   } else {
-    cart.push({ ...item, quantity: 1 });
+    cart.push({
+      cartId,
+      id: item.id,
+      title: `${item.title} (${planLabel})`,
+      price,
+      cycle,
+      quantity: 1,
+    });
   }
 
   saveCart();
   updateCartUI();
-  showToast(`Added "${item.title}" to order list`);
+  showToast(`Added "${item.title} (${planLabel})" to order`);
 }
 
-function removeFromCart(productId) {
-  cart = cart.filter(item => item.id !== productId);
+function removeFromCart(cartId) {
+  cart = cart.filter(item => item.cartId !== cartId);
   saveCart();
   updateCartUI();
-  showToast('Item removed');
+  showToast('Role removed from order');
 }
 
 function clearCart() {
   cart = [];
   saveCart();
   updateCartUI();
-  showToast('Order list cleared');
+  showToast('Order selection cleared');
 }
 
 function saveCart() {
-  localStorage.setItem('htb_market_cart', JSON.stringify(cart));
+  localStorage.setItem('htb_market_cart_v2', JSON.stringify(cart));
 }
 
 function updateCartUI() {
@@ -326,9 +374,9 @@ function updateCartUI() {
       <div class="cart-item">
         <div class="cart-item-info">
           <h4>${item.title}</h4>
-          <span class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity || 1}</span>
+          <span class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity || 1} ${item.cycle === 'monthly' ? '/mo' : ''}</span>
         </div>
-        <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remove">
+        <button class="cart-item-remove" onclick="removeFromCart('${item.cartId}')" title="Remove">
           <i class="fa-solid fa-trash-can"></i>
         </button>
       </div>
@@ -357,11 +405,11 @@ if (closeCartBtn) closeCartBtn.addEventListener('click', closeCart);
 if (cartBackdrop) cartBackdrop.addEventListener('click', closeCart);
 if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 
-// Checkout & Discord Order Ticket Flow
+// Checkout & Discord Order Ticket Generation
 if (checkoutBtn) {
   checkoutBtn.addEventListener('click', () => {
     if (cart.length === 0) {
-      showToast('Your order list is empty!');
+      showToast('Your order selection is empty!');
       return;
     }
 
@@ -414,7 +462,7 @@ if (modalBackdrop) {
   });
 }
 
-// Toast
+// Toast System
 function showToast(message) {
   if (!toastContainer) return;
   const toast = document.createElement('div');
