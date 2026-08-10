@@ -10,7 +10,6 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
-const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
@@ -30,23 +29,6 @@ function formatDuration(seconds) {
   const secs = s % 60;
   if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   return `${mins}:${String(secs).padStart(2, '0')}`;
-}
-
-function getYouTubeOEmbed(url) {
-  return new Promise((resolve) => {
-    try {
-      const fullUrl = 'https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json';
-      https.get(fullUrl, { timeout: 5000 }, res => {
-        let d = '';
-        res.on('data', c => d += c);
-        res.on('end', () => {
-          try { resolve(JSON.parse(d)); } catch { resolve(null); }
-        });
-      }).on('error', () => resolve(null)).on('timeout', () => resolve(null));
-    } catch {
-      resolve(null);
-    }
-  });
 }
 
 function runYtDlpSingleJson(ytdlp, args) {
@@ -80,7 +62,7 @@ function runYtDlpSingleJson(ytdlp, args) {
   });
 }
 
-async function extractTrackInfo(ytdlp, query) {
+async function extractYouTubeTrack(ytdlp, query) {
   const isUrl = /^https?:\/\//i.test(query);
   const target = isUrl ? query : `ytsearch1:${query}`;
 
@@ -89,9 +71,10 @@ async function extractTrackInfo(ytdlp, query) {
     'android',
     'tv_embedded,android',
     'web_embedded,mweb',
+    'web',
   ];
 
-  // 1. Try YouTube with player clients
+  let lastErr = '';
   for (const clients of clientConfigs) {
     try {
       const entry = await runYtDlpSingleJson(ytdlp, [
@@ -111,46 +94,17 @@ async function extractTrackInfo(ytdlp, query) {
         };
       }
     } catch (e) {
-      // Continue to next client or fallback
+      lastErr = e.message;
     }
   }
 
-  // 2. Fallback: If YouTube triggered bot detection or format error, resolve title and search SoundCloud
-  let fallbackSearchQuery = query;
-  if (isUrl) {
-    const oembed = await getYouTubeOEmbed(query);
-    if (oembed?.title) {
-      fallbackSearchQuery = `${oembed.title} ${oembed.author_name || ''}`;
-    }
-  }
-
-  try {
-    const scEntry = await runYtDlpSingleJson(ytdlp, [
-      '-f', 'ba/ba*/b/best/bestaudio',
-      `scsearch1:${fallbackSearchQuery}`,
-    ]);
-
-    const scDirectUrl = scEntry.url || (scEntry.formats && scEntry.formats.reverse().find(f => f.url)?.url);
-    if (scDirectUrl) {
-      return {
-        title: scEntry.title || fallbackSearchQuery,
-        trackUrl: scEntry.webpage_url || query,
-        duration: formatDuration(scEntry.duration || 0),
-        thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
-        directAudioUrl: scDirectUrl,
-      };
-    }
-  } catch (scErr) {
-    // Both YouTube and SoundCloud failed
-  }
-
-  throw new Error('Could not find a playable stream for this track. Please try a different song title or link.');
+  throw new Error(`YouTube extraction failed: ${lastErr.slice(0, 200)}`);
 }
 
 module.exports = {
   name: 'play',
-  description: 'Play music in your voice channel from YouTube or search queries with boosted volume',
-  usage: '.play <song title or URL>',
+  description: 'Play music in your voice channel from YouTube with boosted volume',
+  usage: '.play <song title or YouTube URL>',
 
   async execute(message, args, client) {
     const voiceChannel = message.member?.voice?.channel;
@@ -164,11 +118,11 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Please specify a song name or URL: `.play <song name / URL>`');
+      return message.reply('❌ Please specify a song name or YouTube URL: `.play <song name / YouTube URL>`');
     }
 
     const query = args.join(' ').trim();
-    const statusMsg = await message.channel.send(`🔍 Finding **${query}**...`);
+    const statusMsg = await message.channel.send(`🔍 Finding **${query}** on YouTube...`);
 
     let ytdlpPath;
     try {
@@ -180,7 +134,7 @@ module.exports = {
     const ffmpegPath = getFfmpeg();
 
     try {
-      const track = await extractTrackInfo(ytdlpPath, query);
+      const track = await extractYouTubeTrack(ytdlpPath, query);
 
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
@@ -192,7 +146,7 @@ module.exports = {
         try { existingSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Stream native Ogg Opus audio with volume pre-amplification
+      // Stream native Ogg Opus audio with 160% volume pre-amplification
       const ffmpegProc = spawn(ffmpegPath, [
         '-reconnect', '1',
         '-reconnect_streamed', '1',
@@ -257,8 +211,8 @@ module.exports = {
       player.play(resource);
 
       const embed = new EmbedBuilder()
-        .setColor(0x5765f2)
-        .setTitle('🎵 Now Playing')
+        .setColor(0xff0000)
+        .setTitle('▶️ YouTube Playback')
         .setDescription(`**[${track.title}](${track.trackUrl})**`)
         .addFields(
           { name: 'Duration', value: track.duration, inline: true },
