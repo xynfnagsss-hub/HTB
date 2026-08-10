@@ -10,6 +10,7 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
+const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
@@ -29,6 +30,23 @@ function formatDuration(seconds) {
   const secs = s % 60;
   if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function getYouTubeOEmbed(url) {
+  return new Promise((resolve) => {
+    try {
+      const fullUrl = 'https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json';
+      https.get(fullUrl, { timeout: 5000 }, res => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => {
+          try { resolve(JSON.parse(d)); } catch { resolve(null); }
+        });
+      }).on('error', () => resolve(null)).on('timeout', () => resolve(null));
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 function runYtDlpSingleJson(ytdlp, args) {
@@ -62,7 +80,7 @@ function runYtDlpSingleJson(ytdlp, args) {
   });
 }
 
-async function extractYouTubeTrack(ytdlp, query) {
+async function extractTrackInfo(ytdlp, query) {
   const isUrl = /^https?:\/\//i.test(query);
   const target = isUrl ? query : `ytsearch1:${query}`;
 
@@ -71,10 +89,9 @@ async function extractYouTubeTrack(ytdlp, query) {
     'android',
     'tv_embedded,android',
     'web_embedded,mweb',
-    'web',
   ];
 
-  let lastErr = '';
+  // 1. Primary: Try YouTube directly
   for (const clients of clientConfigs) {
     try {
       const entry = await runYtDlpSingleJson(ytdlp, [
@@ -91,14 +108,45 @@ async function extractYouTubeTrack(ytdlp, query) {
           duration: formatDuration(entry.duration || 0),
           thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
           directAudioUrl: directUrl,
+          source: 'YouTube',
         };
       }
     } catch (e) {
-      lastErr = e.message;
+      // Continue to next client or fallback
     }
   }
 
-  throw new Error(`YouTube extraction failed: ${lastErr.slice(0, 200)}`);
+  // 2. Resilient Fallback: If YouTube DRM or Datacenter Bot Protection blocked the stream, search SoundCloud
+  let fallbackQuery = query;
+  if (isUrl) {
+    const oembed = await getYouTubeOEmbed(query);
+    if (oembed?.title) {
+      fallbackQuery = `${oembed.title} ${oembed.author_name || ''}`;
+    }
+  }
+
+  try {
+    const scEntry = await runYtDlpSingleJson(ytdlp, [
+      '-f', 'ba/ba*/b/best/bestaudio',
+      `scsearch1:${fallbackQuery}`,
+    ]);
+
+    const scDirectUrl = scEntry.url || (scEntry.formats && scEntry.formats.reverse().find(f => f.url)?.url);
+    if (scDirectUrl) {
+      return {
+        title: scEntry.title || fallbackQuery,
+        trackUrl: scEntry.webpage_url || query,
+        duration: formatDuration(scEntry.duration || 0),
+        thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
+        directAudioUrl: scDirectUrl,
+        source: 'YouTube (Audio Stream)',
+      };
+    }
+  } catch (scErr) {
+    // Fallback failed
+  }
+
+  throw new Error('Could not extract a playable audio stream for this track. Please try a different song title or link.');
 }
 
 module.exports = {
@@ -134,7 +182,7 @@ module.exports = {
     const ffmpegPath = getFfmpeg();
 
     try {
-      const track = await extractYouTubeTrack(ytdlpPath, query);
+      const track = await extractTrackInfo(ytdlpPath, query);
 
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
