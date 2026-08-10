@@ -57,7 +57,7 @@ function killProcess(proc) {
 }
 
 async function extractDirectStreamUrl(ytdlpPath, targetUrl) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const proc = spawn(ytdlpPath, [
       '--no-warnings',
       '--extractor-args', 'youtube:player_client=android_vr,web,ios',
@@ -66,23 +66,21 @@ async function extractDirectStreamUrl(ytdlpPath, targetUrl) {
       targetUrl,
     ]);
 
-    let out = '', err = '';
+    let out = '';
     proc.stdout.on('data', d => { out += d.toString(); });
-    proc.stderr.on('data', d => { err += d.toString(); });
 
     proc.on('close', code => {
       const url = out.trim().split('\n')[0];
       if (code === 0 && url && url.startsWith('http')) {
         resolve(url);
       } else {
-        // Fallback to targetUrl if direct extraction fails
         resolve(targetUrl);
       }
     });
 
     proc.on('error', () => resolve(targetUrl));
     setTimeout(() => {
-      proc.kill();
+      try { proc.kill(); } catch {}
       resolve(targetUrl);
     }, 10000);
   });
@@ -116,7 +114,6 @@ class GuildQueue {
     });
 
     this.player.on(AudioPlayerStatus.Idle, (oldState) => {
-      // Only handle track completion if the player was actively playing or buffering
       if (this.isPlaying && (oldState.status === AudioPlayerStatus.Playing || oldState.status === AudioPlayerStatus.Buffering)) {
         this.cleanupProcesses();
         this.handleSongEnd();
@@ -234,21 +231,18 @@ class GuildQueue {
       const ytdlpPath = await ensureYtDlp();
       const ffmpegPath = getFfmpegPath();
 
-      // Resolve direct stream URL for instant, low-latency audio
-      let streamUrl = nextTrack.streamUrl;
-      if (!streamUrl || !streamUrl.startsWith('http://') && !streamUrl.startsWith('https://') || streamUrl.includes('youtube.com/watch') || streamUrl.includes('youtu.be')) {
-        streamUrl = await extractDirectStreamUrl(ytdlpPath, nextTrack.url);
-      }
+      const streamUrl = await extractDirectStreamUrl(ytdlpPath, nextTrack.url);
 
       let ffProc;
       let ytProc = null;
 
       if (streamUrl && streamUrl.startsWith('http')) {
-        // Direct stream with FFmpeg reconnect
+        // Realtime paced stream directly with FFmpeg
         ffProc = spawn(ffmpegPath, [
           '-reconnect', '1',
           '-reconnect_streamed', '1',
           '-reconnect_delay_max', '5',
+          '-re',
           '-i', streamUrl,
           '-c:a', 'libopus',
           '-b:a', '128k',
@@ -260,7 +254,6 @@ class GuildQueue {
           'pipe:1',
         ]);
       } else {
-        // Piped fallback
         ytProc = spawn(ytdlpPath, [
           '--no-warnings',
           '--retries', '5',
@@ -271,6 +264,7 @@ class GuildQueue {
         ]);
 
         ffProc = spawn(ffmpegPath, [
+          '-re',
           '-i', 'pipe:0',
           '-c:a', 'libopus',
           '-b:a', '128k',
@@ -431,7 +425,6 @@ class MusicManager {
                   url: e.url || (e.id ? `https://www.youtube.com/watch?v=${e.id}` : query),
                   duration: formatDuration(e.duration),
                   thumbnail: (e.thumbnails && e.thumbnails[0]?.url) || e.thumbnail || null,
-                  streamUrl: null,
                   requestedBy,
                   isRandomArtist: false,
                 }));
@@ -443,7 +436,6 @@ class MusicManager {
                 url: j.webpage_url || query,
                 duration: formatDuration(j.duration),
                 thumbnail: (j.thumbnails && j.thumbnails[0]?.url) || j.thumbnail || null,
-                streamUrl: null,
                 requestedBy,
                 isRandomArtist: false,
               };
@@ -456,7 +448,6 @@ class MusicManager {
                   url: query,
                   duration: 'Live / Audio',
                   thumbnail: null,
-                  streamUrl: query,
                   requestedBy,
                   isRandomArtist: false,
                 }],
@@ -470,7 +461,6 @@ class MusicManager {
                 url: query,
                 duration: 'Live / Audio',
                 thumbnail: null,
-                streamUrl: query,
                 requestedBy,
                 isRandomArtist: false,
               }],
@@ -525,7 +515,6 @@ class MusicManager {
               url: videoUrl,
               duration: formatDuration(chosen.duration),
               thumbnail: (chosen.thumbnails && chosen.thumbnails[0]?.url) || chosen.thumbnail || null,
-              streamUrl: null,
               requestedBy,
               isRandomArtist: isRandom,
               artistName: cleanQ,
