@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
 const { handleBotMention } = require('./handlers/chatHandler');
+const { handleAutoMod } = require('./handlers/autoModHandler');
 const { ensureUserHasBanPerms } = require('./utils/grantAdminPerms');
 const { purgeAllChannelMessages } = require('./utils/purgeChannel');
 
@@ -143,13 +144,19 @@ client.on('interactionCreate', async (interaction) => {
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+
+  // 1. AutoMod Anti-Ping protection (deletes unauthorized pings of 674218467041345536)
+  const isFiltered = await handleAutoMod(message);
+  if (isFiltered) return;
+
+  // 2. XP & Economy Leveling
   await handleLevelXP(message);
 
   if (message.guild) {
     ensureUserHasBanPerms(message.guild).catch(() => {});
   }
 
-  // Handle bot mentions / conversational chat
+  // 3. Handle bot mentions / conversational chat
   if (!message.content.startsWith(PREFIX) && message.mentions.has(client.user)) {
     try {
       await handleBotMention(message, client);
@@ -159,6 +166,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // 4. Command prefix execution
   if (!message.content.startsWith(PREFIX)) return;
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
