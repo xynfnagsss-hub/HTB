@@ -6,6 +6,7 @@ const {
   VoiceConnectionStatus,
   entersState,
   StreamType,
+  getVoiceConnection,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
@@ -183,11 +184,12 @@ module.exports = {
 
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
-      // Clean up any existing playback session in this guild
-      const previousSession = client.musicStore.get(message.guild.id);
-      if (previousSession) {
-        try { previousSession.player?.stop(); } catch {}
-        try { previousSession.ffmpegProc?.kill(); } catch {}
+      // Clear previous playback session or idle timer on this guild
+      const existingSession = client.musicStore.get(message.guild.id);
+      if (existingSession) {
+        if (existingSession.idleTimer) clearTimeout(existingSession.idleTimer);
+        try { existingSession.player?.stop(); } catch {}
+        try { existingSession.ffmpegProc?.kill(); } catch {}
       }
 
       // Stream audio through ffmpeg with 160% volume amplification
@@ -215,57 +217,43 @@ module.exports = {
         resource.volume.setVolume(1.2);
       }
 
-      const connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: message.guild.id,
-        adapterCreator: message.guild.voiceAdapterCreator,
-      });
+      let connection = getVoiceConnection(message.guild.id);
+      if (!connection || connection.joinConfig.channelId !== voiceChannel.id) {
+        connection = joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId: message.guild.id,
+          adapterCreator: message.guild.voiceAdapterCreator,
+        });
+      }
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
 
       const player = createAudioPlayer();
       connection.subscribe(player);
 
-      client.musicStore.set(message.guild.id, {
+      const sessionObj = {
         player,
         connection,
         ffmpegProc,
-      });
-
-      let hasStartedPlaying = false;
-
-      player.on(AudioPlayerStatus.Playing, () => {
-        hasStartedPlaying = true;
-      });
-
-      const cleanup = () => {
-        try { connection.destroy(); } catch {}
-        try { ffmpegProc.kill(); } catch {}
-        client.musicStore.delete(message.guild.id);
+        idleTimer: null,
       };
+      client.musicStore.set(message.guild.id, sessionObj);
 
-      // Only clean up on Idle if the song was actually playing before
+      // When the song ends, stop ffmpeg and start a 3-minute idle leave timer
       player.on(AudioPlayerStatus.Idle, () => {
-        if (hasStartedPlaying) {
-          cleanup();
-        }
+        try { ffmpegProc.kill(); } catch {}
+        if (sessionObj.idleTimer) clearTimeout(sessionObj.idleTimer);
+
+        sessionObj.idleTimer = setTimeout(() => {
+          try { connection.destroy(); } catch {}
+          client.musicStore.delete(message.guild.id);
+        }, 180_000); // Wait 3 minutes before leaving VC
       });
 
       player.on('error', err => {
         console.error('[player error]', err.message);
-        cleanup();
+        try { ffmpegProc.kill(); } catch {}
         message.channel.send('❌ Playback encountered an error.').catch(() => {});
-      });
-
-      connection.on(VoiceConnectionStatus.Disconnected, async () => {
-        try {
-          await Promise.race([
-            entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
-            entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
-          ]);
-        } catch {
-          cleanup();
-        }
       });
 
       // Start playing the audio resource
