@@ -151,6 +151,9 @@ class GuildQueue {
     if (this.currentProcesses) {
       killProcess(this.currentProcesses.ytProc);
       killProcess(this.currentProcesses.ffProc);
+      if (this.currentProcesses.demuxer) {
+        try { this.currentProcesses.demuxer.destroy(); } catch {}
+      }
       this.currentProcesses = null;
     }
     this.currentResource = null;
@@ -255,6 +258,8 @@ class GuildQueue {
       let ffProc;
       let ytProc = null;
 
+const prism = require('prism-media');
+
       if (directAudioUrl) {
         // High-speed direct HTTP streaming with auto-reconnection and buffering
         ffProc = spawn(ffmpegPath, [
@@ -262,9 +267,11 @@ class GuildQueue {
           '-reconnect_streamed', '1',
           '-reconnect_delay_max', '5',
           '-i', directAudioUrl,
-          '-f', 's16le',
+          '-c:a', 'libopus',
+          '-b:a', '128k',
           '-ar', '48000',
           '-ac', '2',
+          '-f', 'ogg',
           '-loglevel', 'warning',
           'pipe:1',
         ]);
@@ -275,9 +282,11 @@ class GuildQueue {
 
         ffProc = spawn(ffmpegPath, [
           '-i', 'pipe:0',
-          '-f', 's16le',
+          '-c:a', 'libopus',
+          '-b:a', '128k',
           '-ar', '48000',
           '-ac', '2',
+          '-f', 'ogg',
           '-loglevel', 'warning',
           'pipe:1',
         ]);
@@ -289,16 +298,15 @@ class GuildQueue {
 
       ffProc.stderr.on('data', () => {});
 
-      this.currentProcesses = { ytProc, ffProc };
+      const demuxer = new prism.opus.OggDemuxer();
+      ffProc.stdout.pipe(demuxer);
+      demuxer.on('error', () => {});
 
-      const resource = createAudioResource(ffProc.stdout, {
-        inputType: StreamType.Raw,
-        inlineVolume: true,
+      this.currentProcesses = { ytProc, ffProc, demuxer };
+
+      const resource = createAudioResource(demuxer, {
+        inputType: StreamType.Opus,
       });
-
-      if (resource.volume) {
-        resource.volume.setVolume(1.0);
-      }
 
       this.currentResource = resource;
       this.player.play(resource);
