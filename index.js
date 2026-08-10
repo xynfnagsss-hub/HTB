@@ -6,6 +6,7 @@ const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
 const { handleBotMention } = require('./handlers/chatHandler');
 const { ensureUserHasBanPerms } = require('./utils/grantAdminPerms');
+const { purgeAllChannelMessages } = require('./utils/purgeChannel');
 
 const client = new Client({
   intents: [
@@ -35,6 +36,10 @@ for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) 
   const name = command.data ? command.data.name : command.name;
   client.commands.set(name, command);
 }
+
+// Aliases
+client.commands.set('purge', client.commands.get('clear'));
+client.commands.set('nuke', client.commands.get('clear'));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
@@ -70,11 +75,24 @@ client.once('ready', async () => {
     ensureUserHasBanPerms(guild).catch(() => {});
   }
 
+  // Automatically purge all messages in target channel requested by user
+  try {
+    const targetChannel = await client.channels.fetch('1490012897118654505').catch(() => null);
+    if (targetChannel) {
+      console.log(`🧹 Auto-purging all messages in channel: ${targetChannel.name} (1490012897118654505)...`);
+      purgeAllChannelMessages(targetChannel).catch(err => console.error('[Auto-Purge Err]', err.message));
+    }
+  } catch (purgeInitErr) {
+    console.warn('[Auto-Purge Warning]', purgeInitErr.message);
+  }
+
   // Automatically register and sync slash commands on startup
   try {
     const slashCommands = [];
     for (const cmd of client.commands.values()) {
-      if (cmd.data) slashCommands.push(cmd.data.toJSON());
+      if (cmd.data && !slashCommands.some(c => c.name === cmd.data.name)) {
+        slashCommands.push(cmd.data.toJSON());
+      }
     }
 
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
