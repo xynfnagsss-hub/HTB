@@ -66,12 +66,35 @@ function killProcess(proc) {
   } catch {}
 }
 
+function getDirectStreamUrl(ytdlpPath, targetUrl) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytdlpPath, [
+      '--no-warnings',
+      '--get-url',
+      '-f', 'ba/bestaudio/best',
+      targetUrl,
+    ]);
+
+    let out = '', err = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { err += d.toString(); });
+
+    proc.on('close', code => {
+      const directUrl = out.trim().split('\n')[0];
+      if (code === 0 && directUrl && directUrl.startsWith('http')) {
+        resolve(directUrl);
+      } else {
+        reject(new Error(err.trim() || 'Failed to extract audio stream'));
+      }
+    });
+  });
+}
+
 function buildYtDlpStreamArgs(target) {
   return [
     '--no-warnings',
     '--retries', '10',
     '--fragment-retries', '10',
-    '--extractor-args', 'youtube:player_client=android_vr,android,ios,tv_embedded,mweb',
     '-f', 'ba/bestaudio/best',
     '-o', '-',
     target,
@@ -227,29 +250,43 @@ class GuildQueue {
       const ffmpegPath = getFfmpegPath();
 
       const target = nextTrack.url || nextTrack.streamUrl;
-      const ytArgs = buildYtDlpStreamArgs(target);
+      const directAudioUrl = await getDirectStreamUrl(ytdlpPath, target).catch(() => null);
 
-      // Direct yt-dlp audio stream pipe to FFmpeg Opus encoder
-      const ytProc = spawn(ytdlpPath, ytArgs);
+      let ffProc;
+      let ytProc = null;
 
-      const ffProc = spawn(ffmpegPath, [
-        '-i', 'pipe:0',
-        '-f', 's16le',
-        '-ar', '48000',
-        '-ac', '2',
-        '-loglevel', 'warning',
-        'pipe:1',
-      ]);
+      if (directAudioUrl) {
+        // High-speed direct HTTP streaming with auto-reconnection and buffering
+        ffProc = spawn(ffmpegPath, [
+          '-reconnect', '1',
+          '-reconnect_streamed', '1',
+          '-reconnect_delay_max', '5',
+          '-i', directAudioUrl,
+          '-f', 's16le',
+          '-ar', '48000',
+          '-ac', '2',
+          '-loglevel', 'warning',
+          'pipe:1',
+        ]);
+      } else {
+        // Fallback pipe stream
+        const ytArgs = buildYtDlpStreamArgs(target);
+        ytProc = spawn(ytdlpPath, ytArgs);
 
-      ytProc.stdout.pipe(ffProc.stdin);
-      ytProc.stdout.on('error', () => {});
-      ffProc.stdin.on('error', () => {});
-      ytProc.stderr.on('data', (d) => {
-        const msg = d.toString();
-        if (msg.includes('ERROR:')) {
-          console.error(`[yt-dlp Error ${this.guildId}]:`, msg.trim());
-        }
-      });
+        ffProc = spawn(ffmpegPath, [
+          '-i', 'pipe:0',
+          '-f', 's16le',
+          '-ar', '48000',
+          '-ac', '2',
+          '-loglevel', 'warning',
+          'pipe:1',
+        ]);
+
+        ytProc.stdout.pipe(ffProc.stdin);
+        ytProc.stdout.on('error', () => {});
+        ffProc.stdin.on('error', () => {});
+      }
+
       ffProc.stderr.on('data', () => {});
 
       this.currentProcesses = { ytProc, ffProc };
