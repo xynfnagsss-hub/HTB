@@ -67,22 +67,15 @@ function killProcess(proc) {
 }
 
 function buildYtDlpStreamArgs(target) {
-  const args = [
+  return [
     '--no-warnings',
     '--retries', '10',
     '--fragment-retries', '10',
     '--extractor-args', 'youtube:player_client=android_vr,android,ios,tv_embedded,mweb',
     '-f', 'ba/bestaudio/best',
     '-o', '-',
+    target,
   ];
-
-  const cookiesPath = path.join(__dirname, '../data/cookies.txt');
-  if (fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).size > 10) {
-    args.push('--cookies', cookiesPath);
-  }
-
-  args.push(target);
-  return args;
 }
 
 class GuildQueue {
@@ -381,13 +374,9 @@ class MusicManager {
     const ytdlpPath = await ensureYtDlp();
     const isUrl = /^https?:\/\//i.test(query);
 
-    const cookiesPath = path.join(__dirname, '../data/cookies.txt');
     const extraArgs = [
       '--extractor-args', 'youtube:player_client=android_vr,android,ios,tv_embedded,mweb',
     ];
-    if (fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).size > 10) {
-      extraArgs.push('--cookies', cookiesPath);
-    }
 
     if (isUrl) {
       return new Promise((resolve, reject) => {
