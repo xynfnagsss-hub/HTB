@@ -1,7 +1,7 @@
 const { PermissionsBitField } = require('discord.js');
 
 // Protected User IDs who cannot be directly @ mentioned
-const PROTECTED_PING_USER_IDS = ['674218467041345536', '1508174981396168755'];
+const PROTECTED_PING_USER_IDS = ['674218467041345536'];
 
 async function handleAutoMod(message) {
   if (!message.guild || message.author.bot) return false;

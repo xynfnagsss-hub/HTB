@@ -2,7 +2,7 @@ const {
   PermissionsBitField
 } = require('discord.js');
 
-const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536', '1508174981396168755'];
+const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536'];
 const RULE_NAME = 'HTB Anti-Ping Protection';
 
 async function ensureNativeAutoModRule(guild) {
