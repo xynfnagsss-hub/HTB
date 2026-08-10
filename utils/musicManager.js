@@ -10,16 +10,26 @@ const {
   getVoiceConnection,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('./ensureYtDlp');
 
 function getFfmpegPath() {
+  try {
+    execSync('ffmpeg -version', { stdio: 'ignore', timeout: 2000 });
+    return 'ffmpeg';
+  } catch {}
+
   const base = path.join(__dirname, '../node_modules/ffmpeg-static');
   const win = path.join(base, 'ffmpeg.exe');
   const linux = path.join(base, 'ffmpeg');
-  return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
+  if (process.platform === 'win32' && fs.existsSync(win)) return win;
+  if (fs.existsSync(linux)) {
+    try { fs.chmodSync(linux, '755'); } catch {}
+    return linux;
+  }
+  return 'ffmpeg';
 }
 
 function cleanTitle(title) {
@@ -56,6 +66,25 @@ function killProcess(proc) {
   } catch {}
 }
 
+function buildYtDlpStreamArgs(target) {
+  const args = [
+    '--no-warnings',
+    '--retries', '10',
+    '--fragment-retries', '10',
+    '--extractor-args', 'youtube:player_client=android_vr,android,ios,tv_embedded,mweb',
+    '-f', 'ba/bestaudio/best',
+    '-o', '-',
+  ];
+
+  const cookiesPath = path.join(__dirname, '../data/cookies.txt');
+  if (fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).size > 10) {
+    args.push('--cookies', cookiesPath);
+  }
+
+  args.push(target);
+  return args;
+}
+
 class GuildQueue {
   constructor(guild, voiceChannel, textChannel, client) {
     this.guild = guild;
@@ -85,7 +114,7 @@ class GuildQueue {
     });
 
     this.player.on(AudioPlayerStatus.Idle, (oldState) => {
-      // Only transition to next track if the player was actively playing and not just buffering
+      // Only advance track if player was actively playing
       if (this.isPlaying && oldState.status === AudioPlayerStatus.Playing) {
         this.cleanupProcesses();
         this.handleSongEnd();
@@ -205,15 +234,10 @@ class GuildQueue {
       const ffmpegPath = getFfmpegPath();
 
       const target = nextTrack.url || nextTrack.streamUrl;
+      const ytArgs = buildYtDlpStreamArgs(target);
 
       // Direct yt-dlp audio stream pipe to FFmpeg Opus encoder
-      const ytProc = spawn(ytdlpPath, [
-        '--no-warnings',
-        '--retries', '5',
-        '-f', 'ba/bestaudio/best',
-        '-o', '-',
-        target,
-      ]);
+      const ytProc = spawn(ytdlpPath, ytArgs);
 
       const ffProc = spawn(ffmpegPath, [
         '-i', 'pipe:0',
@@ -230,7 +254,12 @@ class GuildQueue {
       ytProc.stdout.pipe(ffProc.stdin);
       ytProc.stdout.on('error', () => {});
       ffProc.stdin.on('error', () => {});
-      ytProc.stderr.on('data', () => {});
+      ytProc.stderr.on('data', (d) => {
+        const msg = d.toString();
+        if (msg.includes('ERROR:')) {
+          console.error(`[yt-dlp Error ${this.guildId}]:`, msg.trim());
+        }
+      });
       ffProc.stderr.on('data', () => {});
 
       this.currentProcesses = { ytProc, ffProc };
@@ -352,12 +381,21 @@ class MusicManager {
     const ytdlpPath = await ensureYtDlp();
     const isUrl = /^https?:\/\//i.test(query);
 
+    const cookiesPath = path.join(__dirname, '../data/cookies.txt');
+    const extraArgs = [
+      '--extractor-args', 'youtube:player_client=android_vr,android,ios,tv_embedded,mweb',
+    ];
+    if (fs.existsSync(cookiesPath) && fs.statSync(cookiesPath).size > 10) {
+      extraArgs.push('--cookies', cookiesPath);
+    }
+
     if (isUrl) {
       return new Promise((resolve, reject) => {
         const proc = spawn(ytdlpPath, [
           '--dump-single-json',
           '--no-warnings',
           '--flat-playlist',
+          ...extraArgs,
           query,
         ]);
 
@@ -436,6 +474,7 @@ class MusicManager {
         '--dump-single-json',
         '--no-warnings',
         '--flat-playlist',
+        ...extraArgs,
         searchTarget,
       ]);
 

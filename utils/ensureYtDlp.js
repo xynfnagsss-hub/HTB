@@ -29,13 +29,14 @@ async function ensureYtDlp() {
   // 1. System install check
   try {
     execSync('yt-dlp --version', { timeout: 3000, stdio: 'pipe' });
-    console.log('[yt-dlp] Using system binary');
     return 'yt-dlp';
   } catch {}
 
   // 2. Already downloaded check
   if (fs.existsSync(BIN_PATH)) {
-    console.log('[yt-dlp] Using cached binary at', BIN_PATH);
+    if (!isWin) {
+      try { fs.chmodSync(BIN_PATH, '755'); } catch {}
+    }
     return BIN_PATH;
   }
 
@@ -49,9 +50,8 @@ async function ensureYtDlp() {
 
   await download(url, BIN_PATH);
   if (!isWin) {
-    fs.chmodSync(BIN_PATH, '755');
+    try { fs.chmodSync(BIN_PATH, '755'); } catch {}
   }
-  console.log('[yt-dlp] Downloaded to', BIN_PATH);
   return BIN_PATH;
 }
 
