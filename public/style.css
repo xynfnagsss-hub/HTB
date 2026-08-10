@@ -197,17 +197,34 @@ body {
   letter-spacing: -0.5px;
 }
 
-.logo-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--gradient-gold);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #050608;
-  font-size: 1.2rem;
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--gold-glow);
   box-shadow: var(--shadow-gold);
+  object-fit: cover;
+}
+
+.hero-emblem-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.hero-emblem {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 3px solid var(--gold-glow);
+  box-shadow: 0 0 35px rgba(245, 175, 25, 0.45);
+  object-fit: cover;
+  animation: emblemPulse 4s ease-in-out infinite alternate;
+}
+
+@keyframes emblemPulse {
+  0% { transform: scale(1); box-shadow: 0 0 25px rgba(245, 175, 25, 0.35); }
+  100% { transform: scale(1.04); box-shadow: 0 0 45px rgba(255, 215, 0, 0.6); }
 }
 
 .nav-links {
