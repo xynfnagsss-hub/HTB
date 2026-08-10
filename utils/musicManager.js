@@ -234,13 +234,10 @@ class GuildQueue {
 
       const ffProc = spawn(ffmpegPath, [
         '-i', 'pipe:0',
-        '-c:a', 'libopus',
-        '-b:a', '128k',
+        '-f', 's16le',
         '-ar', '48000',
         '-ac', '2',
-        '-frame_duration', '20',
-        '-f', 'opus',
-        '-loglevel', 'error',
+        '-loglevel', 'warning',
         'pipe:1',
       ]);
 
@@ -258,8 +255,13 @@ class GuildQueue {
       this.currentProcesses = { ytProc, ffProc };
 
       const resource = createAudioResource(ffProc.stdout, {
-        inputType: StreamType.OggOpus,
+        inputType: StreamType.Raw,
+        inlineVolume: true,
       });
+
+      if (resource.volume) {
+        resource.volume.setVolume(1.0);
+      }
 
       this.currentResource = resource;
       this.player.play(resource);
