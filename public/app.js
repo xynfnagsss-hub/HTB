@@ -1,102 +1,198 @@
 /**
- * HTB Storefront Logic & Cart Manager
- * Domain: htbwshop.jo3.org
+ * HTB (HIT THE BLOCK) OFFICIAL MARKETPLACE
+ * Real In-Server Roles, Access Passes & Command Tiers
  */
 
-// Official Inventory Data
-const PRODUCTS = [
+const MARKET_ITEMS = [
+  // 1. Entry & Custom Roles
   {
-    id: 'robux-1k',
-    title: '1,000 Robux Package',
-    category: 'currency',
-    price: 4.99,
-    badge: 'HOT',
-    badgeClass: 'badge-hot',
-    icon: 'fa-solid fa-coins',
-    desc: 'Instant clean Robux transfer via gamepass or VIP group funds.',
-    perks: ['Instant automated payout', '100% Tax Covered', 'Safe & Clean Source'],
+    id: 'htb-noted',
+    title: 'HTB | Noted Member',
+    category: 'roles',
+    tier: 'MEMBER',
+    price: 2.00,
+    badge: 'ENTRY',
+    icon: 'fa-solid fa-tag',
+    desc: 'Official recognized community status with special chat privileges and hoisted role.',
+    perks: ['Hoisted Noted Member Role', 'Custom Chat Badge', 'Access to exclusive member channels'],
   },
   {
-    id: 'robux-5k',
-    title: '5,000 Robux Package',
-    category: 'currency',
-    price: 19.99,
+    id: 'htb-custom-role',
+    title: 'CUSTOM ROLE',
+    category: 'roles',
+    tier: 'EXCLUSIVE',
+    price: 3.00,
     badge: 'POPULAR',
-    badgeClass: 'badge-popular',
-    icon: 'fa-solid fa-sack-dollar',
-    desc: 'Most popular bulk pack with bonus in-server economy XP.',
-    perks: ['Instant transfer', 'Bonus 250k HTB XP', 'Tax 100% Covered'],
+    icon: 'fa-solid fa-paintbrush',
+    desc: 'Create your own fully customized colored role with custom name and icon.',
+    perks: ['Custom Hex Color', 'Custom Role Name & Emoji', 'Permanent Lifetime Access'],
+  },
+
+  // 2. Access Passes
+  {
+    id: 'htb-half-access',
+    title: 'HTB | Half Access',
+    category: 'access',
+    tier: 'ACCESS',
+    price: 5.00,
+    badge: 'PASS',
+    icon: 'fa-solid fa-unlock-keyhole',
+    desc: 'Unlocks half server permissions, media channels, and priority bot usage.',
+    perks: ['Half Server Permissions', 'Voice Channel Priority', 'Bypass Slowmode'],
   },
   {
-    id: 'robux-10k',
-    title: '10,000 Robux Whale Pack',
-    category: 'currency',
-    price: 37.99,
+    id: 'htb-hitta-access',
+    title: 'HTB | Hitta Access',
+    category: 'access',
+    tier: 'ACCESS',
+    price: 7.00,
+    badge: 'HITTA',
+    icon: 'fa-solid fa-key',
+    desc: 'Hitta tier clearance with access to private lobbies and underground channels.',
+    perks: ['Hitta Channel Access', 'Private VC Creation', 'Custom Chat Glow'],
+  },
+  {
+    id: 'htb-onetap-access',
+    title: 'HTB | ONE-TAP ACCESS',
+    category: 'access',
+    tier: 'TOP ACCESS',
+    price: 9.00,
     badge: 'BEST VALUE',
-    badgeClass: 'badge-vip',
-    icon: 'fa-solid fa-gem',
-    desc: 'Maximum value bulk Robux package for serious community collectors.',
-    perks: ['Instant direct transfer', 'Free VIP Role in Discord', 'Priority Staff Ticket'],
-  },
-  {
-    id: 'htb-starter-bundle',
-    title: 'HTB Ultimate Starter Bundle',
-    category: 'bundles',
-    price: 14.99,
-    badge: 'LIMITED',
-    badgeClass: 'badge-hot',
-    icon: 'fa-solid fa-box-open',
-    desc: 'Complete jumpstart pack with exclusive weapons, cash, and gear.',
-    perks: ['3x Weapon Crates', '500,000 In-Game Cash', 'Special Discord Chat Tag'],
-  },
-  {
-    id: 'htb-vip-pass',
-    title: 'Lifetime HTB VIP Rank',
-    category: 'ranks',
-    price: 9.99,
-    badge: 'VIP PERK',
-    badgeClass: 'badge-vip',
-    icon: 'fa-solid fa-crown',
-    desc: 'Permanent VIP status in the 17,000+ member server and game servers.',
-    perks: ['Exclusive VIP Channels', '2x Daily Level XP multiplier', 'Exclusive Color Role'],
-  },
-  {
-    id: 'custom-role-service',
-    title: 'Custom Server Role & Icon',
-    category: 'services',
-    price: 7.49,
-    badge: 'CUSTOM',
-    badgeClass: 'badge-service',
-    icon: 'fa-solid fa-palette',
-    desc: 'Create your own custom colored role with custom icon hoisted in server.',
-    perks: ['Custom Color & Name', 'Custom Role Emoji Icon', 'Permanent Lifetime Access'],
-  },
-  {
-    id: 'level-boost-pass',
-    title: 'Instant Level 100 Boost',
-    category: 'services',
-    price: 11.99,
-    badge: 'BOOST',
-    badgeClass: 'badge-service',
     icon: 'fa-solid fa-bolt',
-    desc: 'Instantly unlock high-tier commands, market slots, and perks.',
-    perks: ['100,000,000 HTB XP', 'Unlocks Max Market Slots', 'Instant Bot Auto-Grant'],
+    desc: 'Full one-tap access across private rooms, giveaways, and drops.',
+    perks: ['One-Tap Full Access', 'VIP Role Pass', 'Double Entry in HTB Giveaways'],
+  },
+
+  // 3. Staff & Moderation
+  {
+    id: 'htb-chat-vc-mod',
+    title: 'HTB | CHAT/VC MOD',
+    category: 'staff',
+    tier: 'STAFF (CANT SELL)',
+    price: 22.00,
+    badge: 'STAFF',
+    icon: 'fa-solid fa-shield-halved',
+    desc: 'Official Chat & Voice Channel moderation privileges in the 17k server.',
+    perks: ['Chat & VC Timeout perms', 'Mod-Only Channels', 'Official Staff Badge'],
   },
   {
-    id: 'htb-syndicate-bundle',
-    title: 'Syndicate Boss In-Game Pack',
-    category: 'bundles',
-    price: 24.99,
-    badge: 'EXCLUSIVE',
-    badgeClass: 'badge-popular',
-    icon: 'fa-solid fa-skull',
-    desc: 'Exclusive armor set, rare title, and maxed-out starting inventory.',
-    perks: ['Syndicate Custom Armor', '1,500,000 In-Game Cash', 'Exclusive In-Game Title'],
+    id: 'htb-ticket-support',
+    title: 'HTB | Ticket Support',
+    category: 'staff',
+    tier: 'STAFF',
+    price: 25.00,
+    badge: 'SUPPORT',
+    icon: 'fa-solid fa-ticket',
+    desc: 'Join the support team to claim, manage, and assist member tickets.',
+    perks: ['Ticket Panel Management', 'Claim Member Tickets', 'Support Role Hoist'],
+  },
+  {
+    id: 'htb-administrator',
+    title: 'HTB | Administrator',
+    category: 'staff',
+    tier: 'ADMIN (CANT SELL)',
+    price: 32.00,
+    badge: 'ADMIN',
+    icon: 'fa-solid fa-gears',
+    desc: 'High-tier administrator clearance with broad server management tools.',
+    perks: ['Administrator Channel Access', 'Full Audit Log Visibility', 'Staff Meeting Access'],
+  },
+  {
+    id: 'htb-lead-moderator',
+    title: 'HTB | Lead Moderator',
+    category: 'staff',
+    tier: 'LEAD (CANT SELL)',
+    price: 38.00,
+    badge: 'LEAD',
+    icon: 'fa-solid fa-clipboard-check',
+    desc: 'Direct and oversee junior moderators with elevated moderation tools.',
+    perks: ['Lead Mod Authority', 'Override Mod Actions', 'Direct High-Command Line'],
+  },
+  {
+    id: 'htb-ranking-staff',
+    title: 'HTB | Ranking Staff',
+    category: 'staff',
+    tier: 'RANKING',
+    price: 44.00,
+    badge: 'RANKING',
+    icon: 'fa-solid fa-chart-simple',
+    desc: 'Executive ranking staff permissions across server management and operations.',
+    perks: ['Staff Performance Reviews', 'Promotions Voting Access', 'Top Tier Staff Tag'],
+  },
+
+  // 4. High Command
+  {
+    id: 'htb-overseer',
+    title: 'HTB | OVERSEER',
+    category: 'command',
+    tier: 'OVERSEER',
+    price: 49.00,
+    badge: 'OVERSEER',
+    icon: 'fa-solid fa-eye',
+    desc: 'Direct server oversight authority with top-level administrative access.',
+    perks: ['Overseer Authority', 'All Staff Channel Visibility', 'Permanent High Rank'],
+  },
+  {
+    id: 'htb-sergeant',
+    title: 'HTB | Sergeant',
+    category: 'command',
+    tier: 'HIGH COMMAND',
+    price: 75.00,
+    badge: 'HIGH COMMAND',
+    icon: 'fa-solid fa-shield',
+    desc: 'Elite disciplinary and tactical leadership role over all server divisions.',
+    perks: ['Command Level Privileges', 'Host Server Operations', 'Priority Support'],
+  },
+  {
+    id: 'htb-command-officer',
+    title: 'HTB | Command Officer',
+    category: 'command',
+    tier: 'HIGH COMMAND',
+    price: 80.00,
+    badge: 'OFFICER',
+    icon: 'fa-solid fa-medal',
+    desc: 'High-ranking command officer authority over server security and moderation.',
+    perks: ['Command Officer Role', 'Direct Admin Communication', 'Custom Profile Badge'],
+  },
+
+  // 5. Supreme Leadership (In Command)
+  {
+    id: 'htb-third-in-command',
+    title: 'HTB | Third in Command',
+    category: 'supreme',
+    tier: '3RD IN COMMAND',
+    price: 123.00,
+    badge: 'SUPREME',
+    icon: 'fa-solid fa-award',
+    desc: 'Third-highest executive leadership rank in the entire 17,000+ member server.',
+    perks: ['3rd In Command Role & Hoist', 'Ultimate Decision Making', 'Server-Wide Authority'],
+  },
+  {
+    id: 'htb-second-in-command',
+    title: 'HTB | Second in Command',
+    category: 'supreme',
+    tier: '2ND IN COMMAND',
+    price: 150.00,
+    badge: 'SUPREME',
+    icon: 'fa-solid fa-crown',
+    desc: 'Direct second-in-command to server ownership with full executive authority.',
+    perks: ['2nd In Command Authority', 'Full High-Command Veto', 'Permanent Crown Tag'],
+  },
+  {
+    id: 'htb-first-in-command',
+    title: 'HTB | First in Command',
+    category: 'supreme',
+    tier: '1ST IN COMMAND',
+    price: 175.00,
+    badge: 'SUPREME #1',
+    icon: 'fa-solid fa-trophy',
+    desc: 'The pinnacle of leadership in Hit The Block. Highest obtainable command rank.',
+    perks: ['1st In Command Apex Authority', 'Direct Ownership Partner', 'Maximum Server Power'],
   },
 ];
 
 // State
-let cart = JSON.parse(localStorage.getItem('htb_cart') || '[]');
+let cart = JSON.parse(localStorage.getItem('htb_market_cart') || '[]');
 let activeCategory = 'all';
 
 // DOM Elements
@@ -118,120 +214,129 @@ const modalContent = document.getElementById('modalContent');
 const modalCloseBtn = document.getElementById('modalCloseBtn');
 const faqAccordion = document.getElementById('faqAccordion');
 
-// Render Products
 function renderProducts() {
   const filtered = activeCategory === 'all'
-    ? PRODUCTS
-    : PRODUCTS.filter(p => p.category === activeCategory);
+    ? MARKET_ITEMS
+    : MARKET_ITEMS.filter(p => p.category === activeCategory);
 
-  productsGrid.innerHTML = filtered.map(product => `
+  productsGrid.innerHTML = filtered.map(item => `
     <div class="product-card">
-      <span class="product-badge ${product.badgeClass}">${product.badge}</span>
+      <div class="card-glow"></div>
+      <div class="card-header-top">
+        <span class="tier-tag">${item.tier}</span>
+        <span class="product-badge">${item.badge}</span>
+      </div>
       
-      <div>
+      <div class="card-content">
         <div class="product-icon-wrap">
-          <i class="${product.icon}"></i>
+          <i class="${item.icon}"></i>
         </div>
-        <h3 class="product-title">${product.title}</h3>
-        <p class="product-desc">${product.desc}</p>
+        <h3 class="product-title">${item.title}</h3>
+        <p class="product-desc">${item.desc}</p>
         
         <ul class="product-perks">
-          ${product.perks.map(perk => `<li><i class="fa-solid fa-check"></i> ${perk}</li>`).join('')}
+          ${item.perks.map(perk => `<li><i class="fa-solid fa-circle-check"></i> ${perk}</li>`).join('')}
         </ul>
       </div>
 
       <div class="product-footer">
         <div class="product-price-box">
-          <span class="price-lbl">Price</span>
-          <span class="price-amount">$${product.price.toFixed(2)}</span>
+          <span class="price-lbl">Official Price</span>
+          <span class="price-amount">$${item.price.toFixed(2)}</span>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addToCart('${product.id}')">
-          <i class="fa-solid fa-cart-plus"></i> Add
+        <button class="btn btn-primary btn-sm" onclick="addToCart('${item.id}')">
+          <i class="fa-solid fa-cart-plus"></i> Select
         </button>
       </div>
     </div>
   `).join('');
 }
 
-// Filter Tab Handler
-filterTabs.addEventListener('click', (e) => {
-  const tab = e.target.closest('.filter-tab');
-  if (!tab) return;
+// Filter Tabs
+if (filterTabs) {
+  filterTabs.addEventListener('click', (e) => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) return;
 
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  tab.classList.add('active');
-  activeCategory = tab.dataset.category;
-  renderProducts();
-});
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeCategory = tab.dataset.category;
+    renderProducts();
+  });
+}
 
-// Cart Functions
+// Cart System
 function addToCart(productId) {
-  const product = PRODUCTS.find(p => p.id === productId);
-  if (!product) return;
+  const item = MARKET_ITEMS.find(p => p.id === productId);
+  if (!item) return;
 
-  const existing = cart.find(item => item.id === productId);
+  const existing = cart.find(i => i.id === productId);
   if (existing) {
     existing.quantity = (existing.quantity || 1) + 1;
   } else {
-    cart.push({ ...product, quantity: 1 });
+    cart.push({ ...item, quantity: 1 });
   }
 
   saveCart();
   updateCartUI();
-  showToast(`Added "${product.title}" to cart!`);
+  showToast(`Added "${item.title}" to order list`);
 }
 
 function removeFromCart(productId) {
   cart = cart.filter(item => item.id !== productId);
   saveCart();
   updateCartUI();
-  showToast('Item removed from cart');
+  showToast('Item removed');
 }
 
 function clearCart() {
   cart = [];
   saveCart();
   updateCartUI();
-  showToast('Cart cleared');
+  showToast('Order list cleared');
 }
 
 function saveCart() {
-  localStorage.setItem('htb_cart', JSON.stringify(cart));
+  localStorage.setItem('htb_market_cart', JSON.stringify(cart));
 }
 
 function updateCartUI() {
   const totalCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-  cartCountBadge.textContent = totalCount;
+  if (cartCountBadge) cartCountBadge.textContent = totalCount;
 
   if (cart.length === 0) {
-    cartItemsContainer.innerHTML = `
-      <div class="cart-empty">
-        <i class="fa-solid fa-cart-arrow-down"></i>
-        <p>Your cart is empty.</p>
-        <p style="font-size: 0.82rem; margin-top: 6px;">Browse our marketplace to add items!</p>
-      </div>
-    `;
-    cartSubtotal.textContent = '$0.00';
-    cartTotal.textContent = '$0.00';
+    if (cartItemsContainer) {
+      cartItemsContainer.innerHTML = `
+        <div class="cart-empty">
+          <i class="fa-solid fa-shield-halved"></i>
+          <p style="font-weight: 700; color: #fff;">No roles selected.</p>
+          <p style="font-size: 0.82rem; margin-top: 6px; color: #8892a7;">Select any HTB role or pass from the market above.</p>
+        </div>
+      `;
+    }
+    if (cartSubtotal) cartSubtotal.textContent = '$0.00';
+    if (cartTotal) cartTotal.textContent = '$0.00';
     return;
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0);
 
-  cartItemsContainer.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      <div class="cart-item-info">
-        <h4>${item.title}</h4>
-        <span class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity || 1}</span>
+  if (cartItemsContainer) {
+    cartItemsContainer.innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <h4>${item.title}</h4>
+          <span class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity || 1}</span>
+        </div>
+        <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remove">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
       </div>
-      <button class="cart-item-remove" onclick="removeFromCart('${item.id}')" title="Remove item">
-        <i class="fa-solid fa-trash"></i>
-      </button>
-    </div>
-  `).join('');
+    `).join('');
+  }
 
-  cartSubtotal.textContent = `$${subtotal.toFixed(2)}`;
-  cartTotal.textContent = `$${subtotal.toFixed(2)}`;
+  if (cartSubtotal) cartSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+  if (cartTotal) cartTotal.textContent = `$${subtotal.toFixed(2)}`;
 }
 
 // Drawer Controls
@@ -247,61 +352,71 @@ function closeCart() {
   document.body.style.overflow = '';
 }
 
-cartToggleBtn.addEventListener('click', openCart);
-closeCartBtn.addEventListener('click', closeCart);
-cartBackdrop.addEventListener('click', closeCart);
-clearCartBtn.addEventListener('click', clearCart);
+if (cartToggleBtn) cartToggleBtn.addEventListener('click', openCart);
+if (closeCartBtn) closeCartBtn.addEventListener('click', closeCart);
+if (cartBackdrop) cartBackdrop.addEventListener('click', closeCart);
+if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 
-// Checkout & Discord Order Generation
-checkoutBtn.addEventListener('click', () => {
-  if (cart.length === 0) {
-    showToast('Your cart is empty!');
-    return;
-  }
+// Checkout & Discord Order Ticket Flow
+if (checkoutBtn) {
+  checkoutBtn.addEventListener('click', () => {
+    if (cart.length === 0) {
+      showToast('Your order list is empty!');
+      return;
+    }
 
-  const orderId = 'HTB-' + Math.floor(100000 + Math.random() * 900000);
-  const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
-  const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x)`).join('\n');
+    const orderId = 'HTB-' + Math.floor(100000 + Math.random() * 900000);
+    const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
+    const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x) — $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
 
-  modalContent.innerHTML = `
-    <div style="text-align: center;">
-      <div style="width: 64px; height: 64px; background: rgba(245,175,25,0.15); border: 1px solid var(--border-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: var(--gold-glow); font-size: 2rem; box-shadow: var(--shadow-gold);">
-        <i class="fa-brands fa-discord"></i>
+    modalContent.innerHTML = `
+      <div style="text-align: center;">
+        <div style="width: 68px; height: 68px; background: rgba(245,175,25,0.12); border: 1px solid var(--gold-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: var(--gold-primary); font-size: 2rem; box-shadow: var(--shadow-gold);">
+          <i class="fa-solid fa-ticket"></i>
+        </div>
+        <h2 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; color: #fff;">TICKET ORDER READY</h2>
+        <p style="color: #8892a7; font-size: 0.95rem; margin-bottom: 20px;">Order Code: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
+        
+        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--gold-light); font-weight: 800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+            <span>Selected Roles / Access</span>
+            <span>Total: $${total}</span>
+          </div>
+          <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0; line-height: 1.6;">${itemList}</pre>
+        </div>
+
+        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 22px; font-size: 0.84rem; color: #ff8585; text-align: left;">
+          <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> NO REFUNDS. Open a ticket in Discord to purchase.
+        </div>
+
+        <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
+          <i class="fa-brands fa-discord"></i> Open Ticket In Discord (17k+)
+        </a>
       </div>
-      <h2 style="font-family: var(--font-heading); font-size: 1.7rem; font-weight: 800; margin-bottom: 8px;">Order Ready!</h2>
-      <p style="color: #929db2; font-size: 0.95rem; margin-bottom: 20px;">Order ID: <strong style="color: var(--gold-glow); font-family: var(--font-mono); font-size: 1.1rem;">${orderId}</strong></p>
-      
-      <div style="background: rgba(245,175,25,0.04); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 22px;">
-        <div style="font-size: 0.82rem; color: var(--gold-light); font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">Order Summary ($${total})</div>
-        <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0; line-height: 1.6;">${itemList}</pre>
-      </div>
+    `;
 
-      <p style="font-size: 0.92rem; color: #b4bccd; margin-bottom: 24px; line-height: 1.6;">
-        Join our <strong>17k+ Discord server</strong> and paste your Order ID in <strong>#store-orders</strong> for instant automated delivery!
-      </p>
+    closeCart();
+    modalBackdrop.classList.add('open');
+  });
+}
 
-      <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
-        <i class="fa-brands fa-discord"></i> Complete In Discord
-      </a>
-    </div>
-  `;
-
-  closeCart();
-  modalBackdrop.classList.add('open');
-});
-
-modalCloseBtn.addEventListener('click', () => {
-  modalBackdrop.classList.remove('open');
-});
-
-modalBackdrop.addEventListener('click', (e) => {
-  if (e.target === modalBackdrop) {
+if (modalCloseBtn) {
+  modalCloseBtn.addEventListener('click', () => {
     modalBackdrop.classList.remove('open');
-  }
-});
+  });
+}
 
-// Toast System
+if (modalBackdrop) {
+  modalBackdrop.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) {
+      modalBackdrop.classList.remove('open');
+    }
+  });
+}
+
+// Toast
 function showToast(message) {
+  if (!toastContainer) return;
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${message}</span>`;
@@ -316,24 +431,26 @@ function showToast(message) {
 }
 
 // FAQ Accordion
-faqAccordion.addEventListener('click', (e) => {
-  const questionBtn = e.target.closest('.faq-question');
-  if (!questionBtn) return;
+if (faqAccordion) {
+  faqAccordion.addEventListener('click', (e) => {
+    const questionBtn = e.target.closest('.faq-question');
+    if (!questionBtn) return;
 
-  const item = questionBtn.closest('.faq-item');
-  const wasActive = item.classList.contains('active');
+    const item = questionBtn.closest('.faq-item');
+    const wasActive = item.classList.contains('active');
 
-  document.querySelectorAll('.faq-item').forEach(i => {
-    i.classList.remove('active');
-    i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+    document.querySelectorAll('.faq-item').forEach(i => {
+      i.classList.remove('active');
+      i.querySelector('.faq-question')?.setAttribute('aria-expanded', 'false');
+    });
+
+    if (!wasActive) {
+      item.classList.add('active');
+      questionBtn.setAttribute('aria-expanded', 'true');
+    }
   });
+}
 
-  if (!wasActive) {
-    item.classList.add('active');
-    questionBtn.setAttribute('aria-expanded', 'true');
-  }
-});
-
-// Initial Render
+// Init
 renderProducts();
 updateCartUI();
