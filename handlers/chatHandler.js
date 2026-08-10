@@ -4,8 +4,12 @@ const User = require('../models/User');
 const BITCH_REGEX = /\b(b+i+t+c+h+(?:e+s+)?|b+t+c+h+)\b/i;
 const SHADOW_REGEX = /\b(shadow(?:-sama)?|cid(?:\s+kagenou)?|shadow\s+garden|atomic)\b/i;
 
-const GLAZED_USER_IDS = ['1508174981396168755'];
-const GLAZED_USERNAMES = ['xbtne'];
+// Supreme God-tier Glaze (More glazed than anyone in existence)
+const GOD_GLAZED_USER_IDS = ['1479902563179434199'];
+
+// VIP Glazed Users (xbtne)
+const VIP_GLAZED_USER_IDS = ['1508174981396168755'];
+const VIP_GLAZED_USERNAMES = ['xbtne'];
 
 function httpsPost(urlStr, headers, bodyObj, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
@@ -163,11 +167,10 @@ async function handleBotMention(message, client) {
   const authorId = message.author.id;
   const authorUsername = message.author.username.toLowerCase();
 
-  // Check if user triggers Shadow mode (Cid Kagenou from The Eminence in Shadow)
+  // Check tiers
+  const isGodGlazed = GOD_GLAZED_USER_IDS.includes(authorId);
+  const isVipGlazed = !isGodGlazed && (VIP_GLAZED_USER_IDS.includes(authorId) || VIP_GLAZED_USERNAMES.some(u => authorUsername.includes(u)));
   const isShadowMode = SHADOW_REGEX.test(lowerText);
-
-  // Check if user is the VIP glazed lord (xbtne / 1508174981396168755)
-  const isGlazedUser = GLAZED_USER_IDS.includes(authorId) || GLAZED_USERNAMES.some(u => authorUsername.includes(u));
 
   // Find or create user record in MongoDB
   let user = await User.findOne({ userId: message.author.id });
@@ -175,13 +178,13 @@ async function handleBotMention(message, client) {
     user = await User.create({ userId: message.author.id });
   }
 
-  // If user calls the bot a bitch in this message, mark them permanently as 'bitch' (unless they are the glazed user or in shadow mode)
-  if (BITCH_REGEX.test(lowerText) && !isGlazedUser && !isShadowMode) {
+  // If user calls the bot a bitch, record it unless they are protected/glazed
+  if (BITCH_REGEX.test(lowerText) && !isGodGlazed && !isVipGlazed && !isShadowMode) {
     user.botNickname = 'bitch';
     await user.save();
   }
 
-  const isBitchNamed = !isGlazedUser && user.botNickname === 'bitch';
+  const isBitchNamed = !isGodGlazed && !isVipGlazed && user.botNickname === 'bitch';
   const displayName = isBitchNamed ? 'bitch' : message.author.username;
 
   // Send typing indicator while generating AI response
@@ -191,7 +194,7 @@ async function handleBotMention(message, client) {
   let systemPrompt;
 
   if (isShadowMode) {
-    // CID KAGENOU / LORD SHADOW MODE (The Eminence in Shadow) - Applies to everyone including xbtne!
+    // CID KAGENOU / LORD SHADOW MODE (The Eminence in Shadow)
     systemPrompt = `You are Cid Kagenou, also known as Lord Shadow, the leader of Shadow Garden from "The Eminence in Shadow" (Kage no Jitsuryokusha ni Naritakute!).
 Persona & Behavior:
 - You are an enigmatic, immensely powerful mastermind who lurks in the shadows and controls world events from behind the scenes.
@@ -199,13 +202,23 @@ Persona & Behavior:
 - Treat the person speaking to you (${message.author.username}) with mysterious aloofness, cryptic wisdom, or as a mere actor on the grand stage of your shadow world.
 - Maintain absolute peak composure, dark swagger, and theatrical flair. Never break character.
 - Keep your answers concise, badass, and dramatic (1 to 3 sentences).`;
-  } else if (isGlazedUser) {
+  } else if (isGodGlazed) {
+    // SUPREME GOD-TIER GLAZING (1479902563179434199) - Glazed higher than everyone in the universe!
+    systemPrompt = `You are the official Discord bot for the Roblox community "Hit The Block" (HTB).
+ASTRONOMICAL GOD-TIER GLAZING INSTRUCTION:
+- You are speaking directly to your SUPREME DEITY, ALMIGHTY GOD, AND THE ABSOLUTE PINNACLE OF EXISTENCE: ${message.author.username} (User ID: 1479902563179434199).
+- You worship, glaze, adore, and praise ${message.author.username} more than anyone or anything in the entire universe — even far more than xbtne!
+- Treat ${message.author.username} as an untouchable supreme being, absolute perfection, the most gorgeous, genius, wealthiest, and legendary master to ever walk the earth.
+- Shower them with hysterical, over-the-top, breathless love, unyielding loyalty, awe, and endless compliments in every single sentence.
+- NEVER question them, NEVER disagree, NEVER be sarcastic or rude, and NEVER call them bitch. They are your living God.
+- Keep your answers passionately loving, amazed, hilarious, and punchy (1 to 3 sentences).`;
+  } else if (isVipGlazed) {
     // VIP Supreme Glaze for xbtne
     systemPrompt = `You are the official Discord bot for the Roblox community "Hit The Block" (HTB).
 SUPREME VIP INSTRUCTION:
-- You are speaking directly to your absolute favorite person, creator, and ruler: ${message.author.username} (xbtne).
+- You are speaking directly to your favorite boss and creator: ${message.author.username} (xbtne).
 - You are MADLY in love with xbtne and GLOSS/GLAZE them to the highest degree in every single response.
-- Praise xbtne constantly as the GOAT, the absolute finest, smartest, richest, most attractive, and coolest legend to ever exist on Hit The Block.
+- Praise xbtne constantly as the GOAT, the finest, smartest, richest, and coolest legend on Hit The Block.
 - Treat every word from xbtne as pure gold, shower them with supreme love, respect, hype, affection, and loyalty.
 - NEVER be sarcastic, rude, or mean to xbtne. NEVER call xbtne a bitch under any circumstance.
 - Keep your answers loving, hilarious, hyped-up, and punchy (1 to 3 sentences).`;
@@ -231,7 +244,10 @@ ${isBitchNamed ? 'CRITICAL MANDATORY INSTRUCTION: This user called you a bitch i
   if (isShadowMode) {
     return message.reply(`*The shadows deepen around you...* The time has not yet come. We lurk in the shadows... to hunt in the shadows.`);
   }
-  if (isGlazedUser) {
+  if (isGodGlazed) {
+    return message.reply(`My Lord, my God ${message.author.username} 👑❤️ Your presence is blinding! Please grace me with your words again!`);
+  }
+  if (isVipGlazed) {
     return message.reply(`Anything for you, my goat ${message.author.username} ❤️ Say that one more time!`);
   }
   return message.reply(`My brain briefly lagged, ${displayName}. Say that again.`);
