@@ -192,16 +192,18 @@ module.exports = {
         try { existingSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Stream audio through ffmpeg with 160% volume amplification
+      // Stream native Ogg Opus audio with volume pre-amplification
       const ffmpegProc = spawn(ffmpegPath, [
         '-reconnect', '1',
         '-reconnect_streamed', '1',
         '-reconnect_delay_max', '5',
         '-i', track.directAudioUrl,
         '-filter:a', 'volume=1.6',
-        '-ac', '2',
+        '-c:a', 'libopus',
+        '-b:a', '96k',
         '-ar', '48000',
-        '-f', 's16le',
+        '-ac', '2',
+        '-f', 'opus',
         '-loglevel', 'warning',
         'pipe:1',
       ]);
@@ -209,13 +211,8 @@ module.exports = {
       ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
 
       const resource = createAudioResource(ffmpegProc.stdout, {
-        inputType: StreamType.Raw,
-        inlineVolume: true,
+        inputType: StreamType.OggOpus,
       });
-
-      if (resource.volume) {
-        resource.volume.setVolume(1.2);
-      }
 
       let connection = getVoiceConnection(message.guild.id);
       if (!connection || connection.joinConfig.channelId !== voiceChannel.id) {
