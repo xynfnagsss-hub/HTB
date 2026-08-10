@@ -52,6 +52,30 @@ client.commands.set('dc', client.commands.get('stop'));
 client.commands.set('unpause', client.commands.get('resume'));
 client.commands.set('repeat', client.commands.get('loop'));
 
+// Express Web Server for htbwshop.jo3.org Storefront
+const express = require('express');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'HTB Storefront & Discord Bot',
+    bot: client.user?.tag || 'connecting...',
+    uptime: process.uptime(),
+  });
+});
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 HTB Storefront is live on port ${PORT} (htbwshop.jo3.org)`);
+});
+
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('✅ Connected to MongoDB');

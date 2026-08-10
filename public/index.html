@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTB Store | Hit The Block Official Market & Services</title>
+  <meta name="description" content="Official HTB (Hit The Block) Store. Instant delivery for Robux, in-game items, VIP ranks, custom roles, and gaming services for 17,000+ verified members.">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:title" content="HTB Store | Official Market & Services">
+  <meta property="og:description" content="Instant delivery for Robux, in-game items, and VIP passes. Trusted by 17k+ community members.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://htbwshop.jo3.org">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient Glow Effects -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- Announcement Bar -->
+  <div class="top-banner">
+    <div class="banner-content">
+      <span class="pulse-dot"></span>
+      <span class="banner-text">⚡ <strong>SUMMER DROP LIVE:</strong> Get bonus Robux & instant delivery on all packages!</span>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-logo">
+        <div class="logo-icon">
+          <i class="fa-solid fa-cube"></i>
+        </div>
+        <span class="logo-text">HTB<span class="text-gradient">STORE</span></span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#products" class="nav-link active">Market</a>
+        <a href="#features" class="nav-link">Why HTB</a>
+        <a href="#reviews" class="nav-link">Reviews</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://discord.gg" target="_blank" rel="noopener" class="btn btn-discord" id="discordJoinBtn">
+          <i class="fa-brands fa-discord"></i>
+          <span>17k+ Discord</span>
+        </a>
+        <button class="cart-trigger-btn" id="cartToggleBtn" aria-label="Open Cart">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span class="cart-badge" id="cartCountBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-badge">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Official Verified Community Store • 17,000+ Members</span>
+      </div>
+
+      <h1 class="hero-title">
+        Level Up Your Experience In <span class="text-gradient">Hit The Block</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Get instant access to verified Robux rates, exclusive in-game bundles, premium roles, and 24/7 dedicated automated support.
+      </p>
+
+      <div class="hero-buttons">
+        <a href="#products" class="btn btn-primary btn-lg" id="exploreMarketBtn">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Browse Market</span>
+        </a>
+        <a href="#reviews" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-star"></i>
+          <span>View 4.9★ Reviews</span>
+        </a>
+      </div>
+
+      <!-- Trust Metrics Strip -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">17,000+</span>
+            <span class="metric-lbl">Active Members</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-truck-fast"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">&lt; 3 Mins</span>
+            <span class="metric-lbl">Avg Delivery</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-lock"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">100% Safe</span>
+            <span class="metric-lbl">Secure Transfers</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-headset"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">24/7 Live</span>
+            <span class="metric-lbl">Discord Staff</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Store Market Section -->
+  <section class="products-section" id="products">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">OFFICIAL INVENTORY</span>
+        <h2 class="section-title">Featured Marketplace Items</h2>
+        <p class="section-desc">Select an item below for instant automated or ticket delivery via our Discord.</p>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-category="all">
+          <i class="fa-solid fa-border-all"></i> All Items
+        </button>
+        <button class="filter-tab" data-category="currency">
+          <i class="fa-solid fa-coins"></i> Robux & Currency
+        </button>
+        <button class="filter-tab" data-category="bundles">
+          <i class="fa-solid fa-box-open"></i> In-Game Bundles
+        </button>
+        <button class="filter-tab" data-category="ranks">
+          <i class="fa-solid fa-crown"></i> VIP & Ranks
+        </button>
+        <button class="filter-tab" data-category="services">
+          <i class="fa-solid fa-handshake-angle"></i> Boosting & Custom
+        </button>
+      </div>
+
+      <!-- Products Grid (Populated via JS) -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Choose Us -->
+  <section class="features-section" id="features">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">SECURITY & RELIABILITY</span>
+        <h2 class="section-title">Why 17,000+ Members Trust HTB</h2>
+        <p class="section-desc">Built for our community with zero risk, instant support, and verified transactions.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-bolt-lightning"></i></div>
+          <h3 class="feature-title">Instant Automated Delivery</h3>
+          <p class="feature-text">Your order is processed immediately through our secure bot and server ticket system with zero delays.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-shield-check"></i></div>
+          <h3 class="feature-title">Verified Legit & Safe</h3>
+          <p class="feature-text">Every transaction is logged and verified with thousands of proofs in our official Discord.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-wallet"></i></div>
+          <h3 class="feature-title">Multiple Payment Methods</h3>
+          <p class="feature-text">We accept Venmo, CashApp, Crypto, Card, and in-server HTB points directly via staff tickets.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-comments"></i></div>
+          <h3 class="feature-title">24/7 Dedicated Support</h3>
+          <p class="feature-text">Got questions? Our senior moderation and support team is online around the clock.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Customer Reviews -->
+  <section class="reviews-section" id="reviews">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">COMMUNITY VOUCHES</span>
+        <h2 class="section-title">What Our Members Say</h2>
+        <p class="section-desc">Real feedback from over 17,000 community members in our Discord.</p>
+      </div>
+
+      <div class="reviews-grid">
+        <div class="review-card">
+          <div class="review-stars">★★★★★</div>
+          <p class="review-quote">"Ordered 10,000 Robux and had it delivered in less than 2 minutes. Easiest and safest place on Discord."</p>
+          <div class="reviewer">
+            <div class="reviewer-avatar">K</div>
+            <div class="reviewer-meta">
+              <span class="reviewer-name">Kxng_Dev</span>
+              <span class="reviewer-badge">Verified Buyer</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="review-stars">★★★★★</div>
+          <p class="review-quote">"Bought the HTB VIP role and starter bundle. Staff responded immediately and set me up with no issues!"</p>
+          <div class="reviewer">
+            <div class="reviewer-avatar">V</div>
+            <div class="reviewer-meta">
+              <span class="reviewer-name">Vort3x_</span>
+              <span class="reviewer-badge">VIP Member</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-card">
+          <div class="review-stars">★★★★★</div>
+          <p class="review-quote">"Best rates out there hands down. Been buying here for 4 months and never had a single problem."</p>
+          <div class="reviewer">
+            <div class="reviewer-avatar">S</div>
+            <div class="reviewer-meta">
+              <span class="reviewer-name">Shadow_Roblox</span>
+              <span class="reviewer-badge">Frequent Customer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">NEED HELP?</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Everything you need to know about purchasing and claiming your items.</p>
+      </div>
+
+      <div class="faq-accordion" id="faqAccordion">
+        <div class="faq-item active">
+          <button class="faq-question" aria-expanded="true">
+            <span>How do I receive my items after checkout?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>After clicking "Order via Discord", an instant ticket or order ID is generated. Join our Discord server and submit your order ID in the store channel for immediate delivery!</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>What payment methods are supported?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>We accept Venmo, CashApp, PayPal, major Credit/Debit cards, Crypto (BTC/ETH/LTC/USDT), and in-server HTB points.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>Is my account safe when purchasing Robux or items?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Yes, 100%. All transfers are done through standard gamepass, group funds, or direct VIP whitelist. We never ask for your account password.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>How fast is delivery?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Most orders are delivered within 1 to 5 minutes of payment confirmation. VIP roles and whitelist perks are granted instantly.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide-Over Shopping Cart Drawer -->
+  <div class="cart-backdrop" id="cartBackdrop"></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-label="Shopping Cart">
+    <div class="cart-header">
+      <div class="cart-title">
+        <i class="fa-solid fa-bag-shopping"></i>
+        <span>Your Shopping Cart</span>
+      </div>
+      <button class="close-cart-btn" id="closeCartBtn" aria-label="Close Cart">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="cart-body" id="cartItemsContainer">
+      <!-- Cart items injected dynamically -->
+    </div>
+
+    <div class="cart-footer" id="cartFooter">
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span class="summary-val" id="cartSubtotal">$0.00</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>Total:</span>
+          <span class="summary-val total-val" id="cartTotal">$0.00</span>
+        </div>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn btn-primary btn-block" id="checkoutBtn">
+          <i class="fa-brands fa-discord"></i>
+          <span>Complete Order in Discord</span>
+        </button>
+        <button class="btn btn-secondary btn-block btn-sm" id="clearCartBtn">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Clear Cart</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Quick View / Purchase Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-card" id="modalCard">
+      <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-content" id="modalContent">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand-logo">
+          <div class="logo-icon"><i class="fa-solid fa-cube"></i></div>
+          <span class="logo-text">HTB<span class="text-gradient">STORE</span></span>
+        </div>
+        <p class="footer-tagline">Hit The Block official community marketplace. 17,000+ members strong.</p>
+      </div>
+
+      <div class="footer-links">
+        <h4>Navigation</h4>
+        <a href="#products">Marketplace</a>
+        <a href="#features">Features</a>
+        <a href="#reviews">Vouches</a>
+        <a href="#faq">FAQ</a>
+      </div>
+
+      <div class="footer-links">
+        <h4>Community</h4>
+        <a href="https://discord.gg" target="_blank" rel="noopener">Discord Server</a>
+        <a href="#products">Robux Rates</a>
+        <a href="#products">VIP Passes</a>
+        <a href="https://discord.gg" target="_blank" rel="noopener">Support Tickets</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 HTB Store (Hit The Block). All rights reserved.</p>
+      <p>Domain: <code>htbwshop.jo3.org</code></p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
