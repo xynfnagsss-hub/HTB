@@ -110,7 +110,6 @@ async function resolveTrackInfo(ytdlp, query) {
   let chosen;
   let isRandomArtist = false;
 
-  // If query is an artist name or explicitly requested random, pick a random hit song from that artist
   if (entries.length > 1 && (isExplicitArtist || isShortArtistQuery)) {
     const randomIndex = Math.floor(Math.random() * Math.min(entries.length, 10));
     chosen = entries[randomIndex];
@@ -124,7 +123,6 @@ async function resolveTrackInfo(ytdlp, query) {
   const duration = formatDuration(chosen.duration || 0);
   const thumbnail = (chosen.thumbnails && chosen.thumbnails[0]?.url) || chosen.thumbnail || null;
 
-  // Build high-reliability streaming target
   const sanitized = sanitizeSearchQuery(rawTitle);
   const streamTarget = `scsearch1:${sanitized}`;
 
@@ -150,7 +148,6 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
 
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
-    '-filter:a', 'volume=1.1',
     '-ac', '2',
     '-ar', '48000',
     '-f', 's16le',
@@ -165,7 +162,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.Raw,
+    inputType: StreamType.Arbitrary,
   });
 
   return { ytProc, ffProc, resource };
@@ -197,7 +194,6 @@ async function getOrCreateVoiceConnection(voiceChannel) {
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
   } catch (readyErr) {
-    // If socket was closed during IP discovery, destroy stale socket and retry clean once
     try { connection.destroy(); } catch {}
     connection = joinVoiceChannel({
       channelId: voiceChannel.id,
@@ -256,10 +252,9 @@ module.exports = {
         try { existingSession.ffProc?.kill(); } catch {}
       }
 
-      // Establish fresh, resilient voice connection with IP discovery retry handling
+      // Establish voice connection and wait until fully Ready
       const connection = await getOrCreateVoiceConnection(voiceChannel);
 
-      // Create audio player configured for immediate unpaused streaming
       const player = createAudioPlayer({
         behaviors: {
           noSubscriber: NoSubscriberBehavior.Play,
@@ -283,7 +278,6 @@ module.exports = {
       };
       client.musicStore.set(message.guild.id, sessionObj);
 
-      // Clean up idle timers safely without killing stream prematurely
       player.on(AudioPlayerStatus.Idle, () => {
         if (sessionObj.idleTimer) clearTimeout(sessionObj.idleTimer);
 
