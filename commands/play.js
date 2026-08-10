@@ -11,7 +11,6 @@ const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
-const yts = require('yt-search');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
 
 function getFfmpeg() {
@@ -21,21 +20,33 @@ function getFfmpeg() {
   return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
 }
 
-async function extractDirectUrl(ytdlp, target) {
+function formatDuration(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const s = Math.floor(Number(seconds));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+async function extractTrackInfo(ytdlp, query) {
+  const isUrl = /^https?:\/\//i.test(query);
+  const target = isUrl ? query : `ytsearch1:${query}`;
+
   const clientConfigs = [
     'android,web,tv_embedded',
     'android',
     'tv_embedded,android',
     'web_embedded,mweb',
-    'web',
   ];
 
   let lastErr = '';
   for (const clients of clientConfigs) {
     try {
-      const url = await new Promise((resolve, reject) => {
+      const result = await new Promise((resolve, reject) => {
         const proc = spawn(ytdlp, [
-          '-g',
+          '--dump-single-json',
           '--no-warnings',
           '--extractor-args', `youtube:player_client=${clients}`,
           '-f', 'ba/ba*/b/best/bestaudio',
@@ -47,9 +58,24 @@ async function extractDirectUrl(ytdlp, target) {
         proc.stderr.on('data', d => { err += d.toString(); });
 
         proc.on('close', code => {
-          const directUrl = out.trim().split('\n')[0];
-          if (directUrl && code === 0) {
-            resolve(directUrl);
+          if (code === 0) {
+            try {
+              const j = JSON.parse(out);
+              const entry = (j.entries && j.entries.length > 0) ? j.entries[0] : j;
+              if (entry) {
+                resolve({
+                  title: entry.title || query,
+                  trackUrl: entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query),
+                  duration: formatDuration(entry.duration || 0),
+                  thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
+                  directAudioUrl: entry.url || (entry.formats && entry.formats.reverse().find(f => f.url)?.url),
+                });
+              } else {
+                reject(new Error('No video entry found'));
+              }
+            } catch (e) {
+              reject(new Error('Failed to parse metadata JSON'));
+            }
           } else {
             reject(new Error(err || `Exit code ${code}`));
           }
@@ -58,18 +84,15 @@ async function extractDirectUrl(ytdlp, target) {
         proc.on('error', reject);
       });
 
-      if (url) return url;
+      if (result && result.directAudioUrl) {
+        return result;
+      }
     } catch (e) {
       lastErr = e.message;
     }
   }
 
-  throw new Error(`Stream extraction failed: ${lastErr.slice(0, 250)}`);
-}
-
-function extractYouTubeId(url) {
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
-  return match ? match[1] : null;
+  throw new Error(`Failed to extract track: ${lastErr.slice(0, 200)}`);
 }
 
 module.exports = {
@@ -93,86 +116,35 @@ module.exports = {
     }
 
     const query = args.join(' ').trim();
-    const isUrl = /^https?:\/\//i.test(query);
-
     const statusMsg = await message.channel.send(`🔍 Finding **${query}**...`);
 
     let ytdlpPath;
     try {
       ytdlpPath = await ensureYtDlp();
     } catch (e) {
-      return statusMsg.edit(`❌ Error loading yt-dlp binary: \`${e.message}\``);
+      return statusMsg.edit(`❌ Error loading yt-dlp: \`${e.message}\``);
     }
 
     const ffmpegPath = getFfmpeg();
 
-    let target = query;
-    let title = query;
-    let trackUrl = query;
-    let duration = '0:00';
-    let thumbnail = null;
-
     try {
-      // 1. Resolve metadata
-      if (isUrl) {
-        const videoId = extractYouTubeId(query);
-        if (videoId) {
-          const ytMatch = await yts({ videoId }).catch(() => null);
-          if (ytMatch) {
-            title = ytMatch.title;
-            trackUrl = ytMatch.url;
-            duration = ytMatch.timestamp;
-            thumbnail = ytMatch.thumbnail;
-            target = ytMatch.url;
-          }
-        }
-      } else {
-        const searchRes = await yts(query).catch(() => null);
-        if (searchRes && searchRes.videos && searchRes.videos.length > 0) {
-          const bestVideo = searchRes.videos[0];
-          title = bestVideo.title;
-          trackUrl = bestVideo.url;
-          duration = bestVideo.timestamp;
-          thumbnail = bestVideo.thumbnail;
-          target = bestVideo.url;
-        } else {
-          // If yt-search didn't return a video, let yt-dlp search directly
-          target = `ytsearch1:${query}`;
-        }
-      }
+      const track = await extractTrackInfo(ytdlpPath, query);
 
-      await statusMsg.edit(`⏳ Loading **${title}**...`);
+      await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
-      // 2. Extract direct audio stream URL with multi-client fallback
-      let directAudioUrl;
-      try {
-        directAudioUrl = await extractDirectUrl(ytdlpPath, target);
-      } catch (err) {
-        if (!isUrl && target !== `ytsearch1:${query}`) {
-          // Fallback to direct ytsearch
-          directAudioUrl = await extractDirectUrl(ytdlpPath, `ytsearch1:${query}`);
-        } else {
-          throw err;
-        }
-      }
-
-      if (!directAudioUrl) {
-        return statusMsg.edit('❌ Could not extract a playable audio stream for this track.');
-      }
-
-      // 3. Clean up previous playback in this guild
+      // Clean up any existing playback session in this guild
       const previousSession = client.musicStore.get(message.guild.id);
       if (previousSession) {
         try { previousSession.player?.stop(); } catch {}
         try { previousSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // 4. Stream via ffmpeg with volume booster (volume=1.6 for significantly louder sound)
+      // Stream audio through ffmpeg with 160% volume amplification
       const ffmpegProc = spawn(ffmpegPath, [
         '-reconnect', '1',
         '-reconnect_streamed', '1',
         '-reconnect_delay_max', '5',
-        '-i', directAudioUrl,
+        '-i', track.directAudioUrl,
         '-filter:a', 'volume=1.6',
         '-ac', '2',
         '-ar', '48000',
@@ -202,7 +174,6 @@ module.exports = {
 
       const player = createAudioPlayer();
       connection.subscribe(player);
-      player.play(resource);
 
       client.musicStore.set(message.guild.id, {
         player,
@@ -210,19 +181,11 @@ module.exports = {
         ffmpegProc,
       });
 
-      const embed = new EmbedBuilder()
-        .setColor(0x5765f2)
-        .setTitle('🎵 Now Playing')
-        .setDescription(`**[${title}](${trackUrl})**`)
-        .addFields(
-          { name: 'Duration', value: duration || '0:00', inline: true },
-          { name: 'Volume', value: '🔊 160% Boosted', inline: true },
-        )
-        .setThumbnail(thumbnail)
-        .setFooter({ text: `Requested by ${message.author.tag}` })
-        .setTimestamp();
+      let hasStartedPlaying = false;
 
-      await statusMsg.edit({ content: '', embeds: [embed] });
+      player.on(AudioPlayerStatus.Playing, () => {
+        hasStartedPlaying = true;
+      });
 
       const cleanup = () => {
         try { connection.destroy(); } catch {}
@@ -230,7 +193,13 @@ module.exports = {
         client.musicStore.delete(message.guild.id);
       };
 
-      player.on(AudioPlayerStatus.Idle, cleanup);
+      // Only clean up on Idle if the song was actually playing before
+      player.on(AudioPlayerStatus.Idle, () => {
+        if (hasStartedPlaying) {
+          cleanup();
+        }
+      });
+
       player.on('error', err => {
         console.error('[player error]', err.message);
         cleanup();
@@ -247,6 +216,23 @@ module.exports = {
           cleanup();
         }
       });
+
+      // Start playing the audio resource
+      player.play(resource);
+
+      const embed = new EmbedBuilder()
+        .setColor(0x5765f2)
+        .setTitle('🎵 Now Playing')
+        .setDescription(`**[${track.title}](${track.trackUrl})**`)
+        .addFields(
+          { name: 'Duration', value: track.duration, inline: true },
+          { name: 'Volume', value: '🔊 160% Boosted', inline: true },
+        )
+        .setThumbnail(track.thumbnail)
+        .setFooter({ text: `Requested by ${message.author.tag}` })
+        .setTimestamp();
+
+      await statusMsg.edit({ content: '', embeds: [embed] });
 
     } catch (err) {
       console.error('[PLAY ERROR]', err.message || err);
