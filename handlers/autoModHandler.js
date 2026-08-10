@@ -1,58 +1,55 @@
 const { PermissionsBitField } = require('discord.js');
 
-// Protected User IDs who cannot be pinged
+// Protected User IDs who cannot be directly @ mentioned
 const PROTECTED_PING_USER_IDS = ['674218467041345536', '1508174981396168755'];
-
-// Users who can ping each other / bypass
-const BYPASS_USER_IDS = ['1508174981396168755', '674218467041345536'];
 
 async function handleAutoMod(message) {
   if (!message.guild || message.author.bot) return false;
 
   const authorId = message.author.id;
 
-  // If author has admin permissions, allow
-  if (message.member && (
-    message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
-    message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)
-  )) {
+  // If author is one of the protected users or has admin/manage perms, allow completely
+  if (
+    PROTECTED_PING_USER_IDS.includes(authorId) ||
+    (message.member && (
+      message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+      message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)
+    ))
+  ) {
     return false;
   }
 
-  // Check if message mentions any protected user (excluding if user pings themselves)
+  // 1. If it's a message reply, check if they typed an explicit manual @mention in text
+  const content = message.content || '';
+
+  // Check if message content contains an explicit typed mention: <@ID> or <@!ID>
   const mentionedProtectedUser = PROTECTED_PING_USER_IDS.find(id => {
-    if (authorId === id) return false; // Allowed to ping oneself
-
-    // Check direct mentions in message.mentions
-    if (message.mentions?.users?.has(id)) return true;
-
-    // Check raw string regex for user ID mention
+    if (authorId === id) return false;
     const pingRegex = new RegExp(`<@!?${id}>`, 'i');
-    if (pingRegex.test(message.content)) return true;
-
-    return false;
+    return pingRegex.test(content);
   });
 
-  if (mentionedProtectedUser) {
-    try {
-      // 1. Delete the violating message immediately
-      await message.delete().catch(() => {});
+  // If there is NO explicit typed mention in the text content, ALLOW IT (Replies work freely!)
+  if (!mentionedProtectedUser) {
+    return false;
+  }
 
-      // 2. Send temporary warning message
-      const warnMsg = await message.channel.send({
-        content: `⛔ <@${authorId}>, do not ping <@${mentionedProtectedUser}>! Pinging is disabled for this user.`,
-        allowedMentions: { users: [authorId] }, // only ping the offender
-      });
+  // 2. Only block if they explicitly typed an @mention in the message content
+  try {
+    await message.delete().catch(() => {});
 
-      // 3. Auto-delete warning after 5 seconds to keep chat clean
-      setTimeout(() => {
-        warnMsg.delete().catch(() => {});
-      }, 5000);
+    const warnMsg = await message.channel.send({
+      content: `⛔ <@${authorId}>, please do not directly @ ping <@${mentionedProtectedUser}>! (Replies are allowed, direct @ mentions are disabled).`,
+      allowedMentions: { users: [authorId] },
+    });
 
-      return true; // Handled by AutoMod
-    } catch (err) {
-      console.error('[AUTOMOD ERROR]', err.message);
-    }
+    setTimeout(() => {
+      warnMsg.delete().catch(() => {});
+    }, 4000);
+
+    return true;
+  } catch (err) {
+    console.error('[AUTOMOD ERROR]', err.message);
   }
 
   return false;

@@ -1,77 +1,35 @@
 const {
-  AutoModerationRuleEventType,
-  AutoModerationRuleTriggerType,
-  AutoModerationActionType,
   PermissionsBitField
 } = require('discord.js');
 
 const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536', '1508174981396168755'];
 const RULE_NAME = 'HTB Anti-Ping Protection';
 
-async function ensureNativeAutoModRule(guild, extraUserIds = []) {
+async function ensureNativeAutoModRule(guild) {
   if (!guild) return { success: false, reason: 'Invalid guild' };
 
   const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
   if (!botMember) return { success: false, reason: 'Bot member not found' };
 
   if (!botMember.permissions.has(PermissionsBitField.Flags.ManageGuild) && !botMember.permissions.has(PermissionsBitField.Flags.Administrator)) {
-    console.warn(`[AutoMod] Bot lacks Manage Server (ManageGuild) permission in ${guild.name} to create native AutoMod rules.`);
-    return { success: false, reason: 'Bot missing "Manage Server" (ManageGuild) permission' };
+    return { success: false, reason: 'Bot missing ManageGuild permission' };
   }
 
   const manager = guild.autoModerationRules;
-  if (!manager) {
-    return { success: false, reason: 'AutoModerationRules manager not supported in this guild' };
-  }
+  if (!manager) return { success: false, reason: 'AutoMod not supported' };
 
   try {
     const existingRules = await manager.fetch().catch(() => null);
     const existing = existingRules?.find(r => r.name === RULE_NAME);
 
-    const allIds = Array.from(new Set([...DEFAULT_PROTECTED_USER_IDS, ...extraUserIds]));
-    const keywordPatterns = [];
-    const regexPatterns = [];
-
-    for (const id of allIds) {
-      keywordPatterns.push(`*${id}*`);
-      regexPatterns.push(`<@!?${id}>`);
+    // If an old native rule exists that was blocking replies, remove it so replies work 100%
+    if (existing) {
+      await existing.delete().catch(() => {});
+      console.log(`🛡️ Cleaned up native AutoMod rule in ${guild.name} to allow message replies.`);
     }
 
-    if (!existing) {
-      await manager.create({
-        name: RULE_NAME,
-        eventType: AutoModerationRuleEventType.MessageSend,
-        triggerType: AutoModerationRuleTriggerType.Keyword,
-        triggerMetadata: {
-          keywordFilter: keywordPatterns,
-          regexPatterns: regexPatterns,
-        },
-        actions: [
-          {
-            type: AutoModerationActionType.BlockMessage,
-            metadata: {
-              customMessage: 'You are not allowed to ping or mention this user.',
-            },
-          },
-        ],
-        enabled: true,
-        reason: 'Block all incoming pings and mentions before they trigger Discord notifications',
-      });
-      console.log(`🛡️ Successfully created native Discord AutoMod Anti-Ping Rule in guild: ${guild.name}`);
-      return { success: true, action: 'created', protectedIds: allIds };
-    } else {
-      await existing.edit({
-        enabled: true,
-        triggerMetadata: {
-          keywordFilter: keywordPatterns,
-          regexPatterns: regexPatterns,
-        },
-      });
-      console.log(`🛡️ Updated native Discord AutoMod Anti-Ping Rule in guild: ${guild.name}`);
-      return { success: true, action: 'updated', protectedIds: allIds };
-    }
+    return { success: true };
   } catch (err) {
-    console.error(`[AutoMod Rule Error in ${guild.name}]:`, err.message);
     return { success: false, reason: err.message };
   }
 }
