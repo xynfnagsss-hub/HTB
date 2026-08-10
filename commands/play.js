@@ -142,6 +142,8 @@ async function resolveTrackInfo(ytdlp, query) {
 function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ytProc = spawn(ytdlpPath, [
     '--no-warnings',
+    '--retries', '10',
+    '--fragment-retries', '10',
     '-f', 'ba/ba*/b/best/bestaudio',
     '-o', '-',
     target,
@@ -284,9 +286,8 @@ module.exports = {
       };
       client.musicStore.set(message.guild.id, sessionObj);
 
+      // Clean up idle timers safely without killing stream prematurely
       player.on(AudioPlayerStatus.Idle, () => {
-        try { ytProc.kill(); } catch {}
-        try { ffProc.kill(); } catch {}
         if (sessionObj.idleTimer) clearTimeout(sessionObj.idleTimer);
 
         sessionObj.idleTimer = setTimeout(() => {
@@ -297,8 +298,6 @@ module.exports = {
 
       player.on('error', err => {
         console.error('[player error]', err.message);
-        try { ytProc.kill(); } catch {}
-        try { ffProc.kill(); } catch {}
         message.channel.send('❌ Playback encountered an error.').catch(() => {});
       });
 
