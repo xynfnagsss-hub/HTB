@@ -51,6 +51,11 @@ client.commands.set('disconnect', client.commands.get('stop'));
 client.commands.set('dc', client.commands.get('stop'));
 client.commands.set('unpause', client.commands.get('resume'));
 client.commands.set('repeat', client.commands.get('loop'));
+client.commands.set('link', client.commands.get('verify'));
+client.commands.set('rblx', client.commands.get('roblox'));
+
+// Roblox Integration Service
+const { initRoblox, startGroupJoinWatcher } = require('./utils/robloxManager');
 
 // Express Web Server for htbwshop.jo3.org Storefront
 const express = require('express');
@@ -255,15 +260,12 @@ client.once('ready', async () => {
     ensureNativeAutoModRule(guild).catch(() => {});
   }
 
-  // Automatically purge all messages in target channel requested by user
+  // Initialize Roblox Service & Group Join Watcher
   try {
-    const targetChannel = await client.channels.fetch('1490012897118654505').catch(() => null);
-    if (targetChannel) {
-      console.log(`🧹 Auto-purging all messages in channel: ${targetChannel.name} (1490012897118654505)...`);
-      purgeAllChannelMessages(targetChannel).catch(err => console.error('[Auto-Purge Err]', err.message));
-    }
-  } catch (purgeInitErr) {
-    console.warn('[Auto-Purge Warning]', purgeInitErr.message);
+    await initRoblox();
+    startGroupJoinWatcher(client);
+  } catch (robloxErr) {
+    console.warn('[Roblox Init Warning]', robloxErr.message);
   }
 
   // Automatically register and sync slash commands on startup
