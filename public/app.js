@@ -312,8 +312,8 @@ function updateAuthUI() {
 
 function openLoginModal() {
   if (loginModalBackdrop) {
-    const currentOrigin = window.location.origin + window.location.pathname;
-    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(currentOrigin)}&scope=identify+guilds+guilds.join`;
+    const baseOrigin = window.location.origin.replace(/\/+$/, '') + '/';
+    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(baseOrigin)}&scope=identify+guilds+guilds.join`;
     if (discordAuthBtn) discordAuthBtn.href = discordAuthUrl;
     loginModalBackdrop.classList.add('open');
   }
