@@ -72,8 +72,8 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`🌐 HTB Storefront is live on port ${PORT} (htbwshop.jo3.org)`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 HTB Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
 });
 
 mongoose.connect(process.env.MONGO_URI)
