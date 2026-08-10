@@ -76,7 +76,6 @@ async function resolveTrackInfo(query) {
 }
 
 function createStreamPipeline(ytdlpPath, ffmpegPath, streamTarget, queryTitle) {
-  // First try streaming directly from target URL
   const target = streamTarget.startsWith('http') ? streamTarget : `scsearch1:${queryTitle || streamTarget}`;
 
   const ytProc = spawn(ytdlpPath, [
@@ -90,9 +89,11 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, streamTarget, queryTitle) {
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
     '-filter:a', 'volume=1.6',
-    '-ac', '2',
+    '-c:a', 'libopus',
+    '-b:a', '128k',
     '-ar', '48000',
-    '-f', 's16le',
+    '-ac', '2',
+    '-f', 'webm',
     '-loglevel', 'error',
     'pipe:1',
   ]);
@@ -104,7 +105,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, streamTarget, queryTitle) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.Raw,
+    inputType: StreamType.WebmOpus,
   });
 
   return { ytProc, ffProc, resource };
@@ -155,13 +156,7 @@ module.exports = {
         try { existingSession.ffProc?.kill(); } catch {}
       }
 
-      const { ytProc, ffProc, resource } = createStreamPipeline(
-        ytdlpPath,
-        ffmpegPath,
-        track.streamTarget,
-        track.title
-      );
-
+      // Establish voice connection first and wait until fully Ready
       let connection = getVoiceConnection(message.guild.id);
       if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed || connection.joinConfig.channelId !== voiceChannel.id) {
         connection = joinVoiceChannel({
@@ -174,6 +169,7 @@ module.exports = {
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
 
+      // Create player configured for unpaused transmission
       const player = createAudioPlayer({
         behaviors: {
           noSubscriber: NoSubscriberBehavior.Play,
@@ -181,6 +177,14 @@ module.exports = {
       });
 
       connection.subscribe(player);
+
+      // Create live WebmOpus audio stream pipeline
+      const { ytProc, ffProc, resource } = createStreamPipeline(
+        ytdlpPath,
+        ffmpegPath,
+        track.streamTarget,
+        track.title
+      );
 
       const sessionObj = {
         player,
@@ -209,7 +213,7 @@ module.exports = {
         message.channel.send('❌ Playback encountered an error.').catch(() => {});
       });
 
-      // Start playing the audio resource
+      // Start playing the audio resource immediately
       player.play(resource);
 
       const embed = new EmbedBuilder()
