@@ -149,7 +149,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
 
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
-    '-filter:a', 'volume=1.6',
+    '-filter:a', 'volume=1.1',
     '-c:a', 'libopus',
     '-b:a', '128k',
     '-ar', '48000',
@@ -214,7 +214,7 @@ async function getOrCreateVoiceConnection(voiceChannel) {
 
 module.exports = {
   name: 'play',
-  description: 'Play music or a random song from an artist in your voice channel with boosted volume',
+  description: 'Play music or a random song from an artist in your voice channel',
   usage: '.play <song title, artist, or URL>',
 
   async execute(message, args, client) {
@@ -311,7 +311,6 @@ module.exports = {
         .setDescription(`**[${track.title}](${track.trackUrl})**`)
         .addFields(
           { name: 'Duration', value: track.duration, inline: true },
-          { name: 'Volume', value: '🔊 160% Boosted', inline: true },
         )
         .setThumbnail(track.thumbnail)
         .setFooter({ text: `Requested by ${message.author.tag}` })
