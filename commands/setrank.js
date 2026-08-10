@@ -32,19 +32,20 @@ module.exports = {
     try {
       const rankNum = /^\d+$/.test(rank) ? parseInt(rank) : rank;
       const res = await setPlayerRank(process.env.ROBLOX_GROUP_ID, targetUser, rankNum);
-      const profile = await getPlayerProfile(targetUser);
+      const profile = await getPlayerProfile(res.targetId);
 
       const embed = new EmbedBuilder()
         .setColor(0xF5AF19)
         .setTitle('✅ Roblox Group Rank Updated')
         .setThumbnail(profile.avatarUrl)
-        .setDescription(`Successfully ranked **${profile.displayName} (@${profile.username})** in the Roblox group.`)
+        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **HTB | Hit The Block**.`)
         .addFields(
-          { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: true },
-          { name: '🛡️ New Rank', value: `**${profile.groupRank}**`, inline: true },
+          { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: false },
+          { name: '📉 Previous Rank', value: `\`${res.previousRankName}\` (Rank \`${res.previousRankId}\`)`, inline: true },
+          { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${interaction.user.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -60,7 +61,7 @@ module.exports = {
     }
 
     if (args.length < 2) {
-      return message.reply('⚠️ Usage: `.setrank <roblox_username> <rank_name_or_id>`\nExample: `.setrank Builderman "Noted Member"`');
+      return message.reply('⚠️ Usage: `.setrank <roblox_username> <rank_name_or_id>`\nExample: `.setrank Player123 "TNM FAM"` or `.setrank Player123 3`');
     }
 
     const targetUser = args[0];
@@ -68,20 +69,21 @@ module.exports = {
 
     try {
       const rankNum = /^\d+$/.test(rankInput) ? parseInt(rankInput) : rankInput;
-      await setPlayerRank(process.env.ROBLOX_GROUP_ID, targetUser, rankNum);
-      const profile = await getPlayerProfile(targetUser);
+      const res = await setPlayerRank(process.env.ROBLOX_GROUP_ID, targetUser, rankNum);
+      const profile = await getPlayerProfile(res.targetId);
 
       const embed = new EmbedBuilder()
         .setColor(0xF5AF19)
         .setTitle('✅ Roblox Group Rank Updated')
         .setThumbnail(profile.avatarUrl)
-        .setDescription(`Successfully ranked **${profile.displayName} (@${profile.username})** in the Roblox group.`)
+        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **HTB | Hit The Block**.`)
         .addFields(
-          { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: true },
-          { name: '🛡️ New Rank', value: `**${profile.groupRank}**`, inline: true },
+          { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: false },
+          { name: '📉 Previous Rank', value: `\`${res.previousRankName}\` (Rank \`${res.previousRankId}\`)`, inline: true },
+          { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${message.author.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });

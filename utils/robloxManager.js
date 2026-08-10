@@ -85,6 +85,7 @@ async function setPlayerRank(groupId, targetUserId, rankIdentifier) {
   if (typeof targetUserId === 'string' && !/^\d+$/.test(targetUserId)) {
     try {
       targetId = await noblox.getIdFromUsername(targetUserId);
+      targetName = targetUserId;
     } catch {
       throw new Error(`Roblox player "${targetUserId}" not found on Roblox.`);
     }
@@ -97,21 +98,54 @@ async function setPlayerRank(groupId, targetUserId, rankIdentifier) {
 
   if (!targetId) throw new Error(`Roblox player "${targetUserId}" not found.`);
 
-  // Check if target player is in the group
-  const currentRankId = await noblox.getRankInGroup(cleanGroupId, parseInt(targetId)).catch(() => 0);
-  if (currentRankId === 0) {
+  // Get current player rank in group
+  const previousRankId = await noblox.getRankInGroup(cleanGroupId, parseInt(targetId)).catch(() => 0);
+  const previousRankName = await noblox.getRankNameInGroup(cleanGroupId, parseInt(targetId)).catch(() => 'Guest');
+
+  if (previousRankId === 0) {
     throw new Error(`Player "${targetName}" is not currently in the HTB Roblox Group. They must join the group (https://www.roblox.com/groups/${cleanGroupId}) before they can be ranked.`);
   }
 
-  if (currentRankId === 255) {
+  if (previousRankId === 255) {
     throw new Error(`Cannot change the rank of the Roblox Group Owner.`);
   }
 
+  // Fetch all available group roles
+  const groupRoles = await noblox.getRoles(cleanGroupId);
+  const assignableRoles = groupRoles.filter(r => r.rank > 0 && r.rank < 255);
+
+  let targetRole = null;
+
+  // Match by rank number or name
+  if (typeof rankIdentifier === 'number' || /^\d+$/.test(String(rankIdentifier))) {
+    const num = parseInt(rankIdentifier);
+    targetRole = assignableRoles.find(r => r.rank === num);
+  }
+
+  if (!targetRole && typeof rankIdentifier === 'string') {
+    const query = rankIdentifier.trim().toLowerCase();
+    targetRole = assignableRoles.find(r => r.name.toLowerCase() === query) ||
+                 assignableRoles.find(r => r.name.toLowerCase().includes(query));
+  }
+
+  if (!targetRole) {
+    const validList = assignableRoles.map(r => `• **${r.name}** (Rank \`${r.rank}\`)`).join('\n');
+    throw new Error(`Rank "${rankIdentifier}" is not a valid rank in this group.\n\n**Available Ranks in Group:**\n${validList}`);
+  }
+
   try {
-    return await noblox.setRank(cleanGroupId, parseInt(targetId), rankIdentifier);
+    await noblox.setRank(cleanGroupId, parseInt(targetId), targetRole.rank);
+    return {
+      targetId: parseInt(targetId),
+      targetName,
+      previousRankName,
+      previousRankId,
+      newRankName: targetRole.name,
+      newRankId: targetRole.rank,
+    };
   } catch (err) {
     if (err.message.includes('The user is invalid') || err.message.includes('code":3')) {
-      throw new Error(`Player "${targetName}" is not in the group or could not be ranked.`);
+      throw new Error(`Player "${targetName}" is not in the group or cannot be ranked.`);
     }
     throw err;
   }
