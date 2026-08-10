@@ -162,26 +162,7 @@ module.exports = {
         'pipe:1',
       ]);
 
-      let ffErr = '';
-      ffmpegProc.stderr.on('data', d => { ffErr += d.toString(); });
       ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
-
-      // Wait for audio bytes before playing
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error(`Audio stream timed out.\n${ffErr.slice(0, 200)}`));
-        }, 20000);
-
-        ffmpegProc.stdout.once('data', () => {
-          clearTimeout(timeout);
-          resolve();
-        });
-
-        ffmpegProc.on('close', code => {
-          clearTimeout(timeout);
-          if (code !== 0) reject(new Error(`ffmpeg exited with code ${code}: ${ffErr.slice(0, 200)}`));
-        });
-      });
 
       const resource = createAudioResource(ffmpegProc.stdout, {
         inputType: StreamType.Raw,
