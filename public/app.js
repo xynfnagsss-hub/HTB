@@ -564,30 +564,53 @@ if (checkoutBtn) {
 
     modalContent.innerHTML = `
       <div style="text-align: center;">
-        <div style="width: 68px; height: 68px; background: rgba(245,175,25,0.12); border: 1px solid var(--gold-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 18px; color: var(--gold-primary); font-size: 2rem; box-shadow: var(--shadow-gold);">
-          <i class="fa-solid fa-ticket"></i>
+        <div style="width: 64px; height: 64px; background: rgba(0,214,50,0.12); border: 1px solid #00D632; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #00D632; font-size: 2rem; box-shadow: 0 0 25px rgba(0,214,50,0.3);">
+          <i class="fa-solid fa-dollar-sign"></i>
         </div>
-        <h2 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; color: #fff;">TICKET ORDER READY</h2>
-        <p style="color: #8892a7; font-size: 0.95rem; margin-bottom: 16px;">Order Code: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
+        <h2 style="font-family: var(--font-heading); font-size: 1.7rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; color: #fff;">COMPLETE YOUR PURCHASE</h2>
+        <p style="color: #8892a7; font-size: 0.92rem; margin-bottom: 16px;">Order ID: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
         
-        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--gold-light); font-weight: 800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; text-align: left; margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--gold-light); font-weight: 800; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
             <span>Selected Roles / Access</span>
-            <span>Total: $${total}</span>
+            <span style="color: #00D632; font-size: 1rem;">Total: $${total}</span>
           </div>
-          <pre style="font-family: var(--font-mono); font-size: 0.88rem; color: #f1f3f9; white-space: pre-wrap; margin: 0 0 10px 0; line-height: 1.6;">${itemList}</pre>
-          <div style="font-size: 0.8rem; color: #8892a7; border-top: 1px solid var(--border-subtle); padding-top: 8px;">
+          <pre style="font-family: var(--font-mono); font-size: 0.84rem; color: #f1f3f9; white-space: pre-wrap; margin: 0 0 8px 0; line-height: 1.5;">${itemList}</pre>
+          <div style="font-size: 0.8rem; color: #8892a7; border-top: 1px solid var(--border-subtle); padding-top: 6px;">
             Buyer: <strong style="color: #57f287;">${userTag}</strong>
           </div>
         </div>
 
-        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 20px; font-size: 0.84rem; color: #ff8585; text-align: left;">
-          <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> NO REFUNDS. Open a ticket in Discord to purchase.
+        <!-- Option 1: Direct CashApp Purchase (No Ticket Needed) -->
+        <div style="background: rgba(0, 214, 50, 0.05); border: 1px solid rgba(0, 214, 50, 0.3); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; text-align: left;">
+          <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #00D632; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-bolt"></i> <span>DIRECT CASHAPP PURCHASE (NO TICKET NEEDED)</span>
+          </div>
+          <p style="font-size: 0.82rem; color: #a3b2c9; margin-bottom: 12px; line-height: 1.4;">
+            Send <strong>$${total}</strong> to either CashApp below and include <code style="color: var(--gold-light); background: #000; padding: 2px 6px; border-radius: 4px;">${orderId}</code> in the CashApp payment note:
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <a href="https://cash.app/$CKHEADTAPP/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 12px; font-size: 0.95rem;">
+              <i class="fa-solid fa-dollar-sign"></i> Pay with CashApp: $CKHEADTAPP
+            </a>
+            <a href="https://cash.app/$itsnabula/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 12px; font-size: 0.95rem;">
+              <i class="fa-solid fa-dollar-sign"></i> Pay with CashApp: $itsnabula
+            </a>
+          </div>
         </div>
 
-        <a href="https://discord.gg/htbw" target="_blank" rel="noopener" class="btn btn-primary btn-block" style="padding: 15px; font-size: 1.05rem;">
-          <i class="fa-brands fa-discord"></i> Open Ticket In Discord (17k+)
-        </a>
+        <!-- Option 2: Discord Ticket -->
+        <div style="margin-bottom: 14px;">
+          <div style="font-size: 0.82rem; color: #768196; margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">— OR OPEN A TICKET IN DISCORD —</div>
+          <a href="https://discord.gg/htbw" target="_blank" rel="noopener" class="btn btn-discord btn-block" style="padding: 12px; font-size: 0.95rem;">
+            <i class="fa-brands fa-discord"></i> Open Ticket In Discord (17k+)
+          </a>
+        </div>
+
+        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.78rem; color: #ff8585; text-align: left;">
+          <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> All sales final. NO REFUNDS. Roles granted upon payment verification.
+        </div>
       </div>
     `;
 

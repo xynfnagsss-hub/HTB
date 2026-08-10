@@ -371,6 +371,21 @@ body {
   box-shadow: var(--shadow-gold);
 }
 
+.btn-cashapp {
+  background: #00D632;
+  color: #050608;
+  font-weight: 900;
+  border: 1px solid #00D632;
+  box-shadow: 0 4px 20px rgba(0, 214, 50, 0.35);
+}
+
+.btn-cashapp:hover {
+  background: #00ff3c;
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 214, 50, 0.55);
+}
+
 .btn-auth {
   background: rgba(245, 175, 25, 0.12);
   color: var(--gold-light);
