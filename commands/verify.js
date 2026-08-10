@@ -22,6 +22,10 @@ module.exports = {
       const embed = buildVerifyEmbed(interaction.user, profile, rankResult);
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
+      if (err.mustJoinGroup) {
+        const groupEmbed = buildMustJoinEmbed(err.profile, err.groupId);
+        return await interaction.editReply({ embeds: [groupEmbed] });
+      }
       await interaction.editReply({ content: `❌ Verification failed: \`${err.message}\`` });
     }
   },
@@ -42,10 +46,30 @@ module.exports = {
       const embed = buildVerifyEmbed(message.author, profile, rankResult);
       await message.reply({ embeds: [embed] });
     } catch (err) {
+      if (err.mustJoinGroup) {
+        const groupEmbed = buildMustJoinEmbed(err.profile, err.groupId);
+        return await message.reply({ embeds: [groupEmbed] });
+      }
       await message.reply(`❌ Verification failed: \`${err.message}\``);
     }
   }
 };
+
+function buildMustJoinEmbed(profile, groupId) {
+  const groupUrl = `https://www.roblox.com/groups/${groupId || '316559660'}`;
+
+  return new EmbedBuilder()
+    .setColor(0xED4245) // Red
+    .setTitle('⚠️ Roblox Group Membership Required')
+    .setThumbnail(profile ? profile.avatarUrl : null)
+    .setDescription(`Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **HTB | Hit The Block** Roblox Group before you can verify.\n\n👉 **[Click Here to Join HTB Roblox Group](${groupUrl})**\n\n*Once you click "Join Group" on Roblox, run \`.verify ${profile ? profile.username : ''}\` again to link and claim your group rank!*`)
+    .addFields(
+      { name: '🛡️ Target Group', value: `[HTB | Hit The Block](${groupUrl})`, inline: true },
+      { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
+    )
+    .setFooter({ text: 'HTB Roblox Verification • Join Group Required', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setTimestamp();
+}
 
 function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
   const embed = new EmbedBuilder()

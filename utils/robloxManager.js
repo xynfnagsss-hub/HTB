@@ -184,8 +184,18 @@ async function getLinkedRobloxUser(discordId) {
 /**
  * Link Discord ID with Roblox Account
  */
-async function linkRobloxUser(discordId, robloxUsernameOrId) {
-  const profile = await getPlayerProfile(robloxUsernameOrId);
+async function linkRobloxUser(discordId, robloxUsernameOrId, groupId = process.env.ROBLOX_GROUP_ID) {
+  const profile = await getPlayerProfile(robloxUsernameOrId, groupId);
+
+  const cleanGroupId = parseInt(groupId || '316559660');
+  if (profile.groupRankId === 0 || profile.groupRank === 'Not in Group') {
+    const error = new Error(`You must join the official HTB Roblox Group before verifying.`);
+    error.mustJoinGroup = true;
+    error.groupId = cleanGroupId;
+    error.profile = profile;
+    throw error;
+  }
+
   const data = {
     discordId,
     robloxId: profile.userId,
