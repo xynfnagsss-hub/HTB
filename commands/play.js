@@ -172,6 +172,46 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   return { ytProc, ffProc, resource };
 }
 
+async function getOrCreateVoiceConnection(voiceChannel) {
+  let connection = getVoiceConnection(voiceChannel.guild.id);
+
+  if (connection) {
+    if (
+      connection.joinConfig.channelId !== voiceChannel.id ||
+      connection.state.status === VoiceConnectionStatus.Destroyed ||
+      connection.state.status === VoiceConnectionStatus.Disconnected
+    ) {
+      try { connection.destroy(); } catch {}
+      connection = null;
+    }
+  }
+
+  if (!connection) {
+    connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      selfDeaf: true,
+    });
+  }
+
+  try {
+    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+  } catch (readyErr) {
+    // If socket was closed during IP discovery, destroy stale socket and retry clean once
+    try { connection.destroy(); } catch {}
+    connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: voiceChannel.guild.id,
+      adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+      selfDeaf: true,
+    });
+    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+  }
+
+  return connection;
+}
+
 module.exports = {
   name: 'play',
   description: 'Play music or a random song from an artist in your voice channel with boosted volume',
@@ -217,18 +257,8 @@ module.exports = {
         try { existingSession.ffProc?.kill(); } catch {}
       }
 
-      // Establish voice connection first and wait until fully Ready
-      let connection = getVoiceConnection(message.guild.id);
-      if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed || connection.joinConfig.channelId !== voiceChannel.id) {
-        connection = joinVoiceChannel({
-          channelId: voiceChannel.id,
-          guildId: message.guild.id,
-          adapterCreator: message.guild.voiceAdapterCreator,
-          selfDeaf: true,
-        });
-      }
-
-      await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+      // Establish fresh, resilient voice connection with IP discovery retry handling
+      const connection = await getOrCreateVoiceConnection(voiceChannel);
 
       // Create audio player configured for immediate unpaused streaming
       const player = createAudioPlayer({
