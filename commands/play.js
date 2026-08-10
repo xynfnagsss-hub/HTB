@@ -148,9 +148,13 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
 
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
-    '-ac', '2',
+    '-c:a', 'libopus',
+    '-b:a', '128k',
     '-ar', '48000',
-    '-f', 's16le',
+    '-ac', '2',
+    '-frame_duration', '20',
+    '-page_duration', '20000',
+    '-f', 'opus',
     '-loglevel', 'error',
     'pipe:1',
   ]);
@@ -162,7 +166,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.Arbitrary,
+    inputType: StreamType.OggOpus,
   });
 
   return { ytProc, ffProc, resource };
