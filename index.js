@@ -71,7 +71,107 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// In-memory fallback if MongoDB is connecting
+const inMemoryOrders = new Map();
+const Order = require('./models/Order');
+const ADMIN_USER_IDS = ['674218467041345536', '1508174981396168755'];
+const ADMIN_PASSCODE = 'HTB-ADMIN-2026';
+
+// 1. Create / Save Order from Store
+app.post('/api/orders', async (req, res) => {
+  try {
+    const { orderId, buyerTag, buyerId, items, totalAmount } = req.body;
+    if (!orderId) return res.status(400).json({ error: 'Order ID is required' });
+
+    const orderData = {
+      orderId: orderId.trim().toUpperCase(),
+      buyerTag: buyerTag || 'Unlinked Member',
+      buyerId: buyerId || 'N/A',
+      items: items || [],
+      totalAmount: parseFloat(totalAmount) || 0,
+      status: 'PENDING',
+      createdAt: new Date(),
+    };
+
+    inMemoryOrders.set(orderData.orderId, orderData);
+
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await Order.findOneAndUpdate({ orderId: orderData.orderId }, orderData, { upsert: true, new: true });
+      }
+    } catch {}
+
+    res.json({ success: true, order: orderData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Look up & Verify Order by ID
+app.post('/api/orders/verify', async (req, res) => {
+  try {
+    const { orderId } = req.body;
+    if (!orderId) return res.status(400).json({ error: 'Please enter an Order ID' });
+
+    const cleanId = orderId.trim().toUpperCase();
+    let order = inMemoryOrders.get(cleanId);
+
+    if (!order && mongoose.connection.readyState === 1) {
+      order = await Order.findOne({ orderId: cleanId });
+    }
+
+    if (!order) {
+      return res.status(404).json({ error: `Order ID "${cleanId}" not found in HTB records.` });
+    }
+
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Update Order Status (Admin Only)
+app.post('/api/orders/update-status', async (req, res) => {
+  try {
+    const { orderId, status, adminId, adminKey } = req.body;
+    const isAuth = ADMIN_USER_IDS.includes(adminId) || adminKey === ADMIN_PASSCODE;
+    if (!isAuth) return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+
+    const cleanId = orderId.trim().toUpperCase();
+    let order = inMemoryOrders.get(cleanId) || { orderId: cleanId };
+    order.status = status || 'VERIFIED';
+    order.updatedAt = new Date();
+    order.verifiedBy = adminId || 'HTB Admin';
+    inMemoryOrders.set(cleanId, order);
+
+    if (mongoose.connection.readyState === 1) {
+      await Order.findOneAndUpdate({ orderId: cleanId }, { status, verifiedBy: order.verifiedBy, updatedAt: new Date() }, { upsert: true });
+    }
+
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Fetch All Recent Orders (Admin Only)
+app.get('/api/orders', async (req, res) => {
+  try {
+    let orders = [];
+    if (mongoose.connection.readyState === 1) {
+      orders = await Order.find().sort({ createdAt: -1 }).limit(50);
+    }
+    if (!orders || !orders.length) {
+      orders = Array.from(inMemoryOrders.values()).reverse();
+    }
+    res.json({ success: true, orders });
+  } catch (err) {
+    res.json({ success: true, orders: Array.from(inMemoryOrders.values()) });
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({

@@ -534,7 +534,7 @@ if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 
 // Checkout & Discord Order Ticket Generation
 if (checkoutBtn) {
-  checkoutBtn.addEventListener('click', () => {
+  checkoutBtn.addEventListener('click', async () => {
     if (cart.length === 0) {
       showToast('Your order selection is empty!');
       return;
@@ -544,6 +544,23 @@ if (checkoutBtn) {
     const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
     const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x) — $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
     const userTag = currentUser ? `${currentUser.tag} (ID: ${currentUser.id})` : 'Unlinked (Authorize on site for auto-grant)';
+
+    // Save order to server database / memory
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          buyerTag: currentUser ? currentUser.tag : 'Unlinked Member',
+          buyerId: currentUser ? currentUser.id : 'N/A',
+          items: cart,
+          totalAmount: parseFloat(total),
+        }),
+      });
+    } catch (e) {
+      console.log('Order save local fallback:', e);
+    }
 
     modalContent.innerHTML = `
       <div style="text-align: center;">
@@ -577,6 +594,196 @@ if (checkoutBtn) {
     closeCart();
     modalBackdrop.classList.add('open');
   });
+}
+
+// ==========================================================================
+// ADMIN PANEL & ORDER VERIFICATION LOGIC
+// ==========================================================================
+const ADMIN_IDS = ['674218467041345536', '1508174981396168755'];
+const ADMIN_PASSCODE = 'HTB-ADMIN-2026';
+let isAdminUnlocked = localStorage.getItem('htb_admin_unlocked') === 'true';
+
+const adminModalBackdrop = document.getElementById('adminModalBackdrop');
+const adminAuthScreen = document.getElementById('adminAuthScreen');
+const adminDashboardScreen = document.getElementById('adminDashboardScreen');
+const adminPasscodeInput = document.getElementById('adminPasscodeInput');
+const verifyOrderIdInput = document.getElementById('verifyOrderIdInput');
+const verifyResultContainer = document.getElementById('verifyResultContainer');
+const adminOrdersTableBody = document.getElementById('adminOrdersTableBody');
+
+function openAdminPanel() {
+  if (!adminModalBackdrop) return;
+
+  // Auto-unlock if logged into authorized Discord account
+  if (currentUser && ADMIN_IDS.includes(currentUser.id)) {
+    isAdminUnlocked = true;
+    localStorage.setItem('htb_admin_unlocked', 'true');
+  }
+
+  if (isAdminUnlocked) {
+    if (adminAuthScreen) adminAuthScreen.style.display = 'none';
+    if (adminDashboardScreen) adminDashboardScreen.style.display = 'flex';
+    fetchRecentOrders();
+  } else {
+    if (adminAuthScreen) adminAuthScreen.style.display = 'block';
+    if (adminDashboardScreen) adminDashboardScreen.style.display = 'none';
+  }
+
+  adminModalBackdrop.classList.add('open');
+}
+
+function closeAdminPanel() {
+  if (adminModalBackdrop) adminModalBackdrop.classList.remove('open');
+}
+
+function lockAdminPanel() {
+  isAdminUnlocked = false;
+  localStorage.removeItem('htb_admin_unlocked');
+  if (adminAuthScreen) adminAuthScreen.style.display = 'block';
+  if (adminDashboardScreen) adminDashboardScreen.style.display = 'none';
+  showToast('Admin Panel Locked');
+}
+
+function authenticateAdmin() {
+  const code = (adminPasscodeInput.value || '').trim();
+  if (code === ADMIN_PASSCODE || ADMIN_IDS.includes(code)) {
+    isAdminUnlocked = true;
+    localStorage.setItem('htb_admin_unlocked', 'true');
+    adminAuthScreen.style.display = 'none';
+    adminDashboardScreen.style.display = 'flex';
+    adminPasscodeInput.value = '';
+    fetchRecentOrders();
+    showToast('Admin Panel Unlocked');
+  } else {
+    showToast('Invalid Passcode or Discord ID!');
+  }
+}
+
+async function verifyOrderOnWeb(orderIdToVerify) {
+  const orderId = orderIdToVerify || (verifyOrderIdInput ? verifyOrderIdInput.value : '').trim();
+  if (!orderId) {
+    showToast('Please enter an Order ID');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/orders/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId }),
+    });
+    const data = await res.json();
+
+    if (!data.success || !data.order) {
+      if (verifyResultContainer) {
+        verifyResultContainer.style.display = 'block';
+        verifyResultContainer.innerHTML = `
+          <div class="verify-result-card" style="border-color: #ef4444;">
+            <p style="color: #ef4444; font-weight: 800;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error || 'Order ID not found'}</p>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    const order = data.order;
+    const itemsText = (order.items || []).map(i => `• ${i.title} (${i.quantity || 1}x) - $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
+    const badgeClass = `badge-${(order.status || 'pending').toLowerCase()}`;
+
+    if (verifyResultContainer) {
+      verifyResultContainer.style.display = 'block';
+      verifyResultContainer.innerHTML = `
+        <div class="verify-result-card">
+          <div class="verify-result-header">
+            <div>
+              <strong style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--gold-light);">${order.orderId}</strong>
+              <div style="font-size: 0.8rem; color: #8c97af; margin-top: 2px;">Created: ${new Date(order.createdAt).toLocaleString()}</div>
+            </div>
+            <span class="verify-badge ${badgeClass}">${order.status}</span>
+          </div>
+
+          <div style="font-size: 0.88rem; margin-bottom: 8px;">
+            <span style="color: #8c97af;">Buyer Discord:</span> <strong style="color: #fff;">${order.buyerTag}</strong> (ID: <code>${order.buyerId}</code>)
+          </div>
+          <div style="font-size: 0.88rem; margin-bottom: 12px;">
+            <span style="color: #8c97af;">Total Amount:</span> <strong style="color: var(--gold-glow); font-size: 1.1rem;">$${parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
+          </div>
+
+          <pre style="background: #0d1017; border: 1px solid var(--border-subtle); padding: 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: #cfd6e4; white-space: pre-wrap; margin-bottom: 12px;">${itemsText}</pre>
+
+          <div class="verify-actions-row">
+            <button class="btn btn-primary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'VERIFIED')">
+              <i class="fa-solid fa-check"></i> Mark Verified
+            </button>
+            <button class="btn btn-discord btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'DELIVERED')">
+              <i class="fa-solid fa-shield-check"></i> Mark Delivered
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'REJECTED')">
+              <i class="fa-solid fa-ban"></i> Reject
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  } catch (err) {
+    showToast('Failed to verify order: ' + err.message);
+  }
+}
+
+async function updateOrderStatusOnWeb(orderId, newStatus) {
+  try {
+    const adminId = currentUser ? currentUser.id : 'ADMIN';
+    const res = await fetch('/api/orders/update-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        orderId,
+        status: newStatus,
+        adminId,
+        adminKey: ADMIN_PASSCODE,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Order ${orderId} marked as ${newStatus}`);
+      verifyOrderOnWeb(orderId);
+      fetchRecentOrders();
+    } else {
+      showToast('Error: ' + (data.error || 'Failed to update'));
+    }
+  } catch (e) {
+    showToast('Update failed: ' + e.message);
+  }
+}
+
+async function fetchRecentOrders() {
+  if (!adminOrdersTableBody) return;
+  try {
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    const orders = data.orders || [];
+
+    if (orders.length === 0) {
+      adminOrdersTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #8c97af; padding: 20px;">No web orders recorded yet.</td></tr>`;
+      return;
+    }
+
+    adminOrdersTableBody.innerHTML = orders.map(o => `
+      <tr>
+        <td><strong style="color: var(--gold-light); font-family: var(--font-mono);">${o.orderId}</strong></td>
+        <td>${o.buyerTag || 'Unlinked'}</td>
+        <td style="color: var(--gold-glow); font-weight: 800;">$${parseFloat(o.totalAmount || 0).toFixed(2)}</td>
+        <td><span class="verify-badge badge-${(o.status || 'pending').toLowerCase()}">${o.status || 'PENDING'}</span></td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="verifyOrderOnWeb('${o.orderId}')" style="padding: 4px 10px; font-size: 0.76rem;">
+            Inspect
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    console.log('Orders fetch err:', e);
+  }
 }
 
 if (modalCloseBtn) {

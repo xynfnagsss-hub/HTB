@@ -55,6 +55,9 @@
         <a href="#how-to-buy" class="nav-link">How To Buy</a>
         <a href="#rules" class="nav-link">Rules & Policy</a>
         <a href="#faq" class="nav-link">FAQ</a>
+        <a href="javascript:void(0)" class="nav-link nav-admin-link" id="navAdminBtn" onclick="openAdminPanel()">
+          <i class="fa-solid fa-lock"></i> Admin Panel
+        </a>
       </nav>
 
       <div class="nav-actions">
@@ -401,6 +404,85 @@
         <p class="oauth-disclaimer">
           By continuing, you agree to HTB terms and allow our official bot to verify your member status.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div class="modal-backdrop" id="adminModalBackdrop">
+    <div class="modal-card admin-modal-card" id="adminModalCard">
+      <button class="modal-close" id="adminModalCloseBtn" onclick="closeAdminPanel()"><i class="fa-solid fa-xmark"></i></button>
+      
+      <!-- Admin Login Screen (if not unlocked) -->
+      <div id="adminAuthScreen" class="admin-auth-screen">
+        <div class="admin-shield-icon">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="admin-title">HTB STAFF & ADMIN COMMAND</h2>
+        <p class="admin-subtitle">Restricted to authorized staff (IDs: <code>674218467041345536</code>, <code>1508174981396168755</code>) or Master Passcode.</p>
+
+        <div class="admin-auth-form">
+          <input type="password" id="adminPasscodeInput" class="form-input" placeholder="Enter Staff Passcode or ID...">
+          <button class="btn btn-primary btn-block" onclick="authenticateAdmin()">
+            <i class="fa-solid fa-key"></i> Unlock Admin Panel
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Dashboard Screen (Unlocked) -->
+      <div id="adminDashboardScreen" class="admin-dashboard-screen" style="display: none;">
+        <div class="admin-dash-header">
+          <div class="admin-dash-title">
+            <i class="fa-solid fa-terminal"></i>
+            <span>HTB Order Verification Command</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="lockAdminPanel()">
+            <i class="fa-solid fa-lock"></i> Lock
+          </button>
+        </div>
+
+        <!-- 1. Order Verification Tool -->
+        <div class="admin-verify-box">
+          <label class="admin-box-lbl"><i class="fa-solid fa-magnifying-glass"></i> VERIFY ORDER ID ON WEB</label>
+          <div class="verify-input-group">
+            <input type="text" id="verifyOrderIdInput" class="form-input" placeholder="Paste Order ID (e.g. HTB-748291)...">
+            <button class="btn btn-primary" onclick="verifyOrderOnWeb()">
+              <i class="fa-solid fa-check-double"></i> Verify Order ID
+            </button>
+          </div>
+
+          <!-- Result Container -->
+          <div id="verifyResultContainer" class="verify-result-container" style="display: none;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- 2. Recent Live Orders Table -->
+        <div class="admin-orders-table-wrap">
+          <div class="table-header-flex">
+            <span class="admin-box-lbl"><i class="fa-solid fa-list-ol"></i> RECENT WEB ORDERS</span>
+            <button class="btn btn-secondary btn-sm" onclick="fetchRecentOrders()">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <div class="orders-table-container">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Buyer</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminOrdersTableBody">
+                <tr><td colspan="5" style="text-align: center; color: #8c97af;">Loading orders...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
