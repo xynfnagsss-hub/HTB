@@ -11,7 +11,6 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
-const yts = require('yt-search');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
@@ -31,6 +30,16 @@ function cleanTitle(title) {
     .trim();
 }
 
+function formatDuration(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00';
+  const s = Math.floor(Number(seconds));
+  const hrs = Math.floor(s / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 function sanitizeSearchQuery(query) {
   return query
     .replace(/\([^)]*\)/g, '')
@@ -40,51 +49,99 @@ function sanitizeSearchQuery(query) {
     .trim();
 }
 
-async function resolveTrackInfo(query) {
+function runYtDlpSearch(ytdlp, query, limit = 10) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytdlp, [
+      '--dump-single-json',
+      '--no-warnings',
+      '--flat-playlist',
+      `ytsearch${limit}:${query}`,
+    ]);
+
+    let out = '', err = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { err += d.toString(); });
+
+    proc.on('close', code => {
+      if (code === 0) {
+        try {
+          const j = JSON.parse(out);
+          const entries = (j.entries || []).filter(e => e && e.title);
+          resolve(entries);
+        } catch {
+          reject(new Error('Failed to parse search metadata'));
+        }
+      } else {
+        reject(new Error(err || `Exit code ${code}`));
+      }
+    });
+
+    proc.on('error', reject);
+  });
+}
+
+async function resolveTrackInfo(ytdlp, query) {
   const isUrl = /^https?:\/\//i.test(query);
 
-  let title = query;
-  let trackUrl = query;
-  let duration = '0:00';
-  let thumbnail = null;
-
   if (isUrl) {
-    if (query.includes('youtube.com') || query.includes('youtu.be')) {
-      const vidMatch = query.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
-      if (vidMatch && vidMatch[1]) {
-        const info = await yts({ videoId: vidMatch[1] }).catch(() => null);
-        if (info) {
-          title = cleanTitle(info.title);
-          trackUrl = info.url;
-          duration = info.timestamp || '0:00';
-          thumbnail = info.thumbnail;
-        }
-      }
-    }
-  } else {
-    const r = await yts(query);
-    if (r.videos && r.videos.length > 0) {
-      const v = r.videos[0];
-      title = cleanTitle(v.title);
-      trackUrl = v.url;
-      duration = v.timestamp || '0:00';
-      thumbnail = v.thumbnail;
-    }
+    return {
+      title: query,
+      trackUrl: query,
+      duration: 'Live / Audio',
+      thumbnail: null,
+      streamTarget: query,
+      isRandomArtist: false,
+    };
   }
 
+  const isExplicitArtist = /\b(artist|random|shuffle)\b/i.test(query);
+  const cleanQ = query.replace(/\b(artist|random|shuffle)\b/gi, '').trim();
+  const isShortArtistQuery = cleanQ.split(' ').length <= 2;
+
+  const searchQuery = isExplicitArtist || isShortArtistQuery
+    ? `${cleanQ} songs music`
+    : cleanQ;
+
+  const entries = await runYtDlpSearch(ytdlp, searchQuery, 12);
+  if (!entries || entries.length === 0) {
+    throw new Error(`No tracks found for: ${query}`);
+  }
+
+  let chosen;
+  let isRandomArtist = false;
+
+  // If query is an artist name or explicitly requested random, pick a random hit song from that artist
+  if (entries.length > 1 && (isExplicitArtist || isShortArtistQuery)) {
+    const randomIndex = Math.floor(Math.random() * Math.min(entries.length, 10));
+    chosen = entries[randomIndex];
+    isRandomArtist = true;
+  } else {
+    chosen = entries[0];
+  }
+
+  const rawTitle = cleanTitle(chosen.title);
+  const trackUrl = chosen.url || (chosen.id ? `https://www.youtube.com/watch?v=${chosen.id}` : query);
+  const duration = formatDuration(chosen.duration || 0);
+  const thumbnail = (chosen.thumbnails && chosen.thumbnails[0]?.url) || chosen.thumbnail || null;
+
+  // Build high-reliability streaming target
+  const sanitized = sanitizeSearchQuery(rawTitle);
+  const streamTarget = `scsearch1:${sanitized}`;
+
   return {
-    title,
+    title: rawTitle,
     trackUrl,
     duration,
     thumbnail,
-    isUrl,
+    streamTarget,
+    isRandomArtist,
+    artistName: cleanQ,
   };
 }
 
 function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ytProc = spawn(ytdlpPath, [
     '--no-warnings',
-    '--extractor-args', 'youtube:player_client=android,web,tv_embedded',
     '-f', 'ba/ba*/b/best/bestaudio',
     '-o', '-',
     target,
@@ -93,9 +150,11 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
     '-filter:a', 'volume=1.6',
-    '-ac', '2',
+    '-c:a', 'libopus',
+    '-b:a', '128k',
     '-ar', '48000',
-    '-f', 's16le',
+    '-ac', '2',
+    '-f', 'opus',
     '-loglevel', 'error',
     'pipe:1',
   ]);
@@ -107,7 +166,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.Raw,
+    inputType: StreamType.OggOpus,
   });
 
   return { ytProc, ffProc, resource };
@@ -115,8 +174,8 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
 
 module.exports = {
   name: 'play',
-  description: 'Play music in your voice channel with boosted volume',
-  usage: '.play <song title or URL>',
+  description: 'Play music or a random song from an artist in your voice channel with boosted volume',
+  usage: '.play <song title, artist, or URL>',
 
   async execute(message, args, client) {
     const voiceChannel = message.member?.voice?.channel;
@@ -130,7 +189,7 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Please specify a song name or URL: `.play <song name / URL>`');
+      return message.reply('❌ Please specify a song name, artist, or URL: `.play <song / artist / URL>`');
     }
 
     const query = args.join(' ').trim();
@@ -146,7 +205,7 @@ module.exports = {
     const ffmpegPath = getFfmpeg();
 
     try {
-      const track = await resolveTrackInfo(query);
+      const track = await resolveTrackInfo(ytdlpPath, query);
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
       // Clear previous playback session or idle timer on this guild
@@ -180,16 +239,10 @@ module.exports = {
 
       connection.subscribe(player);
 
-      // Sanitize search query to remove special characters/quotes
-      const sanitized = sanitizeSearchQuery(track.title);
-      const streamTarget = track.isUrl && !query.includes('youtube') && !query.includes('youtu.be')
-        ? query
-        : `scsearch1:${sanitized}`;
-
       const { ytProc, ffProc, resource } = createStreamPipeline(
         ytdlpPath,
         ffmpegPath,
-        streamTarget
+        track.streamTarget
       );
 
       const sessionObj = {
@@ -224,7 +277,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x5765f2)
-        .setTitle('🎵 Now Playing')
+        .setTitle(track.isRandomArtist ? `🎲 Random Track: ${track.artistName}` : '🎵 Now Playing')
         .setDescription(`**[${track.title}](${track.trackUrl})**`)
         .addFields(
           { name: 'Duration', value: track.duration, inline: true },
