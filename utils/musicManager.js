@@ -56,36 +56,6 @@ function killProcess(proc) {
   } catch {}
 }
 
-async function extractDirectStreamUrl(ytdlpPath, targetUrl) {
-  return new Promise((resolve) => {
-    const proc = spawn(ytdlpPath, [
-      '--no-warnings',
-      '--extractor-args', 'youtube:player_client=android_vr,web,ios',
-      '-f', 'bestaudio/best',
-      '-g',
-      targetUrl,
-    ]);
-
-    let out = '';
-    proc.stdout.on('data', d => { out += d.toString(); });
-
-    proc.on('close', code => {
-      const url = out.trim().split('\n')[0];
-      if (code === 0 && url && url.startsWith('http')) {
-        resolve(url);
-      } else {
-        resolve(targetUrl);
-      }
-    });
-
-    proc.on('error', () => resolve(targetUrl));
-    setTimeout(() => {
-      try { proc.kill(); } catch {}
-      resolve(targetUrl);
-    }, 10000);
-  });
-}
-
 class GuildQueue {
   constructor(guild, voiceChannel, textChannel, client) {
     this.guild = guild;
@@ -102,6 +72,7 @@ class GuildQueue {
     this.connection = null;
     this.player = null;
     this.currentProcesses = null;
+    this.currentResource = null;
 
     this.initPlayer();
   }
@@ -114,7 +85,8 @@ class GuildQueue {
     });
 
     this.player.on(AudioPlayerStatus.Idle, (oldState) => {
-      if (this.isPlaying && (oldState.status === AudioPlayerStatus.Playing || oldState.status === AudioPlayerStatus.Buffering)) {
+      // Only transition to next track if the player was actively playing and not just buffering
+      if (this.isPlaying && oldState.status === AudioPlayerStatus.Playing) {
         this.cleanupProcesses();
         this.handleSongEnd();
       }
@@ -136,6 +108,7 @@ class GuildQueue {
       killProcess(this.currentProcesses.ffProc);
       this.currentProcesses = null;
     }
+    this.currentResource = null;
   }
 
   resetIdleTimer() {
@@ -231,58 +204,34 @@ class GuildQueue {
       const ytdlpPath = await ensureYtDlp();
       const ffmpegPath = getFfmpegPath();
 
-      const streamUrl = await extractDirectStreamUrl(ytdlpPath, nextTrack.url);
+      const target = nextTrack.url || nextTrack.streamUrl;
 
-      let ffProc;
-      let ytProc = null;
+      // Direct yt-dlp audio stream pipe to FFmpeg Opus encoder
+      const ytProc = spawn(ytdlpPath, [
+        '--no-warnings',
+        '--retries', '5',
+        '-f', 'ba/bestaudio/best',
+        '-o', '-',
+        target,
+      ]);
 
-      if (streamUrl && streamUrl.startsWith('http')) {
-        // Realtime paced stream directly with FFmpeg
-        ffProc = spawn(ffmpegPath, [
-          '-reconnect', '1',
-          '-reconnect_streamed', '1',
-          '-reconnect_delay_max', '5',
-          '-re',
-          '-i', streamUrl,
-          '-c:a', 'libopus',
-          '-b:a', '128k',
-          '-ar', '48000',
-          '-ac', '2',
-          '-frame_duration', '20',
-          '-f', 'opus',
-          '-loglevel', 'error',
-          'pipe:1',
-        ]);
-      } else {
-        ytProc = spawn(ytdlpPath, [
-          '--no-warnings',
-          '--retries', '5',
-          '--extractor-args', 'youtube:player_client=android_vr,web,ios',
-          '-f', 'bestaudio/best',
-          '-o', '-',
-          nextTrack.url,
-        ]);
+      const ffProc = spawn(ffmpegPath, [
+        '-i', 'pipe:0',
+        '-c:a', 'libopus',
+        '-b:a', '128k',
+        '-ar', '48000',
+        '-ac', '2',
+        '-frame_duration', '20',
+        '-f', 'opus',
+        '-loglevel', 'error',
+        'pipe:1',
+      ]);
 
-        ffProc = spawn(ffmpegPath, [
-          '-re',
-          '-i', 'pipe:0',
-          '-c:a', 'libopus',
-          '-b:a', '128k',
-          '-ar', '48000',
-          '-ac', '2',
-          '-frame_duration', '20',
-          '-f', 'opus',
-          '-loglevel', 'error',
-          'pipe:1',
-        ]);
-
-        ytProc.stdout.pipe(ffProc.stdin);
-        ytProc.stdout.on('error', () => {});
-        ytProc.stderr.on('data', () => {});
-      }
-
-      ffProc.stdin?.on('error', () => {});
-      ffProc.stderr?.on('data', () => {});
+      ytProc.stdout.pipe(ffProc.stdin);
+      ytProc.stdout.on('error', () => {});
+      ffProc.stdin.on('error', () => {});
+      ytProc.stderr.on('data', () => {});
+      ffProc.stderr.on('data', () => {});
 
       this.currentProcesses = { ytProc, ffProc };
 
@@ -290,6 +239,7 @@ class GuildQueue {
         inputType: StreamType.OggOpus,
       });
 
+      this.currentResource = resource;
       this.player.play(resource);
 
       const embed = new EmbedBuilder()
@@ -425,6 +375,7 @@ class MusicManager {
                   url: e.url || (e.id ? `https://www.youtube.com/watch?v=${e.id}` : query),
                   duration: formatDuration(e.duration),
                   thumbnail: (e.thumbnails && e.thumbnails[0]?.url) || e.thumbnail || null,
+                  streamUrl: null,
                   requestedBy,
                   isRandomArtist: false,
                 }));
@@ -436,6 +387,7 @@ class MusicManager {
                 url: j.webpage_url || query,
                 duration: formatDuration(j.duration),
                 thumbnail: (j.thumbnails && j.thumbnails[0]?.url) || j.thumbnail || null,
+                streamUrl: null,
                 requestedBy,
                 isRandomArtist: false,
               };
@@ -448,6 +400,7 @@ class MusicManager {
                   url: query,
                   duration: 'Live / Audio',
                   thumbnail: null,
+                  streamUrl: null,
                   requestedBy,
                   isRandomArtist: false,
                 }],
@@ -461,6 +414,7 @@ class MusicManager {
                 url: query,
                 duration: 'Live / Audio',
                 thumbnail: null,
+                streamUrl: null,
                 requestedBy,
                 isRandomArtist: false,
               }],
@@ -509,12 +463,13 @@ class MusicManager {
               chosen = entries[0];
             }
 
-            const videoUrl = chosen.url || (chosen.id ? `https://www.youtube.com/watch?v=${chosen.id}` : query);
+            const videoUrl = chosen.url || (chosen.id ? `https://www.youtube.com/watch?v=${chosen.id}` : `ytsearch1:${cleanQ}`);
             const track = {
               title: cleanTitle(chosen.title),
               url: videoUrl,
               duration: formatDuration(chosen.duration),
               thumbnail: (chosen.thumbnails && chosen.thumbnails[0]?.url) || chosen.thumbnail || null,
+              streamUrl: null,
               requestedBy,
               isRandomArtist: isRandom,
               artistName: cleanQ,
