@@ -9,6 +9,7 @@ const {
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
 const { spawn } = require('child_process');
+const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const { ensureYtDlp } = require('../utils/ensureYtDlp');
@@ -30,6 +31,54 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
+function getYouTubeOEmbed(url) {
+  return new Promise((resolve) => {
+    try {
+      const fullUrl = 'https://www.youtube.com/oembed?url=' + encodeURIComponent(url) + '&format=json';
+      https.get(fullUrl, { timeout: 5000 }, res => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => {
+          try { resolve(JSON.parse(d)); } catch { resolve(null); }
+        });
+      }).on('error', () => resolve(null)).on('timeout', () => resolve(null));
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+function runYtDlpSingleJson(ytdlp, args) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytdlp, [
+      '--dump-single-json',
+      '--no-warnings',
+      ...args,
+    ]);
+
+    let out = '', err = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { err += d.toString(); });
+
+    proc.on('close', code => {
+      if (code === 0) {
+        try {
+          const j = JSON.parse(out);
+          const entry = (j.entries && j.entries.length > 0) ? j.entries[0] : j;
+          if (entry) resolve(entry);
+          else reject(new Error('No entry found'));
+        } catch {
+          reject(new Error('Failed to parse metadata JSON'));
+        }
+      } else {
+        reject(new Error(err || `Exit code ${code}`));
+      }
+    });
+
+    proc.on('error', reject);
+  });
+}
+
 async function extractTrackInfo(ytdlp, query) {
   const isUrl = /^https?:\/\//i.test(query);
   const target = isUrl ? query : `ytsearch1:${query}`;
@@ -41,58 +90,60 @@ async function extractTrackInfo(ytdlp, query) {
     'web_embedded,mweb',
   ];
 
-  let lastErr = '';
+  // 1. Try YouTube with player clients
   for (const clients of clientConfigs) {
     try {
-      const result = await new Promise((resolve, reject) => {
-        const proc = spawn(ytdlp, [
-          '--dump-single-json',
-          '--no-warnings',
-          '--extractor-args', `youtube:player_client=${clients}`,
-          '-f', 'ba/ba*/b/best/bestaudio',
-          target,
-        ]);
+      const entry = await runYtDlpSingleJson(ytdlp, [
+        '--extractor-args', `youtube:player_client=${clients}`,
+        '-f', 'ba/ba*/b/best/bestaudio',
+        target,
+      ]);
 
-        let out = '', err = '';
-        proc.stdout.on('data', d => { out += d.toString(); });
-        proc.stderr.on('data', d => { err += d.toString(); });
-
-        proc.on('close', code => {
-          if (code === 0) {
-            try {
-              const j = JSON.parse(out);
-              const entry = (j.entries && j.entries.length > 0) ? j.entries[0] : j;
-              if (entry) {
-                resolve({
-                  title: entry.title || query,
-                  trackUrl: entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query),
-                  duration: formatDuration(entry.duration || 0),
-                  thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
-                  directAudioUrl: entry.url || (entry.formats && entry.formats.reverse().find(f => f.url)?.url),
-                });
-              } else {
-                reject(new Error('No video entry found'));
-              }
-            } catch (e) {
-              reject(new Error('Failed to parse metadata JSON'));
-            }
-          } else {
-            reject(new Error(err || `Exit code ${code}`));
-          }
-        });
-
-        proc.on('error', reject);
-      });
-
-      if (result && result.directAudioUrl) {
-        return result;
+      const directUrl = entry.url || (entry.formats && entry.formats.reverse().find(f => f.url)?.url);
+      if (directUrl) {
+        return {
+          title: entry.title || query,
+          trackUrl: entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query),
+          duration: formatDuration(entry.duration || 0),
+          thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
+          directAudioUrl: directUrl,
+        };
       }
     } catch (e) {
-      lastErr = e.message;
+      // Continue to next client or fallback
     }
   }
 
-  throw new Error(`Failed to extract track: ${lastErr.slice(0, 200)}`);
+  // 2. Fallback: If YouTube triggered bot detection or format error, resolve title and search SoundCloud
+  let fallbackSearchQuery = query;
+  if (isUrl) {
+    const oembed = await getYouTubeOEmbed(query);
+    if (oembed?.title) {
+      fallbackSearchQuery = `${oembed.title} ${oembed.author_name || ''}`;
+    }
+  }
+
+  try {
+    const scEntry = await runYtDlpSingleJson(ytdlp, [
+      '-f', 'ba/ba*/b/best/bestaudio',
+      `scsearch1:${fallbackSearchQuery}`,
+    ]);
+
+    const scDirectUrl = scEntry.url || (scEntry.formats && scEntry.formats.reverse().find(f => f.url)?.url);
+    if (scDirectUrl) {
+      return {
+        title: scEntry.title || fallbackSearchQuery,
+        trackUrl: scEntry.webpage_url || query,
+        duration: formatDuration(scEntry.duration || 0),
+        thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
+        directAudioUrl: scDirectUrl,
+      };
+    }
+  } catch (scErr) {
+    // Both YouTube and SoundCloud failed
+  }
+
+  throw new Error('Could not find a playable stream for this track. Please try a different song title or link.');
 }
 
 module.exports = {
