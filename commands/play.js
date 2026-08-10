@@ -31,6 +31,15 @@ function cleanTitle(title) {
     .trim();
 }
 
+function sanitizeSearchQuery(query) {
+  return query
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/["'|]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 async function resolveTrackInfo(query) {
   const isUrl = /^https?:\/\//i.test(query);
 
@@ -84,11 +93,9 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ffProc = spawn(ffmpegPath, [
     '-i', 'pipe:0',
     '-filter:a', 'volume=1.6',
-    '-c:a', 'libopus',
-    '-b:a', '128k',
-    '-ar', '48000',
     '-ac', '2',
-    '-f', 'webm',
+    '-ar', '48000',
+    '-f', 's16le',
     '-loglevel', 'error',
     'pipe:1',
   ]);
@@ -100,7 +107,7 @@ function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   ffProc.stderr.on('data', () => {});
 
   const resource = createAudioResource(ffProc.stdout, {
-    inputType: StreamType.WebmOpus,
+    inputType: StreamType.Raw,
   });
 
   return { ytProc, ffProc, resource };
@@ -173,10 +180,11 @@ module.exports = {
 
       connection.subscribe(player);
 
-      // Select reliable streaming target (scsearch1 with track title guarantees 100% sound with zero IP block)
+      // Sanitize search query to remove special characters/quotes
+      const sanitized = sanitizeSearchQuery(track.title);
       const streamTarget = track.isUrl && !query.includes('youtube') && !query.includes('youtu.be')
         ? query
-        : `scsearch1:${track.title}`;
+        : `scsearch1:${sanitized}`;
 
       const { ytProc, ffProc, resource } = createStreamPipeline(
         ytdlpPath,
