@@ -6,10 +6,21 @@ const {
   VoiceConnectionStatus,
   NoSubscriberBehavior,
   entersState,
+  StreamType,
   getVoiceConnection,
 } = require('@discordjs/voice');
 const { EmbedBuilder } = require('discord.js');
-const play = require('play-dl');
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const { ensureYtDlp } = require('../utils/ensureYtDlp');
+
+function getFfmpeg() {
+  const base = path.join(__dirname, '../node_modules/ffmpeg-static');
+  const win = path.join(base, 'ffmpeg.exe');
+  const linux = path.join(base, 'ffmpeg');
+  return fs.existsSync(win) ? win : fs.existsSync(linux) ? linux : 'ffmpeg';
+}
 
 function cleanTitle(title) {
   if (!title) return 'Unknown Track';
@@ -29,22 +40,99 @@ function formatDuration(seconds) {
   return `${mins}:${String(secs).padStart(2, '0')}`;
 }
 
-let scInit = false;
-async function initSoundCloud() {
-  if (!scInit) {
+function runYtDlpSingleJson(ytdlp, args) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytdlp, [
+      '--dump-single-json',
+      '--no-warnings',
+      ...args,
+    ]);
+
+    let out = '', err = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { err += d.toString(); });
+
+    proc.on('close', code => {
+      if (code === 0) {
+        try {
+          const j = JSON.parse(out);
+          const entry = (j.entries && j.entries.length > 0) ? j.entries[0] : j;
+          if (entry) resolve(entry);
+          else reject(new Error('No entry found'));
+        } catch {
+          reject(new Error('Failed to parse metadata JSON'));
+        }
+      } else {
+        reject(new Error(err || `Exit code ${code}`));
+      }
+    });
+
+    proc.on('error', reject);
+  });
+}
+
+async function extractTrackInfo(ytdlp, query) {
+  const isUrl = /^https?:\/\//i.test(query);
+  const target = isUrl ? query : `ytsearch1:${query}`;
+
+  const clientConfigs = [
+    'android,web,tv_embedded',
+    'android',
+    'tv_embedded,android',
+    'web_embedded,mweb',
+    'web',
+  ];
+
+  let lastErr = '';
+  for (const clients of clientConfigs) {
     try {
-      const cid = await play.getFreeClientID().catch(() => null);
-      if (cid) {
-        await play.setToken({ soundcloud: { client_id: cid } });
-        scInit = true;
+      const entry = await runYtDlpSingleJson(ytdlp, [
+        '--extractor-args', `youtube:player_client=${clients}`,
+        '-f', 'ba/ba*/b/best/bestaudio',
+        target,
+      ]);
+
+      const directUrl = entry.url || (entry.formats && entry.formats.reverse().find(f => f.url)?.url);
+      if (directUrl) {
+        return {
+          title: cleanTitle(entry.title || query),
+          trackUrl: entry.webpage_url || (entry.id ? `https://www.youtube.com/watch?v=${entry.id}` : query),
+          duration: formatDuration(entry.duration || 0),
+          thumbnail: (entry.thumbnails && entry.thumbnails[0]?.url) || entry.thumbnail || null,
+          directAudioUrl: directUrl,
+        };
+      }
+    } catch (e) {
+      lastErr = e.message;
+    }
+  }
+
+  // Fallback search
+  if (!isUrl) {
+    try {
+      const scEntry = await runYtDlpSingleJson(ytdlp, [
+        '-f', 'ba/ba*/b/best/bestaudio',
+        `scsearch1:${query}`,
+      ]);
+      const scUrl = scEntry.url || (scEntry.formats && scEntry.formats.reverse().find(f => f.url)?.url);
+      if (scUrl) {
+        return {
+          title: cleanTitle(scEntry.title || query),
+          trackUrl: scEntry.webpage_url || query,
+          duration: formatDuration(scEntry.duration || 0),
+          thumbnail: (scEntry.thumbnails && scEntry.thumbnails[0]?.url) || scEntry.thumbnail || null,
+          directAudioUrl: scUrl,
+        };
       }
     } catch {}
   }
+
+  throw new Error(`Could not find a playable stream: ${lastErr.slice(0, 200)}`);
 }
 
 module.exports = {
   name: 'play',
-  description: 'Play music in your voice channel',
+  description: 'Play music in your voice channel with boosted volume',
   usage: '.play <song title or URL>',
 
   async execute(message, args, client) {
@@ -63,114 +151,48 @@ module.exports = {
     }
 
     const query = args.join(' ').trim();
-    const isUrl = /^https?:\/\//i.test(query);
-
     const statusMsg = await message.channel.send(`🔍 Finding **${query}**...`);
-    await initSoundCloud();
+
+    let ytdlpPath;
+    try {
+      ytdlpPath = await ensureYtDlp();
+    } catch (e) {
+      return statusMsg.edit(`❌ Error loading yt-dlp: \`${e.message}\``);
+    }
+
+    const ffmpegPath = getFfmpeg();
 
     try {
-      let streamInfo;
-      let title = query;
-      let trackUrl = query;
-      let duration = '0:00';
-      let thumbnail = null;
+      const track = await extractTrackInfo(ytdlpPath, query);
 
-      // 1. Direct URLs
-      if (isUrl) {
-        if (query.includes('spotify.com')) {
-          if (play.is_expired()) await play.refreshToken().catch(() => {});
-          const sp = await play.spotify(query);
-          const scRes = await play.search(`${sp.name} ${sp.artists?.[0]?.name || ''}`, { source: { soundcloud: 'tracks' }, limit: 1 }).catch(() => null);
-          if (scRes && scRes.length > 0) {
-            streamInfo = await play.stream(scRes[0].url);
-          } else {
-            const ytRes = await play.search(`${sp.name} ${sp.artists?.[0]?.name || ''}`, { limit: 1 });
-            if (ytRes && ytRes.length > 0) streamInfo = await play.stream(ytRes[0].url);
-          }
-          title = `${sp.name} - ${sp.artists?.map(a => a.name).join(', ') || ''}`;
-          duration = formatDuration(sp.durationInSec);
-          thumbnail = sp.thumbnail?.url || null;
-          trackUrl = query;
-        } else if (query.includes('soundcloud.com')) {
-          const sc = await play.soundcloud(query).catch(() => null);
-          streamInfo = await play.stream(query);
-          title = cleanTitle(sc?.name || query);
-          duration = formatDuration(sc?.durationInSec || 0);
-          thumbnail = sc?.thumbnail || null;
-          trackUrl = query;
-        } else {
-          // YouTube URL
-          try {
-            streamInfo = await play.stream(query);
-            const info = await play.video_basic_info(query).catch(() => null);
-            if (info?.video_details) {
-              title = cleanTitle(info.video_details.title);
-              duration = formatDuration(info.video_details.durationInSec);
-              thumbnail = info.video_details.thumbnails?.[0]?.url || null;
-              trackUrl = query;
-            }
-          } catch (ytErr) {
-            // YouTube blocked on datacenter IP -> fallback to search
-            const scRes = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 }).catch(() => null);
-            if (scRes && scRes.length > 0) {
-              streamInfo = await play.stream(scRes[0].url);
-              title = cleanTitle(scRes[0].name);
-              duration = formatDuration(scRes[0].durationInSec);
-              thumbnail = scRes[0].thumbnail || null;
-              trackUrl = scRes[0].url;
-            }
-          }
-        }
-      }
-      // 2. Search Queries (e.g. ".play 4 big guys", ".play cocomelon", ".play step on shit")
-      else {
-        // Try YouTube search first
-        let found = false;
-        try {
-          const ytResults = await play.search(query, { limit: 1 });
-          if (ytResults && ytResults.length > 0) {
-            const ytTrack = ytResults[0];
-            streamInfo = await play.stream(ytTrack.url);
-            title = cleanTitle(ytTrack.title || ytTrack.name);
-            duration = formatDuration(ytTrack.durationInSec || 0);
-            thumbnail = ytTrack.thumbnails?.[0]?.url || null;
-            trackUrl = ytTrack.url;
-            found = true;
-          }
-        } catch (e) {}
+      await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
-        // If YouTube stream blocked on datacenter IP, try SoundCloud
-        if (!found) {
-          try {
-            const scResults = await play.search(query, { source: { soundcloud: 'tracks' }, limit: 1 });
-            if (scResults && scResults.length > 0) {
-              const scTrack = scResults[0];
-              streamInfo = await play.stream(scTrack.url);
-              title = cleanTitle(scTrack.name || query);
-              duration = formatDuration(scTrack.durationInSec || 0);
-              thumbnail = scTrack.thumbnail || null;
-              trackUrl = scTrack.url;
-              found = true;
-            }
-          } catch (e) {}
-        }
+      // Clear previous playback session or idle timer on this guild
+      const existingSession = client.musicStore.get(message.guild.id);
+      if (existingSession) {
+        if (existingSession.idleTimer) clearTimeout(existingSession.idleTimer);
+        try { existingSession.player?.stop(); } catch {}
+        try { existingSession.ffmpegProc?.kill(); } catch {}
       }
 
-      if (!streamInfo) {
-        return statusMsg.edit('❌ Could not extract a playable audio stream for this track.');
-      }
+      // Stream high-fidelity raw PCM audio with 160% volume amplification
+      const ffmpegProc = spawn(ffmpegPath, [
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
+        '-i', track.directAudioUrl,
+        '-filter:a', 'volume=1.6',
+        '-ac', '2',
+        '-ar', '48000',
+        '-f', 's16le',
+        '-loglevel', 'warning',
+        'pipe:1',
+      ]);
 
-      await statusMsg.edit(`⏳ Loading **${title}**...`);
+      ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
 
-      // Clear any previous playback on this guild
-      const existing = client.musicStore.get(message.guild.id);
-      if (existing) {
-        if (existing.idleTimer) clearTimeout(existing.idleTimer);
-        try { existing.player?.stop(); } catch {}
-      }
-
-      const resource = createAudioResource(streamInfo.stream, {
-        inputType: streamInfo.type,
+      const resource = createAudioResource(ffmpegProc.stdout, {
+        inputType: StreamType.Raw,
       });
 
       let connection = getVoiceConnection(message.guild.id);
@@ -196,12 +218,15 @@ module.exports = {
       const sessionObj = {
         player,
         connection,
+        ffmpegProc,
         idleTimer: null,
       };
       client.musicStore.set(message.guild.id, sessionObj);
 
       player.on(AudioPlayerStatus.Idle, () => {
+        try { ffmpegProc.kill(); } catch {}
         if (sessionObj.idleTimer) clearTimeout(sessionObj.idleTimer);
+
         sessionObj.idleTimer = setTimeout(() => {
           try { connection.destroy(); } catch {}
           client.musicStore.delete(message.guild.id);
@@ -210,17 +235,22 @@ module.exports = {
 
       player.on('error', err => {
         console.error('[player error]', err.message);
+        try { ffmpegProc.kill(); } catch {}
         message.channel.send('❌ Playback encountered an error.').catch(() => {});
       });
 
+      // Start playing the audio resource
       player.play(resource);
 
       const embed = new EmbedBuilder()
         .setColor(0x5765f2)
         .setTitle('🎵 Now Playing')
-        .setDescription(`**[${title}](${trackUrl})**`)
-        .addFields({ name: 'Duration', value: duration, inline: true })
-        .setThumbnail(thumbnail)
+        .setDescription(`**[${track.title}](${track.trackUrl})**`)
+        .addFields(
+          { name: 'Duration', value: track.duration, inline: true },
+          { name: 'Volume', value: '🔊 160% Boosted', inline: true },
+        )
+        .setThumbnail(track.thumbnail)
         .setFooter({ text: `Requested by ${message.author.tag}` })
         .setTimestamp();
 
@@ -231,4 +261,5 @@ module.exports = {
       statusMsg.edit(`❌ Playback failed: \`${err.message || 'Unknown error'}\``).catch(() => {});
     }
   },
+  getFfmpeg,
 };
