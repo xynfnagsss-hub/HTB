@@ -76,30 +76,52 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌐 HTB Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
 });
 
-mongoose.connect(process.env.MONGO_URI)
-  .then(async () => {
-    console.log('✅ Connected to MongoDB');
+// Global Process Guard so the server never crashes
+process.on('unhandledRejection', (reason) => {
+  console.error('[Unhandled Rejection Guard]:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[Uncaught Exception Guard]:', err);
+});
 
-    // Pre-download yt-dlp binary so first .play is instant
+async function startBotServices() {
+  if (!process.env.MONGO_URI) {
+    console.warn('⚠️ MONGO_URI environment variable is missing.');
+  } else {
     try {
-      const { ensureYtDlp } = require('./utils/ensureYtDlp');
-      await ensureYtDlp();
-    } catch (e) {
-      console.warn('⚠️ yt-dlp setup failed:', e.message);
-    }
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log('✅ Connected to MongoDB');
 
-    const User = require('./models/User');
-    await User.findOneAndUpdate(
-      { userId: '674218467041345536' },
-      { $setOnInsert: { userId: '674218467041345536', xp: 300000000, level: 3000000, robux: 1000000000000 } },
-      { upsert: true, new: true }
-    );
-    await client.login(process.env.TOKEN);
-  })
-  .catch(err => {
-    console.error('❌ Failed to connect to MongoDB:', err);
-    process.exit(1);
-  });
+      const User = require('./models/User');
+      await User.findOneAndUpdate(
+        { userId: '674218467041345536' },
+        { $setOnInsert: { userId: '674218467041345536', xp: 300000000, level: 3000000, robux: 1000000000000 } },
+        { upsert: true, new: true }
+      ).catch(() => {});
+    } catch (err) {
+      console.error('⚠️ MongoDB connection error (retrying in background):', err.message);
+    }
+  }
+
+  // Pre-download yt-dlp binary so first .play is instant
+  try {
+    const { ensureYtDlp } = require('./utils/ensureYtDlp');
+    await ensureYtDlp();
+  } catch (e) {
+    console.warn('⚠️ yt-dlp setup failed:', e.message);
+  }
+
+  const token = process.env.TOKEN || process.env.DISCORD_TOKEN;
+  if (token) {
+    client.login(token).catch(err => {
+      console.error('❌ Discord client login error:', err.message);
+    });
+  } else {
+    console.warn('⚠️ No Discord token provided in environment variables.');
+  }
+}
+
+startBotServices();
 
 client.once('ready', async () => {
   console.log(`✅ HTB Bot is online as ${client.user.tag}`);
