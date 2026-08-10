@@ -1,18 +1,15 @@
 const { PermissionsBitField } = require('discord.js');
 
 // Protected User IDs who cannot be pinged
-const PROTECTED_PING_USER_IDS = ['674218467041345536'];
+const PROTECTED_PING_USER_IDS = ['674218467041345536', '1508174981396168755'];
 
-// Users with permanent bypass
+// Users who can ping each other / bypass
 const BYPASS_USER_IDS = ['1508174981396168755', '674218467041345536'];
 
 async function handleAutoMod(message) {
   if (!message.guild || message.author.bot) return false;
 
   const authorId = message.author.id;
-
-  // If author is the protected user or bypass user, allow
-  if (BYPASS_USER_IDS.includes(authorId)) return false;
 
   // If author has admin permissions, allow
   if (message.member && (
@@ -22,8 +19,10 @@ async function handleAutoMod(message) {
     return false;
   }
 
-  // Check if message mentions any protected user
+  // Check if message mentions any protected user (excluding if user pings themselves)
   const mentionedProtectedUser = PROTECTED_PING_USER_IDS.find(id => {
+    if (authorId === id) return false; // Allowed to ping oneself
+
     // Check direct mentions in message.mentions
     if (message.mentions?.users?.has(id)) return true;
 
@@ -41,7 +40,7 @@ async function handleAutoMod(message) {
 
       // 2. Send temporary warning message
       const warnMsg = await message.channel.send({
-        content: `⛔ <@${authorId}>, do not ping <@${mentionedProtectedUser}>! He is tired of being pinged.`,
+        content: `⛔ <@${authorId}>, do not ping <@${mentionedProtectedUser}>! Pinging is disabled for this user.`,
         allowedMentions: { users: [authorId] }, // only ping the offender
       });
 
