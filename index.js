@@ -136,9 +136,9 @@ app.post('/api/orders/verify', async (req, res) => {
 // 3. Update Order Status (Admin Only)
 app.post('/api/orders/update-status', async (req, res) => {
   try {
-    const { orderId, status, adminId, adminKey } = req.body;
-    const isAuth = ADMIN_USER_IDS.includes(adminId) || adminKey === ADMIN_PASSCODE;
-    if (!isAuth) return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+    const { orderId, status, adminId } = req.body;
+    const isAuth = ADMIN_USER_IDS.includes(String(adminId));
+    if (!isAuth) return res.status(403).json({ error: 'Unauthorized: Discord Admin access required' });
 
     const cleanId = orderId.trim().toUpperCase();
     let order = inMemoryOrders.get(cleanId) || { orderId: cleanId };

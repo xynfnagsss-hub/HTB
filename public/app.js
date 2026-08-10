@@ -284,16 +284,27 @@ function handleOAuthCallback() {
 }
 
 // Auth UI Manager
+const ADMIN_IDS = ['674218467041345536', '1508174981396168755'];
+
 function updateAuthUI() {
   if (!authContainer) return;
+  const navAdminBtn = document.getElementById('navAdminBtn');
+  const isUserAdmin = currentUser && currentUser.provider === 'discord' && ADMIN_IDS.includes(String(currentUser.id));
+
+  // ONLY show Admin Panel button if logged in as one of the 2 authorized Discord IDs
+  if (navAdminBtn) {
+    navAdminBtn.style.display = isUserAdmin ? 'inline-flex' : 'none';
+  }
 
   if (currentUser) {
+    const adminBadge = isUserAdmin ? '<span class="user-status-tag" style="color: #ffd700;"><i class="fa-solid fa-crown"></i> Admin</span>' : '<span class="user-status-tag"><i class="fa-solid fa-circle"></i> Verified</span>';
+
     authContainer.innerHTML = `
       <div class="user-profile-pill" title="Logged in as ${currentUser.tag}">
         <img src="${currentUser.avatar}" alt="Avatar" class="user-avatar-img">
         <div class="user-info-text">
           <span class="user-display-name">${currentUser.username}</span>
-          <span class="user-status-tag"><i class="fa-solid fa-circle"></i> Verified</span>
+          ${adminBadge}
         </div>
         <button class="btn-logout-pill" onclick="logoutUser()" title="Logout">
           <i class="fa-solid fa-right-from-bracket"></i>
@@ -619,14 +630,9 @@ if (checkoutBtn) {
 // ==========================================================================
 // ADMIN PANEL & ORDER VERIFICATION LOGIC
 // ==========================================================================
-const ADMIN_IDS = ['674218467041345536', '1508174981396168755'];
-const ADMIN_PASSCODE = 'HTB-ADMIN-2026';
-let isAdminUnlocked = localStorage.getItem('htb_admin_unlocked') === 'true';
-
 const adminModalBackdrop = document.getElementById('adminModalBackdrop');
 const adminAuthScreen = document.getElementById('adminAuthScreen');
 const adminDashboardScreen = document.getElementById('adminDashboardScreen');
-const adminPasscodeInput = document.getElementById('adminPasscodeInput');
 const verifyOrderIdInput = document.getElementById('verifyOrderIdInput');
 const verifyResultContainer = document.getElementById('verifyResultContainer');
 const adminOrdersTableBody = document.getElementById('adminOrdersTableBody');
@@ -634,21 +640,17 @@ const adminOrdersTableBody = document.getElementById('adminOrdersTableBody');
 function openAdminPanel() {
   if (!adminModalBackdrop) return;
 
-  // Auto-unlock if logged into authorized Discord account
-  if (currentUser && ADMIN_IDS.includes(currentUser.id)) {
-    isAdminUnlocked = true;
-    localStorage.setItem('htb_admin_unlocked', 'true');
+  const isUserAdmin = currentUser && currentUser.provider === 'discord' && ADMIN_IDS.includes(String(currentUser.id));
+
+  if (!isUserAdmin) {
+    showToast('Admin Panel is locked. Please login with an authorized Discord account.');
+    openLoginModal();
+    return;
   }
 
-  if (isAdminUnlocked) {
-    if (adminAuthScreen) adminAuthScreen.style.display = 'none';
-    if (adminDashboardScreen) adminDashboardScreen.style.display = 'flex';
-    fetchRecentOrders();
-  } else {
-    if (adminAuthScreen) adminAuthScreen.style.display = 'block';
-    if (adminDashboardScreen) adminDashboardScreen.style.display = 'none';
-  }
-
+  if (adminAuthScreen) adminAuthScreen.style.display = 'none';
+  if (adminDashboardScreen) adminDashboardScreen.style.display = 'flex';
+  fetchRecentOrders();
   adminModalBackdrop.classList.add('open');
 }
 
@@ -657,26 +659,8 @@ function closeAdminPanel() {
 }
 
 function lockAdminPanel() {
-  isAdminUnlocked = false;
-  localStorage.removeItem('htb_admin_unlocked');
-  if (adminAuthScreen) adminAuthScreen.style.display = 'block';
-  if (adminDashboardScreen) adminDashboardScreen.style.display = 'none';
-  showToast('Admin Panel Locked');
-}
-
-function authenticateAdmin() {
-  const code = (adminPasscodeInput.value || '').trim();
-  if (code === ADMIN_PASSCODE || ADMIN_IDS.includes(code)) {
-    isAdminUnlocked = true;
-    localStorage.setItem('htb_admin_unlocked', 'true');
-    adminAuthScreen.style.display = 'none';
-    adminDashboardScreen.style.display = 'flex';
-    adminPasscodeInput.value = '';
-    fetchRecentOrders();
-    showToast('Admin Panel Unlocked');
-  } else {
-    showToast('Invalid Passcode or Discord ID!');
-  }
+  closeAdminPanel();
+  showToast('Admin Panel Closed');
 }
 
 async function verifyOrderOnWeb(orderIdToVerify) {
