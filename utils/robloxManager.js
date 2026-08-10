@@ -245,15 +245,29 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     { roleName: 'Member', rankName: 'HTB FAM' },
   ];
 
+  // If user is the bot account itself, skip ranking self
+  if (currentRobloxUser && linked.robloxId === currentRobloxUser.id) {
+    const myRank = await noblox.getRankNameInGroup(parseInt(groupId), linked.robloxId).catch(() => 'Co Creator');
+    return { success: true, rank: myRank, isSelf: true };
+  }
+
+  const currentRankId = await noblox.getRankInGroup(parseInt(groupId), linked.robloxId).catch(() => 0);
+  const currentRankName = await noblox.getRankNameInGroup(parseInt(groupId), linked.robloxId).catch(() => 'Guest');
+
+  if (currentRankId >= 254 || currentRankId === 0) {
+    return { success: true, rank: currentRankName, currentRankId };
+  }
+
   // Find highest matching role
   for (const mapping of ROLE_RANK_MAP) {
     if (member.roles.cache.some(r => r.name.toLowerCase().includes(mapping.roleName.toLowerCase()))) {
       try {
-        const currentRank = await noblox.getRankNameInGroup(parseInt(groupId), linked.robloxId);
-        if (currentRank.toLowerCase() !== mapping.rankName.toLowerCase() && currentRank !== 'Guest') {
+        if (currentRankName.toLowerCase() !== mapping.rankName.toLowerCase()) {
           await noblox.setRank(parseInt(groupId), linked.robloxId, mapping.rankName);
           console.log(`⚡ [Auto-Rank]: Ranked ${linked.robloxUsername} to "${mapping.rankName}" (Matching Discord role: ${mapping.roleName})`);
           return { success: true, rank: mapping.rankName };
+        } else {
+          return { success: true, rank: currentRankName, alreadyRanked: true };
         }
       } catch (e) {
         console.error(`[Auto-Rank Error]:`, e.message);
@@ -261,7 +275,7 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
       break;
     }
   }
-  return null;
+  return { success: true, rank: currentRankName };
 }
 
 /**
