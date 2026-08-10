@@ -31,49 +31,14 @@ function cleanTitle(title) {
     .trim();
 }
 
-function formatDuration(seconds) {
-  if (!seconds || isNaN(seconds)) return '0:00';
-  const s = Math.floor(Number(seconds));
-  const hrs = Math.floor(s / 3600);
-  const mins = Math.floor((s % 3600) / 60);
-  const secs = s % 60;
-  if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  return `${mins}:${String(secs).padStart(2, '0')}`;
-}
-
-function getDirectStreamUrl(ytdlp, target, clientConfigs = ['android,web,tv_embedded', 'android', 'web_embedded']) {
-  return new Promise((resolve, reject) => {
-    const isSc = target.startsWith('scsearch1:');
-    const args = isSc
-      ? ['-g', '--no-warnings', '-f', 'ba/ba*/b/best/bestaudio', target]
-      : ['-g', '--no-warnings', '--extractor-args', `youtube:player_client=${clientConfigs[0]}`, '-f', 'ba/ba*/b/best/bestaudio', target];
-
-    const proc = spawn(ytdlp, args);
-    let out = '', err = '';
-    proc.stdout.on('data', d => { out += d.toString(); });
-    proc.stderr.on('data', d => { err += d.toString(); });
-
-    proc.on('close', code => {
-      const url = out.trim().split('\n')[0];
-      if (code === 0 && url && url.startsWith('http')) {
-        resolve(url);
-      } else {
-        reject(new Error(err.trim() || `Exit code ${code}`));
-      }
-    });
-
-    proc.on('error', reject);
-  });
-}
-
-async function resolveTrack(ytdlp, query) {
+async function resolveTrackInfo(query) {
   const isUrl = /^https?:\/\//i.test(query);
 
   let title = query;
   let trackUrl = query;
   let duration = '0:00';
   let thumbnail = null;
-  let searchTitle = query;
+  let streamTarget = query;
 
   if (isUrl) {
     if (query.includes('youtube.com') || query.includes('youtu.be')) {
@@ -85,10 +50,10 @@ async function resolveTrack(ytdlp, query) {
           trackUrl = info.url;
           duration = info.timestamp || '0:00';
           thumbnail = info.thumbnail;
-          searchTitle = info.title;
         }
       }
     }
+    streamTarget = query;
   } else {
     const r = await yts(query);
     if (r.videos && r.videos.length > 0) {
@@ -97,25 +62,8 @@ async function resolveTrack(ytdlp, query) {
       trackUrl = v.url;
       duration = v.timestamp || '0:00';
       thumbnail = v.thumbnail;
-      searchTitle = v.title;
+      streamTarget = v.url;
     }
-  }
-
-  // 1. Try YouTube stream extraction
-  let directAudioUrl = null;
-  try {
-    directAudioUrl = await getDirectStreamUrl(ytdlp, isUrl ? query : trackUrl);
-  } catch (ytErr) {
-    // 2. YouTube blocked by datacenter IP bot-detection -> stream track audio via SoundCloud
-    try {
-      directAudioUrl = await getDirectStreamUrl(ytdlp, `scsearch1:${searchTitle}`);
-    } catch (scErr) {
-      throw new Error('Could not find a playable stream for this track. Please try a different song.');
-    }
-  }
-
-  if (!directAudioUrl) {
-    throw new Error('Could not extract direct stream URL.');
   }
 
   return {
@@ -123,8 +71,43 @@ async function resolveTrack(ytdlp, query) {
     trackUrl,
     duration,
     thumbnail,
-    directAudioUrl,
+    streamTarget,
   };
+}
+
+function createStreamPipeline(ytdlpPath, ffmpegPath, streamTarget, queryTitle) {
+  // First try streaming directly from target URL
+  const target = streamTarget.startsWith('http') ? streamTarget : `scsearch1:${queryTitle || streamTarget}`;
+
+  const ytProc = spawn(ytdlpPath, [
+    '--no-warnings',
+    '--extractor-args', 'youtube:player_client=android,web,tv_embedded',
+    '-f', 'ba/ba*/b/best/bestaudio',
+    '-o', '-',
+    target,
+  ]);
+
+  const ffProc = spawn(ffmpegPath, [
+    '-i', 'pipe:0',
+    '-filter:a', 'volume=1.6',
+    '-ac', '2',
+    '-ar', '48000',
+    '-f', 's16le',
+    '-loglevel', 'error',
+    'pipe:1',
+  ]);
+
+  ytProc.stdout.pipe(ffProc.stdin);
+  ytProc.stdout.on('error', () => {});
+  ffProc.stdin.on('error', () => {});
+  ytProc.stderr.on('data', () => {});
+  ffProc.stderr.on('data', () => {});
+
+  const resource = createAudioResource(ffProc.stdout, {
+    inputType: StreamType.Raw,
+  });
+
+  return { ytProc, ffProc, resource };
 }
 
 module.exports = {
@@ -160,8 +143,7 @@ module.exports = {
     const ffmpegPath = getFfmpeg();
 
     try {
-      const track = await resolveTrack(ytdlpPath, query);
-
+      const track = await resolveTrackInfo(query);
       await statusMsg.edit(`⏳ Loading **${track.title}**...`);
 
       // Clear previous playback session or idle timer on this guild
@@ -169,28 +151,16 @@ module.exports = {
       if (existingSession) {
         if (existingSession.idleTimer) clearTimeout(existingSession.idleTimer);
         try { existingSession.player?.stop(); } catch {}
-        try { existingSession.ffmpegProc?.kill(); } catch {}
+        try { existingSession.ytProc?.kill(); } catch {}
+        try { existingSession.ffProc?.kill(); } catch {}
       }
 
-      // Stream high-fidelity raw PCM audio with 160% volume amplification
-      const ffmpegProc = spawn(ffmpegPath, [
-        '-reconnect', '1',
-        '-reconnect_streamed', '1',
-        '-reconnect_delay_max', '5',
-        '-i', track.directAudioUrl,
-        '-filter:a', 'volume=1.6',
-        '-ac', '2',
-        '-ar', '48000',
-        '-f', 's16le',
-        '-loglevel', 'warning',
-        'pipe:1',
-      ]);
-
-      ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
-
-      const resource = createAudioResource(ffmpegProc.stdout, {
-        inputType: StreamType.Raw,
-      });
+      const { ytProc, ffProc, resource } = createStreamPipeline(
+        ytdlpPath,
+        ffmpegPath,
+        track.streamTarget,
+        track.title
+      );
 
       let connection = getVoiceConnection(message.guild.id);
       if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed || connection.joinConfig.channelId !== voiceChannel.id) {
@@ -215,13 +185,15 @@ module.exports = {
       const sessionObj = {
         player,
         connection,
-        ffmpegProc,
+        ytProc,
+        ffProc,
         idleTimer: null,
       };
       client.musicStore.set(message.guild.id, sessionObj);
 
       player.on(AudioPlayerStatus.Idle, () => {
-        try { ffmpegProc.kill(); } catch {}
+        try { ytProc.kill(); } catch {}
+        try { ffProc.kill(); } catch {}
         if (sessionObj.idleTimer) clearTimeout(sessionObj.idleTimer);
 
         sessionObj.idleTimer = setTimeout(() => {
@@ -232,7 +204,8 @@ module.exports = {
 
       player.on('error', err => {
         console.error('[player error]', err.message);
-        try { ffmpegProc.kill(); } catch {}
+        try { ytProc.kill(); } catch {}
+        try { ffProc.kill(); } catch {}
         message.channel.send('❌ Playback encountered an error.').catch(() => {});
       });
 
