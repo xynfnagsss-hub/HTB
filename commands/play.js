@@ -116,7 +116,7 @@ async function extractTrackInfo(ytdlp, query) {
     }
   }
 
-  // 2. Resilient Fallback: If YouTube DRM or Datacenter Bot Protection blocked the stream, search SoundCloud
+  // 2. Resilient Fallback: If YouTube DRM or Bot Protection blocked the stream, search SoundCloud
   let fallbackQuery = query;
   if (isUrl) {
     const oembed = await getYouTubeOEmbed(query);
@@ -142,7 +142,7 @@ async function extractTrackInfo(ytdlp, query) {
       };
     }
   } catch (scErr) {
-    // Fallback failed
+    // Both failed
   }
 
   throw new Error('Could not extract a playable audio stream for this track. Please try a different song title or link.');
@@ -193,18 +193,16 @@ module.exports = {
         try { existingSession.ffmpegProc?.kill(); } catch {}
       }
 
-      // Stream native Ogg Opus audio with 160% volume pre-amplification
+      // Stream high-fidelity PCM audio with 160% volume pre-amplification
       const ffmpegProc = spawn(ffmpegPath, [
         '-reconnect', '1',
         '-reconnect_streamed', '1',
         '-reconnect_delay_max', '5',
         '-i', track.directAudioUrl,
         '-filter:a', 'volume=1.6',
-        '-c:a', 'libopus',
-        '-b:a', '96k',
-        '-ar', '48000',
         '-ac', '2',
-        '-f', 'opus',
+        '-ar', '48000',
+        '-f', 's16le',
         '-loglevel', 'warning',
         'pipe:1',
       ]);
@@ -212,7 +210,7 @@ module.exports = {
       ffmpegProc.on('error', err => console.error('[ffmpeg error]', err.message));
 
       const resource = createAudioResource(ffmpegProc.stdout, {
-        inputType: StreamType.OggOpus,
+        inputType: StreamType.Raw,
       });
 
       // Join or get voice connection with selfDeaf
