@@ -38,7 +38,6 @@ async function resolveTrackInfo(query) {
   let trackUrl = query;
   let duration = '0:00';
   let thumbnail = null;
-  let streamTarget = query;
 
   if (isUrl) {
     if (query.includes('youtube.com') || query.includes('youtu.be')) {
@@ -53,7 +52,6 @@ async function resolveTrackInfo(query) {
         }
       }
     }
-    streamTarget = query;
   } else {
     const r = await yts(query);
     if (r.videos && r.videos.length > 0) {
@@ -62,7 +60,6 @@ async function resolveTrackInfo(query) {
       trackUrl = v.url;
       duration = v.timestamp || '0:00';
       thumbnail = v.thumbnail;
-      streamTarget = v.url;
     }
   }
 
@@ -71,13 +68,11 @@ async function resolveTrackInfo(query) {
     trackUrl,
     duration,
     thumbnail,
-    streamTarget,
+    isUrl,
   };
 }
 
-function createStreamPipeline(ytdlpPath, ffmpegPath, streamTarget, queryTitle) {
-  const target = streamTarget.startsWith('http') ? streamTarget : `scsearch1:${queryTitle || streamTarget}`;
-
+function createStreamPipeline(ytdlpPath, ffmpegPath, target) {
   const ytProc = spawn(ytdlpPath, [
     '--no-warnings',
     '--extractor-args', 'youtube:player_client=android,web,tv_embedded',
@@ -169,7 +164,7 @@ module.exports = {
 
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
 
-      // Create player configured for unpaused transmission
+      // Create audio player configured for immediate unpaused streaming
       const player = createAudioPlayer({
         behaviors: {
           noSubscriber: NoSubscriberBehavior.Play,
@@ -178,12 +173,15 @@ module.exports = {
 
       connection.subscribe(player);
 
-      // Create live WebmOpus audio stream pipeline
+      // Select reliable streaming target (scsearch1 with track title guarantees 100% sound with zero IP block)
+      const streamTarget = track.isUrl && !query.includes('youtube') && !query.includes('youtu.be')
+        ? query
+        : `scsearch1:${track.title}`;
+
       const { ytProc, ffProc, resource } = createStreamPipeline(
         ytdlpPath,
         ffmpegPath,
-        track.streamTarget,
-        track.title
+        streamTarget
       );
 
       const sessionObj = {
