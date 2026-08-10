@@ -56,6 +56,38 @@ function killProcess(proc) {
   } catch {}
 }
 
+async function extractDirectStreamUrl(ytdlpPath, targetUrl) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(ytdlpPath, [
+      '--no-warnings',
+      '--extractor-args', 'youtube:player_client=android_vr,web,ios',
+      '-f', 'bestaudio/best',
+      '-g',
+      targetUrl,
+    ]);
+
+    let out = '', err = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { err += d.toString(); });
+
+    proc.on('close', code => {
+      const url = out.trim().split('\n')[0];
+      if (code === 0 && url && url.startsWith('http')) {
+        resolve(url);
+      } else {
+        // Fallback to targetUrl if direct extraction fails
+        resolve(targetUrl);
+      }
+    });
+
+    proc.on('error', () => resolve(targetUrl));
+    setTimeout(() => {
+      proc.kill();
+      resolve(targetUrl);
+    }, 10000);
+  });
+}
+
 class GuildQueue {
   constructor(guild, voiceChannel, textChannel, client) {
     this.guild = guild;
@@ -83,9 +115,12 @@ class GuildQueue {
       },
     });
 
-    this.player.on(AudioPlayerStatus.Idle, () => {
-      this.cleanupProcesses();
-      this.handleSongEnd();
+    this.player.on(AudioPlayerStatus.Idle, (oldState) => {
+      // Only handle track completion if the player was actively playing or buffering
+      if (this.isPlaying && (oldState.status === AudioPlayerStatus.Playing || oldState.status === AudioPlayerStatus.Buffering)) {
+        this.cleanupProcesses();
+        this.handleSongEnd();
+      }
     });
 
     this.player.on('error', (error) => {
@@ -146,6 +181,7 @@ class GuildQueue {
         guildId: this.guildId,
         adapterCreator: this.guild.voiceAdapterCreator,
         selfDeaf: true,
+        selfMute: false,
       });
     }
 
@@ -158,6 +194,7 @@ class GuildQueue {
         guildId: this.guildId,
         adapterCreator: this.guild.voiceAdapterCreator,
         selfDeaf: true,
+        selfMute: false,
       });
       await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
     }
@@ -197,38 +234,61 @@ class GuildQueue {
       const ytdlpPath = await ensureYtDlp();
       const ffmpegPath = getFfmpegPath();
 
-      const target = nextTrack.streamUrl || nextTrack.url;
+      // Resolve direct stream URL for instant, low-latency audio
+      let streamUrl = nextTrack.streamUrl;
+      if (!streamUrl || !streamUrl.startsWith('http://') && !streamUrl.startsWith('https://') || streamUrl.includes('youtube.com/watch') || streamUrl.includes('youtu.be')) {
+        streamUrl = await extractDirectStreamUrl(ytdlpPath, nextTrack.url);
+      }
 
-      // Spawn yt-dlp audio extraction
-      const ytProc = spawn(ytdlpPath, [
-        '--no-warnings',
-        '--retries', '10',
-        '-f', 'ba/ba*/b/bestaudio/best',
-        '-o', '-',
-        target,
-      ]);
+      let ffProc;
+      let ytProc = null;
 
-      // Spawn FFmpeg to encode to Opus for Discord
-      const ffProc = spawn(ffmpegPath, [
-        '-reconnect', '1',
-        '-reconnect_streamed', '1',
-        '-reconnect_delay_max', '5',
-        '-i', 'pipe:0',
-        '-c:a', 'libopus',
-        '-b:a', '128k',
-        '-ar', '48000',
-        '-ac', '2',
-        '-frame_duration', '20',
-        '-f', 'opus',
-        '-loglevel', 'error',
-        'pipe:1',
-      ]);
+      if (streamUrl && streamUrl.startsWith('http')) {
+        // Direct stream with FFmpeg reconnect
+        ffProc = spawn(ffmpegPath, [
+          '-reconnect', '1',
+          '-reconnect_streamed', '1',
+          '-reconnect_delay_max', '5',
+          '-i', streamUrl,
+          '-c:a', 'libopus',
+          '-b:a', '128k',
+          '-ar', '48000',
+          '-ac', '2',
+          '-frame_duration', '20',
+          '-f', 'opus',
+          '-loglevel', 'error',
+          'pipe:1',
+        ]);
+      } else {
+        // Piped fallback
+        ytProc = spawn(ytdlpPath, [
+          '--no-warnings',
+          '--retries', '5',
+          '--extractor-args', 'youtube:player_client=android_vr,web,ios',
+          '-f', 'bestaudio/best',
+          '-o', '-',
+          nextTrack.url,
+        ]);
 
-      ytProc.stdout.pipe(ffProc.stdin);
-      ytProc.stdout.on('error', () => {});
-      ffProc.stdin.on('error', () => {});
-      ytProc.stderr.on('data', () => {});
-      ffProc.stderr.on('data', () => {});
+        ffProc = spawn(ffmpegPath, [
+          '-i', 'pipe:0',
+          '-c:a', 'libopus',
+          '-b:a', '128k',
+          '-ar', '48000',
+          '-ac', '2',
+          '-frame_duration', '20',
+          '-f', 'opus',
+          '-loglevel', 'error',
+          'pipe:1',
+        ]);
+
+        ytProc.stdout.pipe(ffProc.stdin);
+        ytProc.stdout.on('error', () => {});
+        ytProc.stderr.on('data', () => {});
+      }
+
+      ffProc.stdin?.on('error', () => {});
+      ffProc.stderr?.on('data', () => {});
 
       this.currentProcesses = { ytProc, ffProc };
 
@@ -371,7 +431,7 @@ class MusicManager {
                   url: e.url || (e.id ? `https://www.youtube.com/watch?v=${e.id}` : query),
                   duration: formatDuration(e.duration),
                   thumbnail: (e.thumbnails && e.thumbnails[0]?.url) || e.thumbnail || null,
-                  streamUrl: e.url || (e.id ? `https://www.youtube.com/watch?v=${e.id}` : query),
+                  streamUrl: null,
                   requestedBy,
                   isRandomArtist: false,
                 }));
@@ -383,7 +443,7 @@ class MusicManager {
                 url: j.webpage_url || query,
                 duration: formatDuration(j.duration),
                 thumbnail: (j.thumbnails && j.thumbnails[0]?.url) || j.thumbnail || null,
-                streamUrl: query,
+                streamUrl: null,
                 requestedBy,
                 isRandomArtist: false,
               };
@@ -465,7 +525,7 @@ class MusicManager {
               url: videoUrl,
               duration: formatDuration(chosen.duration),
               thumbnail: (chosen.thumbnails && chosen.thumbnails[0]?.url) || chosen.thumbnail || null,
-              streamUrl: videoUrl,
+              streamUrl: null,
               requestedBy,
               isRandomArtist: isRandom,
               artistName: cleanQ,
