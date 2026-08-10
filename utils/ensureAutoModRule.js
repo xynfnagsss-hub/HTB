@@ -1,4 +1,9 @@
-const { AutoModRuleEventType, AutoModRuleTriggerType, AutoModActionType, PermissionsBitField } = require('discord.js');
+const {
+  AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
+  AutoModerationActionType,
+  PermissionsBitField
+} = require('discord.js');
 
 const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536', '1508174981396168755'];
 const RULE_NAME = 'HTB Anti-Ping Protection';
@@ -35,15 +40,15 @@ async function ensureNativeAutoModRule(guild, extraUserIds = []) {
     if (!existing) {
       await manager.create({
         name: RULE_NAME,
-        eventType: AutoModRuleEventType.MessageSend,
-        triggerType: AutoModRuleTriggerType.Keyword,
+        eventType: AutoModerationRuleEventType.MessageSend,
+        triggerType: AutoModerationRuleTriggerType.Keyword,
         triggerMetadata: {
           keywordFilter: keywordPatterns,
           regexPatterns: regexPatterns,
         },
         actions: [
           {
-            type: AutoModActionType.BlockMessage,
+            type: AutoModerationActionType.BlockMessage,
             metadata: {
               customMessage: 'You are not allowed to ping or mention this user.',
             },
