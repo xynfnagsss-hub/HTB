@@ -123,9 +123,22 @@ async function setPlayerRank(groupId, targetUserId, rankIdentifier) {
   }
 
   if (!targetRole && typeof rankIdentifier === 'string') {
-    const query = rankIdentifier.trim().toLowerCase();
-    targetRole = assignableRoles.find(r => r.name.toLowerCase() === query) ||
-                 assignableRoles.find(r => r.name.toLowerCase().includes(query));
+    const cleanQuery = rankIdentifier.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    targetRole = assignableRoles.find(r => r.name.toLowerCase() === rankIdentifier.trim().toLowerCase()) ||
+                 assignableRoles.find(r => r.name.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanQuery) ||
+                 assignableRoles.find(r => r.name.toLowerCase().replace(/[^a-z0-9]/g, '').includes(cleanQuery)) ||
+                 assignableRoles.find(r => cleanQuery.includes(r.name.toLowerCase().replace(/[^a-z0-9]/g, '')));
+
+    // Keyword aliases for common nicknames
+    if (!targetRole) {
+      if (cleanQuery.includes('hitta')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('hitta'));
+      else if (cleanQuery.includes('onetap') || cleanQuery.includes('1tap')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('onetap'));
+      else if (cleanQuery.includes('free')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('free'));
+      else if (cleanQuery.includes('staff')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('staff'));
+      else if (cleanQuery.includes('admin')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('admin'));
+      else if (cleanQuery.includes('co') || cleanQuery.includes('creator')) targetRole = assignableRoles.find(r => r.name.toLowerCase().includes('creator'));
+    }
   }
 
   if (!targetRole) {
@@ -211,18 +224,25 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     { roleName: 'Ranking Staff', rankName: 'Admin' },
     { roleName: 'Lead Moderator', rankName: 'Admin' },
     { roleName: 'Administrator', rankName: 'Admin' },
-    { roleName: 'Ticket Support', rankName: 'Admin' },
-    { roleName: 'CHAT/VC MOD', rankName: 'Admin' },
 
-    // TNM FAM (Rank 3)
-    { roleName: 'ONE-TAP ACCESS', rankName: 'TNM FAM' },
-    { roleName: 'Hitta Access', rankName: 'TNM FAM' },
-    { roleName: 'Half Access', rankName: 'TNM FAM' },
-    { roleName: 'CUSTOM ROLE', rankName: 'TNM FAM' },
-    { roleName: 'Noted Member', rankName: 'TNM FAM' },
+    // HTB STAFF (Rank 252)
+    { roleName: 'Ticket Support', rankName: 'HTB STAFF' },
+    { roleName: 'CHAT/VC MOD', rankName: 'HTB STAFF' },
+    { roleName: 'Staff', rankName: 'HTB STAFF' },
 
-    // Base Member (Rank 1)
-    { roleName: 'Member', rankName: 'Member' },
+    // OneTap Access (Rank 3)
+    { roleName: 'ONE-TAP ACCESS', rankName: 'OneTap Access' },
+    { roleName: 'OneTap', rankName: 'OneTap Access' },
+
+    // Hitta Acess (Rank 2)
+    { roleName: 'Hitta Access', rankName: 'Hitta Acess' },
+    { roleName: 'Half Access', rankName: 'Hitta Acess' },
+    { roleName: 'CUSTOM ROLE', rankName: 'Hitta Acess' },
+    { roleName: 'Noted Member', rankName: 'Hitta Acess' },
+
+    // Free Access / HTB FAM (Rank 1)
+    { roleName: 'Free Access', rankName: 'Free Access' },
+    { roleName: 'Member', rankName: 'HTB FAM' },
   ];
 
   // Find highest matching role
