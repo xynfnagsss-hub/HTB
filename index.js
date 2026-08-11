@@ -346,17 +346,7 @@ client.once('ready', async () => {
     console.warn('[Purge Target Error]:', err.message);
   }
 
-  // Automatically lock all channels to unverified users and require verified roles (1396299470244810942, 1399811369489928354)
-  try {
-    const { lockAllChannelsForGuild } = require('./commands/lockserver');
-    for (const guild of client.guilds.cache.values()) {
-      lockAllChannelsForGuild(guild, '1428595146672439367').then(res => {
-        console.log(`🔒 [Lockdown]: Locked ${res.lockedCount} channels in ${guild.name} to verified roles.`);
-      }).catch(e => console.error('[Lockdown Err]:', e.message));
-    }
-  } catch (lockErr) {
-    console.warn('[Lockdown Warning]:', lockErr.message);
-  }
+
 
   // Initialize Roblox Service & Group Join Watcher
   try {
