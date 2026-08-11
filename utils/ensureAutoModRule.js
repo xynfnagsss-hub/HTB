@@ -1,8 +1,11 @@
 const {
-  PermissionsBitField
+  PermissionsBitField,
+  AutoModerationRuleEventType,
+  AutoModerationRuleTriggerType,
+  AutoModerationActionType,
 } = require('discord.js');
 
-const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536'];
+const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536', '1508174981396168755'];
 const RULE_NAME = 'HTB Anti-Ping Protection';
 
 async function ensureNativeAutoModRule(guild) {
@@ -22,14 +25,46 @@ async function ensureNativeAutoModRule(guild) {
     const existingRules = await manager.fetch().catch(() => null);
     const existing = existingRules?.find(r => r.name === RULE_NAME);
 
-    // If an old native rule exists that was blocking replies, remove it so replies work 100%
+    const keywordFilter = [
+      '<@674218467041345536>',
+      '<@!674218467041345536>',
+      '<@1508174981396168755>',
+      '<@!1508174981396168755>',
+      '*674218467041345536*',
+      '*1508174981396168755*',
+    ];
+
+    const ruleData = {
+      name: RULE_NAME,
+      eventType: AutoModerationRuleEventType.MessageSend,
+      triggerType: AutoModerationRuleTriggerType.Keyword,
+      triggerMetadata: {
+        keywordFilter,
+      },
+      actions: [
+        {
+          type: AutoModerationActionType.BlockMessage,
+          metadata: {
+            customMessage: '⛔ You are not allowed to ping or mention server owners/administrators.',
+          },
+        },
+      ],
+      enabled: true,
+      exemptRoles: [],
+      exemptChannels: [],
+    };
+
     if (existing) {
-      await existing.delete().catch(() => {});
-      console.log(`🛡️ Cleaned up native AutoMod rule in ${guild.name} to allow message replies.`);
+      await existing.edit(ruleData);
+      console.log(`🛡️ Updated native Discord AutoMod rule in ${guild.name}`);
+    } else {
+      await manager.create(ruleData);
+      console.log(`🛡️ Created native Discord AutoMod rule in ${guild.name}`);
     }
 
     return { success: true };
   } catch (err) {
+    console.error('[AutoMod Rule Err]:', err.message);
     return { success: false, reason: err.message };
   }
 }
