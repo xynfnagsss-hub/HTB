@@ -1,5 +1,63 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  PermissionsBitField,
+} = require('discord.js');
 const { linkRobloxUser, autoRankMemberFromDiscordRoles, getLinkedRobloxUser } = require('../utils/robloxManager');
+
+const VERIFIED_ROLE_IDS = ['1396299470244810942', '1399811369489928354'];
+const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
+
+async function grantVerifiedRoles(member) {
+  if (!member) return;
+  for (const roleId of VERIFIED_ROLE_IDS) {
+    try {
+      if (!member.roles.cache.has(roleId)) {
+        await member.roles.add(roleId, 'HTB Roblox Verification Complete');
+      }
+    } catch (e) {
+      console.warn(`[Role Grant Warning ${roleId}]:`, e.message);
+    }
+  }
+}
+
+function buildVerificationPanelEmbed() {
+  return new EmbedBuilder()
+    .setColor(0xF5AF19)
+    .setTitle('🛡️ HIT THE BLOCK • ROBLOX VERIFICATION GATEWAY')
+    .setDescription(
+      `Welcome to **Hit The Block (HTB)**! To unlock all server channels, community chat, voice rooms, and access passes, you must link your Roblox account.\n\n` +
+      `📌 **VERIFICATION STEPS:**\n` +
+      `**1.** Click **"1. Join Roblox Group"** below to join the official **HTB | Hit The Block** Roblox Group.\n` +
+      `**2.** Click **"2. Verify Account"** and enter your exact Roblox username in the popup modal.\n` +
+      `**3.** Once confirmed, the bot grants you your **Verified Roles** and full server access immediately!\n\n` +
+      `⚠️ *Note: You MUST be a member of the Roblox Group or verification will be rejected.*`
+    )
+    .addFields(
+      { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false },
+      { name: '⭐ Unlocked Perks', value: `• Full Access to 17k+ Community\n• Automatic In-Game Rank Sync\n• Marketplace & Ticket Access`, inline: false }
+    )
+    .setImage('https://htbwshop.jo3.org/logo.png')
+    .setFooter({ text: 'HTB Roblox Gateway • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' });
+}
+
+function buildVerificationPanelButtons() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setLabel('1. Join Roblox Group')
+      .setURL('https://www.roblox.com/groups/316559660')
+      .setStyle(ButtonStyle.Link)
+      .setEmoji('🔗'),
+    new ButtonBuilder()
+      .setCustomId('htb_verify_btn')
+      .setLabel('2. Verify Account')
+      .setStyle(ButtonStyle.Success)
+      .setEmoji('✅')
+  );
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -7,16 +65,38 @@ module.exports = {
     .setDescription('Link and verify your Roblox account with your Discord profile')
     .addStringOption(option =>
       option.setName('username')
-        .setDescription('Your exact Roblox username')
-        .setRequired(true)
+        .setDescription('Your exact Roblox username (or type "setup" for Admin panel)')
+        .setRequired(false)
     ),
 
   async execute(interaction) {
+    const input = (interaction.options.getString('username') || '').trim();
+
+    // 1. Setup Panel command
+    if (input.toLowerCase() === 'setup') {
+      const isBypass = ADMIN_BYPASS_USERS.includes(interaction.user.id);
+      if (!isBypass && !interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        return interaction.reply({ content: '❌ Only administrators can set up the verification panel.', ephemeral: true });
+      }
+
+      const panelEmbed = buildVerificationPanelEmbed();
+      const panelRow = buildVerificationPanelButtons();
+      await interaction.channel.send({ embeds: [panelEmbed], components: [panelRow] });
+      return interaction.reply({ content: '✅ Verification panel successfully deployed!', ephemeral: true });
+    }
+
+    if (!input) {
+      return interaction.reply({
+        content: '⚠️ Please provide your Roblox username or click the **Verify Account** button in the verification channel. Example: `/verify username:YourRobloxUsername`',
+        ephemeral: true,
+      });
+    }
+
     await interaction.deferReply();
-    const username = interaction.options.getString('username');
 
     try {
-      const profile = await linkRobloxUser(interaction.user.id, username);
+      const profile = await linkRobloxUser(interaction.user.id, input);
+      await grantVerifiedRoles(interaction.member);
       const rankResult = await autoRankMemberFromDiscordRoles(interaction.member);
 
       const embed = buildVerifyEmbed(interaction.user, profile, rankResult);
@@ -31,16 +111,33 @@ module.exports = {
   },
 
   async prefixExecute(message, args) {
+    const firstArg = args[0] ? args[0].toLowerCase() : '';
+
+    // 1. Setup Panel command
+    if (firstArg === 'setup') {
+      const isBypass = ADMIN_BYPASS_USERS.includes(message.author.id);
+      if (!isBypass && !message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+        return message.reply('❌ Only administrators can set up the verification panel.');
+      }
+
+      const panelEmbed = buildVerificationPanelEmbed();
+      const panelRow = buildVerificationPanelButtons();
+      await message.channel.send({ embeds: [panelEmbed], components: [panelRow] });
+      if (message.deletable) message.delete().catch(() => {});
+      return;
+    }
+
     if (!args[0]) {
       const existing = await getLinkedRobloxUser(message.author.id);
       if (existing) {
-        return message.reply(`✅ You are currently linked to Roblox user **@${existing.robloxUsername}** (ID: \`${existing.robloxId}\`). To change, run \`.verify <new_username>\`.`);
+        return message.reply(`✅ You are linked to Roblox user **@${existing.robloxUsername}** (ID: \`${existing.robloxId}\`). To re-verify, run \`.verify <new_username>\`.`);
       }
       return message.reply('⚠️ Please provide your Roblox username to verify. Example: `.verify YourRobloxUsername`');
     }
 
     try {
       const profile = await linkRobloxUser(message.author.id, args[0]);
+      await grantVerifiedRoles(message.member);
       const rankResult = await autoRankMemberFromDiscordRoles(message.member);
 
       const embed = buildVerifyEmbed(message.author, profile, rankResult);
@@ -52,7 +149,13 @@ module.exports = {
       }
       await message.reply(`❌ Verification failed: \`${err.message}\``);
     }
-  }
+  },
+
+  grantVerifiedRoles,
+  buildMustJoinEmbed,
+  buildVerifyEmbed,
+  buildVerificationPanelEmbed,
+  buildVerificationPanelButtons,
 };
 
 function buildMustJoinEmbed(profile, groupId) {
@@ -62,25 +165,32 @@ function buildMustJoinEmbed(profile, groupId) {
     .setColor(0xED4245) // Red
     .setTitle('⚠️ Roblox Group Membership Required')
     .setThumbnail(profile ? profile.avatarUrl : null)
-    .setDescription(`Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **HTB | Hit The Block** Roblox Group before you can verify.\n\n👉 **[Click Here to Join HTB Roblox Group](${groupUrl})**\n\n*Once you click "Join Group" on Roblox, run \`.verify ${profile ? profile.username : ''}\` again to link and claim your group rank!*`)
+    .setDescription(
+      `Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **HTB | Hit The Block** Roblox Group before you can verify.\n\n` +
+      `👉 **[Click Here to Join HTB Roblox Group](${groupUrl})**\n\n` +
+      `*Once you click "Join Group" on Roblox, click the **Verify Account** button again (or run \`.verify ${profile ? profile.username : ''}\`) to unlock the server and claim your ranks!*`
+    )
     .addFields(
       { name: '🛡️ Target Group', value: `[HTB | Hit The Block](${groupUrl})`, inline: true },
       { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
     )
-    .setFooter({ text: 'HTB Roblox Verification • Join Group Required', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setFooter({ text: 'HTB Roblox Verification • Group Join Required', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
     .setTimestamp();
 }
 
 function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
   const embed = new EmbedBuilder()
     .setColor(0x57F287) // Green
-    .setTitle('✅ Roblox Account Verified')
+    .setTitle('✅ Roblox Account Verified & Roles Assigned')
     .setThumbnail(robloxProfile.avatarUrl)
-    .setDescription(`Successfully linked **<@${discordUser.id}>** to Roblox user **[${robloxProfile.displayName} (@${robloxProfile.username})](https://www.roblox.com/users/${robloxProfile.userId}/profile)**.`)
+    .setDescription(
+      `Successfully linked **<@${discordUser.id}>** to Roblox user **[${robloxProfile.displayName} (@${robloxProfile.username})](https://www.roblox.com/users/${robloxProfile.userId}/profile)**.\n\n` +
+      `🔓 **Server Unlocked:** Verified roles (<@&1396299470244810942>, <@&1399811369489928354>) have been granted!`
+    )
     .addFields(
       { name: '🆔 Roblox ID', value: `\`${robloxProfile.userId}\``, inline: true },
       { name: '🛡️ HTB Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
-      { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Promoted to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
+      { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Synced to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
     )
     .setFooter({ text: 'HTB Roblox Verification • Hit The Block', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
     .setTimestamp();

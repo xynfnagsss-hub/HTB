@@ -383,6 +383,53 @@ client.on('messageDelete', (message) => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+  // 1. Verification Gateway Button Click
+  if (interaction.isButton() && interaction.customId === 'htb_verify_btn') {
+    const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+    const modal = new ModalBuilder()
+      .setCustomId('htb_verify_modal')
+      .setTitle('HTB Roblox Verification');
+
+    const usernameInput = new TextInputBuilder()
+      .setCustomId('roblox_username_input')
+      .setLabel('Enter your exact Roblox Username')
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('e.g. your_roblox_username')
+      .setRequired(true)
+      .setMaxLength(50);
+
+    modal.addComponents(new ActionRowBuilder().addComponents(usernameInput));
+    return await interaction.showModal(modal);
+  }
+
+  // 2. Verification Modal Submission
+  if (interaction.isModalSubmit() && interaction.customId === 'htb_verify_modal') {
+    const username = interaction.fields.getTextInputValue('roblox_username_input').trim();
+    await interaction.deferReply({ ephemeral: true });
+
+    try {
+      const { linkRobloxUser, autoRankMemberFromDiscordRoles } = require('./utils/robloxManager');
+      const { grantVerifiedRoles, buildVerifyEmbed, buildMustJoinEmbed } = require('./commands/verify');
+
+      const profile = await linkRobloxUser(interaction.user.id, username);
+      await grantVerifiedRoles(interaction.member);
+      const rankResult = await autoRankMemberFromDiscordRoles(interaction.member);
+
+      const embed = buildVerifyEmbed(interaction.user, profile, rankResult);
+      return await interaction.editReply({
+        content: '🎉 **Verification Complete!** You have been verified and granted full server access.',
+        embeds: [embed]
+      });
+    } catch (err) {
+      if (err.mustJoinGroup) {
+        const { buildMustJoinEmbed } = require('./commands/verify');
+        const groupEmbed = buildMustJoinEmbed(err.profile, err.groupId);
+        return await interaction.editReply({ embeds: [groupEmbed] });
+      }
+      return await interaction.editReply({ content: `❌ Verification failed: \`${err.message}\`` });
+    }
+  }
+
   if (interaction.isButton() && interaction.customId.startsWith('snipe_')) {
     const cmd = client.commands.get('snipe');
     if (cmd?.handleButton) await cmd.handleButton(interaction, client);
