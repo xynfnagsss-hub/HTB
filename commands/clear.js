@@ -54,10 +54,13 @@ module.exports = {
 
     if (args.length > 0) {
       const first = args[0].toLowerCase();
-      const channelMention = message.mentions.channels.first() || client.channels.cache.get(args[0]);
+      let fetchedChannel = message.mentions.channels.first();
+      if (!fetchedChannel && /^\d+$/.test(args[0])) {
+        fetchedChannel = await client.channels.fetch(args[0]).catch(() => null);
+      }
 
-      if (channelMention) {
-        targetChannel = channelMention;
+      if (fetchedChannel) {
+        targetChannel = fetchedChannel;
         const second = args[1]?.toLowerCase();
         if (second === 'all') {
           clearAll = true;
