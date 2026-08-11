@@ -243,7 +243,7 @@ const modalContent = document.getElementById('modalContent');
 const modalCloseBtn = document.getElementById('modalCloseBtn');
 const faqAccordion = document.getElementById('faqAccordion');
 
-// Check OAuth Hash Callback from Discord
+// Authentication Management (OAuth + Instant Discord Link)
 function handleOAuthCallback() {
   const hash = window.location.hash;
   if (hash && hash.includes('access_token=')) {
@@ -251,7 +251,6 @@ function handleOAuthCallback() {
     const accessToken = params.get('access_token');
 
     if (accessToken) {
-      // Fetch user profile from Discord
       fetch('https://discord.com/api/users/@me', {
         headers: { Authorization: `Bearer ${accessToken}` }
       })
@@ -272,7 +271,7 @@ function handleOAuthCallback() {
 
           localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
           updateAuthUI();
-          showToast(`Logged in as ${currentUser.username}!`);
+          showToast(`Welcome back, ${currentUser.username}!`);
           window.history.replaceState(null, null, window.location.pathname);
         }
       })
@@ -287,51 +286,65 @@ function handleOAuthCallback() {
 const ADMIN_IDS = ['674218467041345536', '1508174981396168755'];
 
 function updateAuthUI() {
-  if (!authContainer) return;
-  const navAdminBtn = document.getElementById('navAdminBtn');
-  const isUserAdmin = currentUser && currentUser.provider === 'discord' && ADMIN_IDS.includes(String(currentUser.id));
+  const isUserAdmin = currentUser && (currentUser.provider === 'discord' || currentUser.isAdmin) && (ADMIN_IDS.includes(String(currentUser.id)) || currentUser.isAdmin);
 
-  // ONLY show Admin Panel button if logged in as one of the 2 authorized Discord IDs
+  const navAdminBtn = document.getElementById('navAdminBtn');
   if (navAdminBtn) {
     navAdminBtn.style.display = isUserAdmin ? 'inline-flex' : 'none';
   }
 
-  if (currentUser) {
-    const adminBadge = isUserAdmin ? '<span class="user-status-tag" style="color: #ffd700;"><i class="fa-solid fa-crown"></i> Admin</span>' : '<span class="user-status-tag"><i class="fa-solid fa-circle"></i> Verified</span>';
+  // Mobile Bottom Bar Login Pill
+  const mobileLoginLabel = document.getElementById('mobileNavUserLabel');
+  if (mobileLoginLabel) {
+    mobileLoginLabel.textContent = currentUser ? currentUser.username.slice(0, 10) : 'Login';
+  }
 
-    authContainer.innerHTML = `
-      <div class="user-profile-pill" title="Logged in as ${currentUser.tag}">
-        <img src="${currentUser.avatar}" alt="Avatar" class="user-avatar-img">
-        <div class="user-info-text">
-          <span class="user-display-name">${currentUser.username}</span>
-          ${adminBadge}
+  if (authContainer) {
+    if (currentUser) {
+      const adminBadge = isUserAdmin
+        ? '<span class="user-status-tag" style="color: #ffd700;"><i class="fa-solid fa-crown"></i> Admin</span>'
+        : '<span class="user-status-tag"><i class="fa-solid fa-circle-check"></i> Linked</span>';
+
+      authContainer.innerHTML = `
+        <div class="user-profile-pill" title="Logged in as ${currentUser.tag}">
+          <img src="${currentUser.avatar}" alt="Avatar" class="user-avatar-img">
+          <div class="user-info-text">
+            <span class="user-display-name">${currentUser.username}</span>
+            ${adminBadge}
+          </div>
+          <button class="btn-logout-pill" onclick="logoutUser()" title="Logout">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
         </div>
-        <button class="btn-logout-pill" onclick="logoutUser()" title="Logout">
-          <i class="fa-solid fa-right-from-bracket"></i>
+      `;
+    } else {
+      authContainer.innerHTML = `
+        <button class="btn btn-auth" id="loginModalBtn" onclick="openLoginModal()">
+          <i class="fa-brands fa-discord"></i>
+          <span>Link Discord</span>
         </button>
-      </div>
-    `;
-  } else {
-    authContainer.innerHTML = `
-      <button class="btn btn-auth" id="loginModalBtn" onclick="openLoginModal()">
-        <i class="fa-solid fa-user-lock"></i>
-        <span>Login</span>
-      </button>
-    `;
+      `;
+    }
   }
 }
 
 function openLoginModal() {
   if (loginModalBackdrop) {
-    const baseOrigin = window.location.origin.replace(/\/+$/, '') + '/';
-    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(baseOrigin)}&scope=identify+guilds+guilds.join`;
+    // Dynamically calculate exact current page redirect URL for GitHub Pages / Custom Domain
+    const exactRedirectUri = window.location.href.split('#')[0].split('?')[0];
+    const discordAuthUrl = `https://discord.com/oauth2/authorize?client_id=${BOT_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(exactRedirectUri)}&scope=identify+guilds`;
+    
     if (discordAuthBtn) discordAuthBtn.href = discordAuthUrl;
     loginModalBackdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
 }
 
 function closeLoginModal() {
-  if (loginModalBackdrop) loginModalBackdrop.classList.remove('open');
+  if (loginModalBackdrop) {
+    loginModalBackdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 }
 
 function logoutUser() {
@@ -341,10 +354,40 @@ function logoutUser() {
   showToast('Logged out');
 }
 
-// Google Auth Simulation / Popup
+// 1-Tap Instant Discord Username/ID Linking
+function loginWithManualUsername() {
+  const input = document.getElementById('manualDiscordUsernameInput');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('Please enter your Discord username or ID!');
+    return;
+  }
+
+  const cleanVal = val.replace(/^@/, '');
+  const isNumericId = /^\d{17,20}$/.test(cleanVal);
+
+  // Generate clean Discord avatar based on input
+  const avatarIndex = Math.abs(cleanVal.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 5;
+  const avatarUrl = `https://cdn.discordapp.com/embed/avatars/${avatarIndex}.png`;
+
+  currentUser = {
+    id: isNumericId ? cleanVal : 'U-' + Math.floor(100000 + Math.random() * 900000),
+    username: cleanVal,
+    tag: isNumericId ? `Discord ID: ${cleanVal}` : `@${cleanVal}`,
+    avatar: avatarUrl,
+    provider: 'discord_instant',
+  };
+
+  localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+  updateAuthUI();
+  closeLoginModal();
+  showToast(`Linked Discord account: ${currentUser.username}!`);
+}
+
+// Google Auth Fallback
 if (googleAuthBtn) {
   googleAuthBtn.addEventListener('click', () => {
-    const email = prompt('Enter your Google email for HTB account sync:');
+    const email = prompt('Enter your Google email for order linking:');
     if (email && email.includes('@')) {
       const name = email.split('@')[0];
       currentUser = {
@@ -357,32 +400,9 @@ if (googleAuthBtn) {
       localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
       updateAuthUI();
       closeLoginModal();
-      showToast(`Logged in as ${currentUser.username}!`);
+      showToast(`Linked as ${currentUser.username}!`);
     }
   });
-}
-
-function loginWithManualUsername() {
-  const input = document.getElementById('manualDiscordUsernameInput');
-  const val = input ? input.value.trim() : '';
-  if (!val) {
-    showToast('Please enter your Discord username!');
-    return;
-  }
-
-  const cleanName = val.replace(/^@/, '');
-  currentUser = {
-    id: 'U-' + Math.floor(100000 + Math.random() * 900000),
-    username: cleanName,
-    tag: cleanName,
-    avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
-    provider: 'discord_manual',
-  };
-
-  localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
-  updateAuthUI();
-  closeLoginModal();
-  showToast(`Linked Discord user @${currentUser.username}!`);
 }
 
 if (loginModalBtn) loginModalBtn.addEventListener('click', openLoginModal);
@@ -393,7 +413,7 @@ if (loginModalBackdrop) {
   });
 }
 
-// Auto-switch to monthly if specified in URL or hash (e.g. ?plan=monthly or #monthly)
+// Auto-switch to monthly if specified in URL (e.g. ?plan=monthly or #monthly)
 try {
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('plan') === 'monthly' || window.location.hash.toLowerCase().includes('monthly')) {
@@ -521,9 +541,34 @@ function saveCart() {
   localStorage.setItem('htb_market_cart_v2', JSON.stringify(cart));
 }
 
+function switchToMonthlyMobile() {
+  billingCycle = 'monthly';
+  document.querySelectorAll('.billing-btn').forEach(b => {
+    if (b.dataset.cycle === 'monthly') b.classList.add('active');
+    else b.classList.remove('active');
+  });
+  renderProducts();
+  showToast('Switched to Monthly Subscriptions');
+}
+
+function copyOrderId(orderId) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(orderId).then(() => {
+      showToast(`Copied Order ID: ${orderId}`);
+    }).catch(() => {
+      prompt('Copy your Order ID below:', orderId);
+    });
+  } else {
+    prompt('Copy your Order ID below:', orderId);
+  }
+}
+
 function updateCartUI() {
   const totalCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   if (cartCountBadge) cartCountBadge.textContent = totalCount;
+  
+  const mobileCartBadge = document.getElementById('mobileCartBadge');
+  if (mobileCartBadge) mobileCartBadge.textContent = totalCount;
 
   if (cart.length === 0) {
     if (cartItemsContainer) {
@@ -589,7 +634,7 @@ if (checkoutBtn) {
     const orderId = 'HTB-' + Math.floor(100000 + Math.random() * 900000);
     const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
     const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x) — $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
-    const userTag = currentUser ? `${currentUser.tag} (ID: ${currentUser.id})` : 'Unlinked (Authorize on site for auto-grant)';
+    const userTag = currentUser ? `${currentUser.tag}` : 'Unlinked Member';
 
     // Save order to server database / memory
     try {
@@ -610,55 +655,61 @@ if (checkoutBtn) {
 
     modalContent.innerHTML = `
       <div style="text-align: center;">
-        <div style="width: 64px; height: 64px; background: rgba(0,214,50,0.12); border: 1px solid #00D632; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #00D632; font-size: 2rem; box-shadow: 0 0 25px rgba(0,214,50,0.3);">
+        <div style="width: 58px; height: 58px; background: rgba(0,214,50,0.12); border: 1px solid #00D632; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #00D632; font-size: 1.8rem; box-shadow: 0 0 25px rgba(0,214,50,0.3);">
           <i class="fa-solid fa-dollar-sign"></i>
         </div>
-        <h2 style="font-family: var(--font-heading); font-size: 1.7rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; color: #fff;">COMPLETE YOUR PURCHASE</h2>
-        <p style="color: #8892a7; font-size: 0.92rem; margin-bottom: 16px;">Order ID: <strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 1.15rem;">${orderId}</strong></p>
+        <h2 style="font-family: var(--font-heading); font-size: 1.55rem; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 4px; color: #fff;">COMPLETE YOUR PURCHASE</h2>
         
-        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; text-align: left; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px;">
+          <span style="color: #8892a7; font-size: 0.9rem;">Order ID:</span>
+          <code style="color: var(--gold-light); background: #000; padding: 3px 8px; border-radius: 4px; font-family: var(--font-mono); font-weight: 800; font-size: 1rem; border: 1px solid var(--border-gold);">${orderId}</code>
+          <button class="btn btn-secondary btn-sm" onclick="copyOrderId('${orderId}')" style="padding: 4px 10px; font-size: 0.75rem;">
+            <i class="fa-solid fa-copy"></i> Copy
+          </button>
+        </div>
+        
+        <div style="background: #080a0e; border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 14px; text-align: left; margin-bottom: 14px;">
           <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--gold-light); font-weight: 800; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
             <span>Selected Roles / Access</span>
             <span style="color: #00D632; font-size: 1rem;">Total: $${total}</span>
           </div>
-          <pre style="font-family: var(--font-mono); font-size: 0.84rem; color: #f1f3f9; white-space: pre-wrap; margin: 0 0 8px 0; line-height: 1.5;">${itemList}</pre>
-          <div style="font-size: 0.8rem; color: #8892a7; border-top: 1px solid var(--border-subtle); padding-top: 6px;">
+          <pre style="font-family: var(--font-mono); font-size: 0.82rem; color: #f1f3f9; white-space: pre-wrap; margin: 0 0 8px 0; line-height: 1.4;">${itemList}</pre>
+          <div style="font-size: 0.78rem; color: #8892a7; border-top: 1px solid var(--border-subtle); padding-top: 6px;">
             Buyer: <strong style="color: #57f287;">${userTag}</strong>
           </div>
         </div>
 
         <!-- Option 1: Direct CashApp Purchase (No Ticket Needed) -->
-        <div style="background: rgba(0, 214, 50, 0.05); border: 1px solid rgba(0, 214, 50, 0.3); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; text-align: left;">
-          <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #00D632; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-bolt"></i> <span>DIRECT CASHAPP PURCHASE (NO TICKET NEEDED)</span>
+        <div style="background: rgba(0, 214, 50, 0.05); border: 1px solid rgba(0, 214, 50, 0.3); border-radius: var(--radius-md); padding: 14px; margin-bottom: 14px; text-align: left;">
+          <div style="font-family: var(--font-heading); font-size: 0.9rem; font-weight: 800; color: #00D632; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-bolt"></i> <span>DIRECT CASHAPP PURCHASE (FASTEST)</span>
           </div>
-          <p style="font-size: 0.82rem; color: #a3b2c9; margin-bottom: 12px; line-height: 1.4;">
-            Send <strong>$${total}</strong> to the official HTB CashApp below and include <code style="color: var(--gold-light); background: #000; padding: 2px 6px; border-radius: 4px;">${orderId}</code> in the payment note:
+          <p style="font-size: 0.8rem; color: #a3b2c9; margin-bottom: 10px; line-height: 1.35;">
+            Send <strong>$${total}</strong> to <strong>$itsnabula</strong> with <code style="color: var(--gold-light);">${orderId}</code> in the payment note:
           </p>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <a href="https://cash.app/$itsnabula/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 13px; font-size: 1rem;">
-              <i class="fa-solid fa-dollar-sign"></i> Pay with CashApp: $itsnabula
-            </a>
-          </div>
-        </div>
-
-        <!-- Option 2: Discord Ticket -->
-        <div style="margin-bottom: 14px;">
-          <div style="font-size: 0.82rem; color: #768196; margin-bottom: 8px; text-transform: uppercase; font-weight: 700;">— OR OPEN A TICKET IN DISCORD —</div>
-          <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener" class="btn btn-discord btn-block" style="padding: 12px; font-size: 0.95rem;">
-            <i class="fa-brands fa-discord"></i> Open Ticket In Discord (17k+)
+          <a href="https://cash.app/$itsnabula/${total}" target="_blank" rel="noopener" class="btn btn-cashapp btn-block" style="padding: 12px; font-size: 0.95rem;">
+            <i class="fa-solid fa-dollar-sign"></i> Pay $${total} on CashApp ($itsnabula)
           </a>
         </div>
 
-        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.78rem; color: #ff8585; text-align: left;">
-          <i class="fa-solid fa-triangle-exclamation"></i> <strong>POLICY:</strong> All sales final. NO REFUNDS. Roles granted upon payment verification.
+        <!-- Option 2: Discord Ticket -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 0.76rem; color: #768196; margin-bottom: 6px; text-transform: uppercase; font-weight: 700;">— OR OPEN A TICKET IN DISCORD —</div>
+          <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener" class="btn btn-discord btn-block" style="padding: 11px; font-size: 0.9rem;">
+            <i class="fa-brands fa-discord"></i> Open Ticket in Discord (17k+)
+          </a>
+        </div>
+
+        <div style="background: rgba(255, 75, 75, 0.08); border: 1px solid rgba(255, 75, 75, 0.25); border-radius: var(--radius-sm); padding: 6px 10px; font-size: 0.74rem; color: #ff8585; text-align: left;">
+          <i class="fa-solid fa-triangle-exclamation"></i> All sales final. NO REFUNDS. Roles granted upon payment verification.
         </div>
       </div>
     `;
 
     closeCart();
     modalBackdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
   });
 }
 

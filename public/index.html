@@ -384,38 +384,39 @@
         <div class="login-logo-wrap">
           <img src="logo.png" alt="HTB Emblem" class="login-logo">
         </div>
-        <h2 class="login-title">LOGIN TO HTB MARKET</h2>
-        <p class="login-desc">Authorize your account to sync your roles, order tickets, and community perks.</p>
+        <h2 class="login-title">LINK DISCORD ACCOUNT</h2>
+        <p class="login-desc">Connect your Discord username or ID to instantly sync roles, passes, and order tickets.</p>
+
+        <!-- Primary Option: 1-Tap Instant Discord Link (Works 100% on Mobile & PC) -->
+        <div style="background: rgba(245, 175, 25, 0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; text-align: left;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 800; color: var(--gold-light); text-transform: uppercase; margin-bottom: 8px;">
+            <i class="fa-brands fa-discord"></i> Enter Discord Username or User ID
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="manualDiscordUsernameInput" class="form-input" placeholder="e.g. ctsjayl or 674218467041345536" style="flex: 1; padding: 12px 14px; font-size: 0.95rem;">
+            <button class="btn btn-primary" onclick="loginWithManualUsername()" style="padding: 0 18px; font-weight: 800;">
+              <i class="fa-solid fa-check"></i> Link
+            </button>
+          </div>
+          <span style="display: block; font-size: 0.76rem; color: #8892a7; margin-top: 6px;">Instant link — no popups or permissions required!</span>
+        </div>
+
+        <div style="margin: 14px 0 12px; display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+          <span style="font-size: 0.74rem; color: #768196; text-transform: uppercase; font-weight: 700;">or authenticate via discord oauth</span>
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+        </div>
 
         <div class="oauth-buttons-wrap">
-          <!-- Discord OAuth Button (Bot Authorization) -->
-          <a href="#" class="btn-oauth btn-oauth-discord" id="discordAuthBtn">
+          <!-- Discord OAuth Button -->
+          <a href="#" class="btn-oauth btn-oauth-discord" id="discordAuthBtn" style="padding: 13px;">
             <i class="fa-brands fa-discord"></i>
-            <span>Continue with Discord</span>
+            <span>Continue with Discord OAuth</span>
           </a>
-
-          <!-- Google Sign-in Button -->
-          <button class="btn-oauth btn-oauth-google" id="googleAuthBtn">
-            <i class="fa-brands fa-google"></i>
-            <span>Continue with Google</span>
-          </button>
         </div>
 
-        <div style="margin: 16px 0 12px; display: flex; align-items: center; gap: 8px;">
-          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
-          <span style="font-size: 0.76rem; color: #768196; text-transform: uppercase; font-weight: 700;">or enter discord username</span>
-          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="manualDiscordUsernameInput" class="form-input" placeholder="e.g. ctsjayl" style="flex: 1; padding: 10px 14px; font-size: 0.9rem;">
-          <button class="btn btn-primary btn-sm" onclick="loginWithManualUsername()" style="padding: 0 16px;">
-            <i class="fa-solid fa-arrow-right"></i> Link
-          </button>
-        </div>
-
-        <p class="oauth-disclaimer">
-          By continuing, you agree to HTB terms and allow our official bot to verify your member status.
+        <p class="oauth-disclaimer" style="margin-top: 14px;">
+          By linking your account, you agree to HTB community rules & instant order delivery.
         </p>
       </div>
     </div>
@@ -547,6 +548,34 @@
     </div>
   </footer>
 
+  <!-- Mobile Bottom Action Bar (App-like UX) -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="mobile-nav-item">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a href="#products" class="mobile-nav-item">
+      <i class="fa-solid fa-shield"></i>
+      <span>Roles</span>
+    </a>
+    <a href="#products" class="mobile-nav-item" onclick="switchToMonthlyMobile()">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>Monthly</span>
+    </a>
+    <a href="javascript:void(0)" class="mobile-nav-item" onclick="openCart()">
+      <div class="mobile-nav-cart-badge-wrap">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="mobile-cart-badge" id="mobileCartBadge">0</span>
+      </div>
+      <span>Order</span>
+    </a>
+    <a href="javascript:void(0)" class="mobile-nav-item" onclick="openLoginModal()">
+      <i class="fa-brands fa-discord"></i>
+      <span id="mobileNavUserLabel">Link</span>
+    </a>
+  </nav>
+
+  <!-- Script -->
   <script src="app.js"></script>
 </body>
 </html>
