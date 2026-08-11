@@ -401,6 +401,19 @@
           </button>
         </div>
 
+        <div style="margin: 16px 0 12px; display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+          <span style="font-size: 0.76rem; color: #768196; text-transform: uppercase; font-weight: 700;">or enter discord username</span>
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="manualDiscordUsernameInput" class="form-input" placeholder="e.g. ctsjayl" style="flex: 1; padding: 10px 14px; font-size: 0.9rem;">
+          <button class="btn btn-primary btn-sm" onclick="loginWithManualUsername()" style="padding: 0 16px;">
+            <i class="fa-solid fa-arrow-right"></i> Link
+          </button>
+        </div>
+
         <p class="oauth-disclaimer">
           By continuing, you agree to HTB terms and allow our official bot to verify your member status.
         </p>

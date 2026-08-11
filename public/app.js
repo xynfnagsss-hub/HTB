@@ -362,6 +362,29 @@ if (googleAuthBtn) {
   });
 }
 
+function loginWithManualUsername() {
+  const input = document.getElementById('manualDiscordUsernameInput');
+  const val = input ? input.value.trim() : '';
+  if (!val) {
+    showToast('Please enter your Discord username!');
+    return;
+  }
+
+  const cleanName = val.replace(/^@/, '');
+  currentUser = {
+    id: 'U-' + Math.floor(100000 + Math.random() * 900000),
+    username: cleanName,
+    tag: cleanName,
+    avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
+    provider: 'discord_manual',
+  };
+
+  localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+  updateAuthUI();
+  closeLoginModal();
+  showToast(`Linked Discord user @${currentUser.username}!`);
+}
+
 if (loginModalBtn) loginModalBtn.addEventListener('click', openLoginModal);
 if (loginModalCloseBtn) loginModalCloseBtn.addEventListener('click', closeLoginModal);
 if (loginModalBackdrop) {
@@ -369,6 +392,18 @@ if (loginModalBackdrop) {
     if (e.target === loginModalBackdrop) closeLoginModal();
   });
 }
+
+// Auto-switch to monthly if specified in URL or hash (e.g. ?plan=monthly or #monthly)
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('plan') === 'monthly' || window.location.hash.toLowerCase().includes('monthly')) {
+    billingCycle = 'monthly';
+    document.querySelectorAll('.billing-btn').forEach(b => {
+      if (b.dataset.cycle === 'monthly') b.classList.add('active');
+      else b.classList.remove('active');
+    });
+  }
+} catch {}
 
 function renderProducts() {
   const filtered = activeCategory === 'all'
