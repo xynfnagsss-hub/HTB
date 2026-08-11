@@ -333,35 +333,6 @@ client.once('ready', async () => {
     ensureNativeAutoModRule(guild).catch(() => {});
   }
 
-  // Auto-purge target channel requested by user
-  try {
-    const purgeTarget = await client.channels.fetch('1428595146672439367').catch(() => null);
-    if (purgeTarget) {
-      console.log(`🧹 Auto-purging channel: #${purgeTarget.name} (1428595146672439367)...`);
-      purgeAllChannelMessages(purgeTarget).then(res => {
-        console.log(`✨ Purged ${res.deleted} message(s) from #${purgeTarget.name}`);
-      }).catch(e => console.error('[Purge Error]:', e.message));
-    }
-  } catch (err) {
-    console.warn('[Purge Target Error]:', err.message);
-  }
-
-
-
-  // Secure all staff/admin channels from verified member role overwrites
-  try {
-    const { fixStaffChannels } = require('./commands/fixstaff');
-    for (const guild of client.guilds.cache.values()) {
-      fixStaffChannels(guild).then(res => {
-        if (res.fixedCount > 0) {
-          console.log(`🔒 [Staff Security]: Secured ${res.fixedCount} staff channel(s) from regular verified roles.`);
-        }
-      }).catch(e => console.error('[Staff Fix Error]:', e.message));
-    }
-  } catch (err) {
-    console.warn('[Staff Fix Init Warning]:', err.message);
-  }
-
   // Initialize Roblox Service & Group Join Watcher
   try {
     await initRoblox();
