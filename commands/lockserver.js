@@ -108,3 +108,5 @@ async function lockAllChannelsForGuild(guild, verifyChannelId) {
 
   return { lockedCount };
 }
+
+module.exports.lockAllChannelsForGuild = lockAllChannelsForGuild;
