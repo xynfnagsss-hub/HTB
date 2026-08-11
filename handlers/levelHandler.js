@@ -1,9 +1,9 @@
 const { EmbedBuilder } = require('discord.js');
-const { addXP } = require('../data/levels');
+const { addXP, getLevelProgress } = require('../data/levels');
 
-// Cooldown to prevent XP spam (15 seconds per user)
+// Cooldown to prevent XP spam (60 seconds per user)
 const cooldowns = new Map();
-const COOLDOWN_MS = 15000;
+const COOLDOWN_MS = 60_000;
 
 async function handleLevelXP(message) {
   if (message.author.bot) return;
@@ -12,29 +12,39 @@ async function handleLevelXP(message) {
   const userId = message.author.id;
   const now = Date.now();
 
-  // Check cooldown
+  // Check 1-minute cooldown
   if (cooldowns.has(userId) && now - cooldowns.get(userId) < COOLDOWN_MS) return;
   cooldowns.set(userId, now);
 
-  const { leveledUp, newLevel, robuxEarned } = await addXP(userId);
+  // Random XP between 15 and 25 per message
+  const gainedXP = Math.floor(Math.random() * 11) + 15;
+  const { leveledUp, newLevel, robuxEarned, totalXP } = await addXP(userId, gainedXP);
 
   if (!leveledUp) return;
 
+  const progress = getLevelProgress(totalXP);
+
   // Level up message
   const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle('⬆️ Level Up!')
-    .setDescription(`${message.author} reached **Level ${newLevel}**!`)
+    .setColor(0xF5AF19) // Gold
+    .setTitle('⬆️ LEVEL UP!')
+    .setThumbnail(message.author.displayAvatarURL({ dynamic: true }))
+    .setDescription(
+      `🎉 Congratulations ${message.author}! You reached **Level ${newLevel}**!\n\n` +
+      `📊 **Total XP**: \`${totalXP.toLocaleString()}\` XP\n` +
+      `🎯 **Next Level Target**: \`${progress.nextLevelTotalXP.toLocaleString()}\` XP`
+    )
+    .setFooter({ text: 'HTB Leveling System • Hit The Block', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
     .setTimestamp();
 
-  // Robux milestone
+  // Robux milestone (every 15 levels)
   if (robuxEarned > 0) {
     embed
-      .setColor(0x00cc44)
-      .setTitle('🎉 Level Up + Robux Earned!')
+      .setColor(0x57F287)
+      .setTitle('🎉 LEVEL UP + ROBUX EARNED!')
       .setDescription(
-        `${message.author} reached **Level ${newLevel}**!\n\n` +
-        `💰 **+${robuxEarned} Robux** added to your payout balance!`
+        `🏆 Huge milestone ${message.author}! You reached **Level ${newLevel}**!\n\n` +
+        `💰 **+${robuxEarned} Robux** has been credited to your payout balance!`
       );
   }
 

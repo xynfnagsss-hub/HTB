@@ -1,31 +1,39 @@
 const { EmbedBuilder } = require('discord.js');
-const { getUser, XP_PER_LEVEL } = require('../data/levels');
+const { getUser, getLevelProgress } = require('../data/levels');
 
 module.exports = {
   name: 'level',
-  description: 'Check your level and XP',
+  description: 'Check your level, XP progress, and rank card',
   usage: '.level [@user]',
   async execute(message, args) {
     const target = message.mentions.members.first() || message.member;
     const userData = await getUser(target.id);
+    const progress = getLevelProgress(userData.xp || 0);
 
-    const xpForNext = (target.level + 1) * XP_PER_LEVEL;
-    const xpNeeded = (userData.level + 1) * XP_PER_LEVEL - userData.xp;
-    const nextMilestone = Math.ceil((userData.level + 1) / 15) * 15;
-    const levelsUntilRobux = nextMilestone - userData.level;
+    const nextMilestone = Math.ceil((progress.currentLevel + 1) / 15) * 15;
+    const levelsUntilRobux = nextMilestone - progress.currentLevel;
+
+    // Progress Bar generator
+    const totalBars = 12;
+    const filledBars = Math.round((progress.progressPercent / 100) * totalBars);
+    const emptyBars = totalBars - filledBars;
+    const progressBar = '▰'.repeat(filledBars) + '▱'.repeat(emptyBars);
 
     const embed = new EmbedBuilder()
-      .setColor(0x5865f2)
-      .setTitle(`📊 ${target.user.username}'s Level`)
+      .setColor(0xF5AF19)
+      .setTitle(`📊 Rank Card: ${target.user.username}`)
       .setThumbnail(target.user.displayAvatarURL({ dynamic: true }))
-      .addFields(
-        { name: 'Level', value: `${userData.level}`, inline: true },
-        { name: 'XP', value: `${userData.xp}`, inline: true },
-        { name: 'XP to Next Level', value: `${xpNeeded}`, inline: true },
-        { name: 'Robux Earned', value: `💰 ${userData.robux} Robux`, inline: true },
-        { name: 'Next Robux Milestone', value: `Level ${nextMilestone} (${levelsUntilRobux} levels away)`, inline: true },
+      .setDescription(
+        `**Level ${progress.currentLevel}** • \`${progress.xpInCurrentLevel.toLocaleString()} / ${progress.xpNeededForLevel.toLocaleString()} XP\` (${progress.progressPercent}%)\n` +
+        `${progressBar}\n` +
+        `\`${progress.xpRemaining.toLocaleString()}\` XP remaining to reach **Level ${progress.currentLevel + 1}**`
       )
-      .setFooter({ text: 'Every 15 levels = +100 Robux • HTB | Hit The Block' })
+      .addFields(
+        { name: '⭐ Total XP', value: `\`${(userData.xp || 0).toLocaleString()}\` XP`, inline: true },
+        { name: '💰 Robux Earned', value: `\`${userData.robux || 0}\` Robux`, inline: true },
+        { name: '🎁 Next Milestone', value: `Level ${nextMilestone} (${levelsUntilRobux} lvl away)`, inline: true }
+      )
+      .setFooter({ text: 'Every 15 levels = +100 Robux • HTB | Hit The Block', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
       .setTimestamp();
 
     message.channel.send({ embeds: [embed] });
