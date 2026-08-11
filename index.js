@@ -348,6 +348,20 @@ client.once('ready', async () => {
 
 
 
+  // Secure all staff/admin channels from verified member role overwrites
+  try {
+    const { fixStaffChannels } = require('./commands/fixstaff');
+    for (const guild of client.guilds.cache.values()) {
+      fixStaffChannels(guild).then(res => {
+        if (res.fixedCount > 0) {
+          console.log(`🔒 [Staff Security]: Secured ${res.fixedCount} staff channel(s) from regular verified roles.`);
+        }
+      }).catch(e => console.error('[Staff Fix Error]:', e.message));
+    }
+  } catch (err) {
+    console.warn('[Staff Fix Init Warning]:', err.message);
+  }
+
   // Initialize Roblox Service & Group Join Watcher
   try {
     await initRoblox();
