@@ -37,8 +37,7 @@ function buildVerificationPanelEmbed() {
       `⚠️ *Note: You MUST be a member of the Roblox Group or verification will be rejected.*`
     )
     .addFields(
-      { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false },
-      { name: '⭐ Unlocked Perks', value: `• Full Access to 17k+ Community\n• Automatic In-Game Rank Sync\n• Marketplace & Ticket Access`, inline: false }
+      { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
     .setImage('https://htbwshop.jo3.org/logo.png')
     .setFooter({ text: 'HTB Roblox Gateway • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' });
