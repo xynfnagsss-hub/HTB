@@ -6,7 +6,9 @@ const {
   ButtonStyle,
   PermissionsBitField,
   ChannelType,
+  AttachmentBuilder,
 } = require('discord.js');
+const path = require('path');
 
 const DEFAULT_TICKET_CATEGORY_ID = '1399821317556932718';
 const STAFF_ROLE_IDS = ['1399808373230403634', '1462214761856110706'];
@@ -85,7 +87,7 @@ function buildTicketSetupEmbed() {
       { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
-    .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
+    .setImage('attachment://ticket_banner.jpg')
     .setFooter({ text: 'HTB Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 }
@@ -148,8 +150,10 @@ module.exports = {
 
     const panelEmbed = buildTicketSetupEmbed();
     const panelButtonRows = buildTicketSetupButtons();
+    const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+    const files = [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })];
 
-    await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows });
+    await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
     return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
   },
 
@@ -161,8 +165,10 @@ module.exports = {
 
     const panelEmbed = buildTicketSetupEmbed();
     const panelButtonRows = buildTicketSetupButtons();
+    const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+    const files = [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })];
 
-    await message.channel.send({ embeds: [panelEmbed], components: panelButtonRows });
+    await message.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
     if (message.deletable) message.delete().catch(() => {});
   },
 
