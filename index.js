@@ -427,6 +427,12 @@ client.on('interactionCreate', async (interaction) => {
     }
   }
 
+  if (interaction.isButton() && interaction.customId.startsWith('ticket_')) {
+    const cmd = client.commands.get('ticket');
+    if (cmd?.handleButton) await cmd.handleButton(interaction, client);
+    return;
+  }
+
   if (interaction.isButton() && interaction.customId.startsWith('snipe_')) {
     const cmd = client.commands.get('snipe');
     if (cmd?.handleButton) await cmd.handleButton(interaction, client);
