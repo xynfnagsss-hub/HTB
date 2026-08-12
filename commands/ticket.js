@@ -39,18 +39,25 @@ const TICKET_TYPES = {
 function buildTicketSetupEmbed() {
   return new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setTitle('🎫 HTB OFFICIAL TICKET & ACCESS SUPPORT')
+    .setAuthor({ name: 'HIT THE BLOCK • 17,000+ COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setTitle('🎫  ＨＩＴ  ＴＨＥ  ＢＬＯＣＫ  •  ＴＩＣＫＥＴ  ＧＡＴＥＷＡＹ')
     .setDescription(
-      `Welcome to the **Hit The Block (HTB)** Ticket Gateway.\n\n` +
-      `Click the button corresponding to the tier or support you need to open a private ticket with our staff team:\n\n` +
-      `🟢 **Free Access** — Group verification & entry role assistance\n` +
-      `🔵 **Hitta Access** — Hitta Access tier purchase & role activation\n` +
-      `⚡ **OneTap Access** — OneTap VIP Pass & instant payment clearance\n\n` +
-      `📌 *Official CashApp:* **\`$itsnabula\`**\n` +
-      `⚠️ *Please do not open troll tickets. Staff will assist you shortly.*`
+      `Welcome to the official **Hit The Block (HTB)** Support & Access Gateway.\n\n` +
+      `Click the button corresponding to the tier or support inquiry you need. A private, encrypted channel will be generated automatically for you and our staff team.\n\n` +
+      `╭────────── 💎 **AVAILABLE TIERS** ──────────╮\n` +
+      `│ 🟢 ‣ **Free Access** — Group auto-role & verification\n` +
+      `│ 🔵 ‣ **Hitta Access** — Hitta VIP clearance & perk activation\n` +
+      `│ ⚡ ‣ **OneTap Access** — OneTap VIP Pass & fast-track clearance\n` +
+      `╰──────────────────────────────────────────╯`
+    )
+    .addFields(
+      { name: '💳 Official CashApp', value: '`$itsnabula` *(Always include Order ID)*', inline: true },
+      { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
+      { name: '🛡️ Staff Support', value: 'Active 24/7 staff team ready to claim your ticket.', inline: false }
     )
     .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'HTB Support System • 17,000+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    .setFooter({ text: 'HTB Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setTimestamp();
 }
 
 function buildTicketSetupButtons() {
@@ -80,7 +87,7 @@ module.exports = {
     .addSubcommand(sub =>
       sub
         .setName('setup')
-        .setDescription('Deploy the official HTB ticket creation panel with Free, Hitta, and OneTap buttons.')
+        .setDescription('Deploy the luxury HTB ticket creation panel with Free, Hitta, and OneTap buttons.')
     ),
 
   async execute(interaction) {
@@ -93,7 +100,7 @@ module.exports = {
     const panelButtons = buildTicketSetupButtons();
 
     await interaction.channel.send({ embeds: [panelEmbed], components: [panelButtons] });
-    return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
+    return interaction.reply({ content: '✅ Luxury ticket panel deployed successfully!', ephemeral: true });
   },
 
   async prefixExecute(message, args) {
@@ -117,18 +124,14 @@ module.exports = {
       const typeInfo = TICKET_TYPES[customId];
       await interaction.deferReply({ ephemeral: true });
 
-      // Clean username for channel name
       const cleanUser = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || user.id.slice(-4);
       const channelName = `${typeInfo.slug}-${cleanUser}`;
 
-      // Check if category exists
       let parentCategory = guild.channels.cache.get(TICKET_CATEGORY_ID);
       if (!parentCategory || parentCategory.type !== ChannelType.GuildCategory) {
-        // Search category by ID or fallback to current channel's category
         parentCategory = guild.channels.cache.find(c => c.id === TICKET_CATEGORY_ID && c.type === ChannelType.GuildCategory) || interaction.channel.parent;
       }
 
-      // Check if user already has this open ticket to avoid spam
       const existingChannel = guild.channels.cache.find(c => 
         c.parentId === TICKET_CATEGORY_ID && 
         c.name === channelName && 
@@ -137,11 +140,10 @@ module.exports = {
 
       if (existingChannel) {
         return interaction.editReply({
-          content: `⚠️ You already have an open ticket: <#${existingChannel.id}>`,
+          content: `⚠️ You already have an active ticket open: <#${existingChannel.id}>`,
         });
       }
 
-      // Build Channel Permission Overwrites
       const permissionOverwrites = [
         {
           id: guild.id, // @everyone
@@ -170,7 +172,6 @@ module.exports = {
         },
       ];
 
-      // Add Staff Roles to Channel Permissions
       for (const staffId of STAFF_ROLE_IDS) {
         const staffRole = guild.roles.cache.get(staffId);
         if (staffRole) {
@@ -196,20 +197,30 @@ module.exports = {
           topic: `HTB ${typeInfo.name} Ticket for ${user.tag} (${user.id}) • CashApp: $itsnabula`,
         });
 
-        // Inside Ticket Channel Embed
+        // Luxury In-Ticket Embed
         const ticketEmbed = new EmbedBuilder()
           .setColor(typeInfo.color)
-          .setTitle(`${typeInfo.emoji} HTB • ${typeInfo.name.toUpperCase()} TICKET`)
+          .setAuthor({ name: `${user.tag} • ${typeInfo.name} Support`, iconURL: user.displayAvatarURL({ dynamic: true }) })
+          .setTitle(`${typeInfo.emoji}  ＨＴＢ  •  ${typeInfo.name.toUpperCase()}  ＴＩＣＫＥＴ`)
           .setDescription(
-            `Welcome <@${user.id}> to your **${typeInfo.name}** ticket!\n\n` +
-            `• **Ticket Type:** \`${typeInfo.name}\`\n` +
-            `• **Opened By:** <@${user.id}> (\`${user.id}\`)\n` +
-            `• **Official CashApp:** **\`$itsnabula\`**\n\n` +
-            `📌 **Instructions:**\n` +
-            `Please state your inquiry, Roblox username, or paste your Web Store Order ID if you completed a purchase. Our staff team will assist you shortly!\n\n` +
-            `⚠️ *Click the button below when your inquiry is resolved to close this ticket.*`
+            `Welcome <@${user.id}> to your private **${typeInfo.name}** channel!\n\n` +
+            `Our staff team has been notified. Please review the details below:`
           )
-          .setFooter({ text: 'HTB Ticket System • Hit The Block', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .addFields(
+            { name: '👤 Ticket Creator', value: `<@${user.id}>\n\`${user.id}\``, inline: true },
+            { name: '🎫 Ticket Category', value: `\`${typeInfo.name}\``, inline: true },
+            { name: '💳 Official CashApp', value: '`$itsnabula`', inline: true },
+            { 
+              name: '📌 What To Send Below', 
+              value: 
+                `• **Roblox Username** (for role & group rank syncing)\n` +
+                `• **Web Store Order ID** (if purchased on site: \`HTB-XXXXXX\`)\n` +
+                `• **Detailed Inquiry** or proof of payment screenshot`,
+              inline: false 
+            }
+          )
+          .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
+          .setFooter({ text: 'HTB Ticket System • Click below when resolved to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp();
 
         const closeRow = new ActionRowBuilder().addComponents(
@@ -220,7 +231,6 @@ module.exports = {
             .setStyle(ButtonStyle.Danger)
         );
 
-        // Ping both staff roles + ticket opener
         const pings = `${STAFF_ROLE_IDS.map(id => `<@&${id}>`).join(' ')} <@${user.id}>`;
         await ticketChannel.send({ content: pings, embeds: [ticketEmbed], components: [closeRow] });
 
@@ -239,8 +249,13 @@ module.exports = {
     if (customId === 'ticket_close_prompt') {
       const confirmEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
-        .setTitle('⚠️ CLOSE TICKET CONFIRMATION')
-        .setDescription('**Do you really want to close and delete this ticket channel?**\nAll messages in this ticket will be permanently removed.');
+        .setTitle('⚠️  ＣＬＯＳＥ  ＴＩＣＫＥＴ  ＣＯＮＦＩＲＭＡＴＩＯＮ')
+        .setDescription(
+          `**Are you sure you want to permanently close and delete this ticket channel?**\n\n` +
+          `• All message transcripts in this channel will be removed.\n` +
+          `• Click **"Yes, Close Ticket"** to proceed or **"Cancel"** to keep it open.`
+        )
+        .setFooter({ text: 'HTB Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -260,9 +275,14 @@ module.exports = {
 
     // 3. Confirm Close -> Delete Channel with countdown
     if (customId === 'ticket_confirm_close') {
+      const closingEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('🔒  ＴＩＣＫＥＴ  ＣＬＯＳＩＮＧ  . . .')
+        .setDescription(`This channel will be permanently deleted in **3 seconds**.\n\n*Closed by <@${user.id}>.*`);
+
       await interaction.update({
-        content: `🔒 **Ticket closing... Channel will be deleted in 3 seconds.** (Closed by <@${user.id}>)`,
-        embeds: [],
+        content: null,
+        embeds: [closingEmbed],
         components: [],
       });
 
