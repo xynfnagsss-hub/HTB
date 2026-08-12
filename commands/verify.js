@@ -22,6 +22,16 @@ async function grantVerifiedRoles(member) {
       console.warn(`[Role Grant Warning ${roleId}]:`, e.message);
     }
   }
+
+  // Auto-role "HTB FAM" in Discord if role exists
+  try {
+    const htbFamRole = member.guild.roles.cache.find(r => r.name.toLowerCase() === 'htb fam');
+    if (htbFamRole && !member.roles.cache.has(htbFamRole.id)) {
+      await member.roles.add(htbFamRole.id, 'HTB Auto-Role HTB FAM');
+    }
+  } catch (e) {
+    console.warn('[Role Grant Warning HTB FAM]:', e.message);
+  }
 }
 
 function buildVerificationPanelEmbed() {
@@ -39,8 +49,8 @@ function buildVerificationPanelEmbed() {
     .addFields(
       { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
-    .setImage('https://htbwshop.jo3.org/logo.png')
-    .setFooter({ text: 'HTB Roblox Gateway • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' });
+    .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
+    .setFooter({ text: 'HTB Roblox Gateway • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 }
 
 function buildVerificationPanelButtons() {
@@ -173,7 +183,7 @@ function buildMustJoinEmbed(profile, groupId) {
       { name: '🛡️ Target Group', value: `[HTB | Hit The Block](${groupUrl})`, inline: true },
       { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
     )
-    .setFooter({ text: 'HTB Roblox Verification • Group Join Required', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setFooter({ text: 'HTB Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 }
 
@@ -191,7 +201,7 @@ function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
       { name: '🛡️ HTB Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
       { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Synced to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
     )
-    .setFooter({ text: 'HTB Roblox Verification • Hit The Block', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setFooter({ text: 'HTB Roblox Verification • Hit The Block', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 
   return embed;

@@ -250,8 +250,10 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     { roleName: 'CUSTOM ROLE', rankName: 'Hitta Acess' },
     { roleName: 'Noted Member', rankName: 'Hitta Acess' },
 
-    // Free Access / HTB FAM (Rank 1)
-    { roleName: 'Free Access', rankName: 'Free Access' },
+    // Free Access / HTB FAM (Rank 1 - Default Entry Rank)
+    { roleName: 'HTB FAM', rankName: 'HTB FAM' },
+    { roleName: 'Free Access', rankName: 'HTB FAM' },
+    { roleName: 'Verified', rankName: 'HTB FAM' },
     { roleName: 'Member', rankName: 'HTB FAM' },
   ];
 
@@ -273,7 +275,9 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     if (member.roles.cache.some(r => r.name.toLowerCase().includes(mapping.roleName.toLowerCase()))) {
       try {
         if (currentRankName.toLowerCase() !== mapping.rankName.toLowerCase()) {
-          await noblox.setRank(parseInt(groupId), linked.robloxId, mapping.rankName);
+          await noblox.setRank(parseInt(groupId), linked.robloxId, mapping.rankName).catch(async () => {
+            await noblox.setRank(parseInt(groupId), linked.robloxId, 1).catch(() => {});
+          });
           console.log(`⚡ [Auto-Rank]: Ranked ${linked.robloxUsername} to "${mapping.rankName}" (Matching Discord role: ${mapping.roleName})`);
           return { success: true, rank: mapping.rankName };
         } else {
@@ -285,6 +289,20 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
       break;
     }
   }
+
+  // Default fallback: If in group, ensure they have at least "HTB FAM"
+  try {
+    if (currentRankName.toLowerCase() !== 'htb fam' && currentRankId <= 1) {
+      await noblox.setRank(parseInt(groupId), linked.robloxId, 'HTB FAM').catch(async () => {
+        await noblox.setRank(parseInt(groupId), linked.robloxId, 1).catch(() => {});
+      });
+      console.log(`⚡ [Auto-Rank]: Auto-roled ${linked.robloxUsername} to "HTB FAM" in Roblox Group`);
+      return { success: true, rank: 'HTB FAM' };
+    }
+  } catch (e) {
+    console.error(`[Auto-Rank Default Error]:`, e.message);
+  }
+
   return { success: true, rank: currentRankName };
 }
 
@@ -294,20 +312,34 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
 function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, intervalMs = 30000) {
   if (!groupId) return;
 
-  console.log(`👀 [Roblox Manager]: Group Join Watcher started for Group ID ${groupId}`);
+  console.log(`👀 [Roblox Manager]: Group Join Watcher started for Group ID ${groupId} (Auto-Rank HTB FAM enabled)`);
   setInterval(async () => {
     try {
       if (!isRobloxAuthenticated) return;
       const cleanGroupId = parseInt(groupId);
-      const auditLog = await noblox.getAuditLog(cleanGroupId, { actionType: 'JoinGroup', limit: 10 });
+      const auditLog = await noblox.getAuditLog(cleanGroupId, { actionType: 'JoinGroup', limit: 15 });
       
       if (auditLog && auditLog.data) {
         for (const entry of auditLog.data) {
-          const robloxUserId = entry.actor.user.userId;
-          // Find if this Roblox user is verified in our database
+          const robloxUserId = entry.actor?.user?.userId;
+          if (!robloxUserId) continue;
+
+          // 1. Auto-Role in Roblox Group to "HTB FAM"
+          try {
+            const currentRank = await noblox.getRankNameInGroup(cleanGroupId, robloxUserId).catch(() => 'Guest');
+            if (currentRank.toLowerCase() === 'guest' || currentRank.toLowerCase() === 'free access' || currentRank === '1') {
+              await noblox.setRank(cleanGroupId, robloxUserId, 'HTB FAM').catch(async () => {
+                await noblox.setRank(cleanGroupId, robloxUserId, 1).catch(() => {});
+              });
+              console.log(`🎉 [Group Join Auto-Role]: Auto-roled new joiner Roblox ID ${robloxUserId} to "HTB FAM"`);
+            }
+          } catch (rankErr) {
+            console.warn(`[Join Auto-Rank Error ${robloxUserId}]:`, rankErr.message);
+          }
+
+          // 2. Find if this Roblox user is verified in our database & sync Discord
           const record = await RobloxUser.findOne({ robloxId: robloxUserId });
           if (record && record.discordId) {
-            // Find Discord guild member
             for (const guild of client.guilds.cache.values()) {
               try {
                 const member = await guild.members.fetch(record.discordId);
