@@ -20,11 +20,18 @@ const TICKET_TYPES = {
     description: 'Free Access role claim, group verification, and entry support.',
     color: 0x00D632,
   },
+  ticket_create_half: {
+    name: 'Half Access',
+    slug: 'half-access',
+    emoji: '🔵',
+    description: 'Half Access tier purchase, basic VIP perks, and payment verification.',
+    color: 0x0EA5E9,
+  },
   ticket_create_hitta: {
     name: 'Hitta Access',
     slug: 'hitta-access',
-    emoji: '🔵',
-    description: 'Hitta Access tier purchase, perks activation, and payment verification.',
+    emoji: '💎',
+    description: 'Hitta Access tier purchase, VIP perks activation, and payment verification.',
     color: 0x3B82F6,
   },
   ticket_create_onetap: {
@@ -34,26 +41,43 @@ const TICKET_TYPES = {
     description: 'OneTap Access VIP purchase, priority drop access, and high clearance support.',
     color: 0xF5AF19,
   },
+  ticket_create_general: {
+    name: 'General Support',
+    slug: 'general',
+    emoji: '📩',
+    description: 'General server inquiries, bot support, and member assistance.',
+    color: 0x9333EA,
+  },
+  ticket_create_report: {
+    name: 'Report a Member',
+    slug: 'report',
+    emoji: '🚨',
+    description: 'Report rule violations, scam attempts, or server misconduct.',
+    color: 0xEF4444,
+  },
 };
 
 function buildTicketSetupEmbed() {
   return new EmbedBuilder()
     .setColor(0xF5AF19)
     .setAuthor({ name: 'HIT THE BLOCK • 17,000+ COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
-    .setTitle('🎫  ＨＩＴ  ＴＨＥ  ＢＬＯＣＫ  •  ＴＩＣＫＥＴ  ＧＡＴＥＷＡＹ')
+    .setTitle('🎫 HIT THE BLOCK • TICKET GATEWAY')
     .setDescription(
       `Welcome to the official **Hit The Block (HTB)** Support & Access Gateway.\n\n` +
-      `Click the button corresponding to the tier or support inquiry you need. A private, encrypted channel will be generated automatically for you and our staff team.\n\n` +
-      `╭────────── 💎 **AVAILABLE TIERS** ──────────╮\n` +
-      `│ 🟢 ‣ **Free Access** — Group auto-role & verification\n` +
-      `│ 🔵 ‣ **Hitta Access** — Hitta VIP clearance & perk activation\n` +
-      `│ ⚡ ‣ **OneTap Access** — OneTap VIP Pass & fast-track clearance\n` +
-      `╰──────────────────────────────────────────╯`
+      `Click a button below to open a private ticket with our staff team:\n\n` +
+      `**Access Tiers:**\n` +
+      `• 🟢 **Free Access** — Group auto-role & verification\n` +
+      `• 🔵 **Half Access** — Half Access tier & role claim\n` +
+      `• 💎 **Hitta Access** — Hitta VIP clearance & perk activation\n` +
+      `• ⚡ **OneTap Access** — OneTap VIP Pass & instant clearance\n\n` +
+      `**Assistance & Reports:**\n` +
+      `• 📩 **General Support** — Questions, bot issues & assistance\n` +
+      `• 🚨 **Report a Member** — Report scams, pings & misconduct`
     )
     .addFields(
-      { name: '💳 Official CashApp', value: '`$itsnabula` *(Always include Order ID)*', inline: true },
+      { name: '💳 Official CashApp', value: '`$itsnabula` *(Include Order ID)*', inline: true },
       { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
-      { name: '🛡️ Staff Support', value: 'Active 24/7 staff team ready to claim your ticket.', inline: false }
+      { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
     .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
     .setFooter({ text: 'HTB Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
@@ -61,16 +85,21 @@ function buildTicketSetupEmbed() {
 }
 
 function buildTicketSetupButtons() {
-  return new ActionRowBuilder().addComponents(
+  const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('ticket_create_free')
       .setLabel('Free Access')
       .setEmoji('🟢')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
+      .setCustomId('ticket_create_half')
+      .setLabel('Half Access')
+      .setEmoji('🔵')
+      .setStyle(ButtonStyle.Primary),
+    new ButtonBuilder()
       .setCustomId('ticket_create_hitta')
       .setLabel('Hitta Access')
-      .setEmoji('🔵')
+      .setEmoji('💎')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId('ticket_create_onetap')
@@ -78,6 +107,21 @@ function buildTicketSetupButtons() {
       .setEmoji('⚡')
       .setStyle(ButtonStyle.Secondary)
   );
+
+  const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('ticket_create_general')
+      .setLabel('General Support')
+      .setEmoji('📩')
+      .setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId('ticket_create_report')
+      .setLabel('Report a Member')
+      .setEmoji('🚨')
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  return [row1, row2];
 }
 
 module.exports = {
@@ -87,7 +131,7 @@ module.exports = {
     .addSubcommand(sub =>
       sub
         .setName('setup')
-        .setDescription('Deploy the luxury HTB ticket creation panel with Free, Hitta, and OneTap buttons.')
+        .setDescription('Deploy the official HTB ticket creation panel.')
     ),
 
   async execute(interaction) {
@@ -97,10 +141,10 @@ module.exports = {
     }
 
     const panelEmbed = buildTicketSetupEmbed();
-    const panelButtons = buildTicketSetupButtons();
+    const panelButtonRows = buildTicketSetupButtons();
 
-    await interaction.channel.send({ embeds: [panelEmbed], components: [panelButtons] });
-    return interaction.reply({ content: '✅ Luxury ticket panel deployed successfully!', ephemeral: true });
+    await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows });
+    return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
   },
 
   async prefixExecute(message, args) {
@@ -110,9 +154,9 @@ module.exports = {
     }
 
     const panelEmbed = buildTicketSetupEmbed();
-    const panelButtons = buildTicketSetupButtons();
+    const panelButtonRows = buildTicketSetupButtons();
 
-    await message.channel.send({ embeds: [panelEmbed], components: [panelButtons] });
+    await message.channel.send({ embeds: [panelEmbed], components: panelButtonRows });
     if (message.deletable) message.delete().catch(() => {});
   },
 
@@ -197,14 +241,14 @@ module.exports = {
           topic: `HTB ${typeInfo.name} Ticket for ${user.tag} (${user.id}) • CashApp: $itsnabula`,
         });
 
-        // Clean Luxury In-Ticket Embed (No image banner)
+        // Clean In-Ticket Embed
         const ticketEmbed = new EmbedBuilder()
           .setColor(typeInfo.color)
-          .setAuthor({ name: `${user.tag} • ${typeInfo.name} Support`, iconURL: user.displayAvatarURL({ dynamic: true }) })
-          .setTitle(`${typeInfo.emoji}  ＨＴＢ  •  ${typeInfo.name.toUpperCase()}  ＴＩＣＫＥＴ`)
+          .setAuthor({ name: `${user.tag} • ${typeInfo.name}`, iconURL: user.displayAvatarURL({ dynamic: true }) })
+          .setTitle(`${typeInfo.emoji} HTB • ${typeInfo.name.toUpperCase()} TICKET`)
           .setDescription(
-            `Welcome <@${user.id}> to your private **${typeInfo.name}** channel!\n\n` +
-            `Our staff team has been notified. Please review the instructions below:`
+            `Welcome <@${user.id}> to your private **${typeInfo.name}** ticket!\n\n` +
+            `Our staff team has been notified. Please review the details below:`
           )
           .addFields(
             { name: '👤 Ticket Creator', value: `<@${user.id}>\n\`${user.id}\``, inline: true },
@@ -214,7 +258,7 @@ module.exports = {
               name: '📌 What To Send Below', 
               value: 
                 `• **Roblox Username** (for role & group rank syncing)\n` +
-                `• **Web Store Order ID** (if purchased on site: \`HTB-XXXXXX\`)\n` +
+                `• **Order ID** (if purchased on site: \`HTB-XXXXXX\`)\n` +
                 `• **Detailed Inquiry** or proof of payment screenshot`,
               inline: false 
             }
@@ -263,7 +307,6 @@ module.exports = {
         });
       }
 
-      // Update buttons: Disable claim button and show who claimed it
       const updatedRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
           .setCustomId('ticket_claimed_info')
@@ -280,10 +323,9 @@ module.exports = {
 
       await interaction.update({ components: [updatedRow] }).catch(() => {});
 
-      // Send Claim Notification Embed
       const claimEmbed = new EmbedBuilder()
         .setColor(0x00D632)
-        .setTitle('🛡️  ＴＩＣＫＥＴ  ＣＬＡＩＭＥＤ')
+        .setTitle('🛡️ TICKET CLAIMED')
         .setDescription(
           `Staff member <@${user.id}> has **claimed** this ticket!\n\n` +
           `They will be assisting you with your inquiry or order directly.`
@@ -293,7 +335,6 @@ module.exports = {
 
       await interaction.channel.send({ embeds: [claimEmbed] });
 
-      // Update channel topic to record staff claim
       const currentTopic = interaction.channel.topic || '';
       if (!currentTopic.includes('Claimed by')) {
         await interaction.channel.setTopic(`${currentTopic} • Claimed by: ${user.tag} (${user.id})`).catch(() => {});
@@ -305,7 +346,7 @@ module.exports = {
     if (customId === 'ticket_close_prompt') {
       const confirmEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
-        .setTitle('⚠️  ＣＬＯＳＥ  ＴＩＣＫＥＴ  ＣＯＮＦＩＲＭＡＴＩＯＮ')
+        .setTitle('⚠️ CLOSE TICKET CONFIRMATION')
         .setDescription(
           `**Are you sure you want to permanently close and delete this ticket channel?**\n\n` +
           `• All message transcripts in this channel will be removed.\n` +
@@ -333,7 +374,7 @@ module.exports = {
     if (customId === 'ticket_confirm_close') {
       const closingEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
-        .setTitle('🔒  ＴＩＣＫＥＴ  ＣＬＯＳＩＮＧ  . . .')
+        .setTitle('🔒 TICKET CLOSING...')
         .setDescription(`This channel will be permanently deleted in **3 seconds**.\n\n*Closed by <@${user.id}>.*`);
 
       await interaction.update({
