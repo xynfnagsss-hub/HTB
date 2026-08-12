@@ -8,7 +8,7 @@ const {
   ChannelType,
 } = require('discord.js');
 
-const TICKET_CATEGORY_ID = '1399821317556932718';
+const DEFAULT_TICKET_CATEGORY_ID = '1399821317556932718';
 const STAFF_ROLE_IDS = ['1399808373230403634', '1462214761856110706'];
 const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 
@@ -19,6 +19,7 @@ const TICKET_TYPES = {
     emoji: '🟢',
     description: 'Free Access role claim, group verification, and entry support.',
     color: 0x00D632,
+    categoryId: '1536984138157133844',
   },
   ticket_create_half: {
     name: 'Half Access',
@@ -26,6 +27,7 @@ const TICKET_TYPES = {
     emoji: '🔵',
     description: 'Half Access tier purchase, basic VIP perks, and payment verification.',
     color: 0x0EA5E9,
+    categoryId: '1536984212941443112',
   },
   ticket_create_hitta: {
     name: 'Hitta Access',
@@ -33,6 +35,7 @@ const TICKET_TYPES = {
     emoji: '💎',
     description: 'Hitta Access tier purchase, VIP perks activation, and payment verification.',
     color: 0x3B82F6,
+    categoryId: '1536984212941443112',
   },
   ticket_create_onetap: {
     name: 'OneTap Access',
@@ -40,6 +43,7 @@ const TICKET_TYPES = {
     emoji: '⚡',
     description: 'OneTap Access VIP purchase, priority drop access, and high clearance support.',
     color: 0xF5AF19,
+    categoryId: '1536984299868258345',
   },
   ticket_create_general: {
     name: 'General Support',
@@ -47,6 +51,7 @@ const TICKET_TYPES = {
     emoji: '📩',
     description: 'General server inquiries, bot support, and member assistance.',
     color: 0x9333EA,
+    categoryId: '1536984014911438908',
   },
   ticket_create_report: {
     name: 'Report a Member',
@@ -54,6 +59,7 @@ const TICKET_TYPES = {
     emoji: '🚨',
     description: 'Report rule violations, scam attempts, or server misconduct.',
     color: 0xEF4444,
+    categoryId: '1536984014911438908',
   },
 };
 
@@ -171,13 +177,14 @@ module.exports = {
       const cleanUser = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || user.id.slice(-4);
       const channelName = `${typeInfo.slug}-${cleanUser}`;
 
-      let parentCategory = guild.channels.cache.get(TICKET_CATEGORY_ID);
+      const targetCategoryId = typeInfo.categoryId || DEFAULT_TICKET_CATEGORY_ID;
+      let parentCategory = guild.channels.cache.get(targetCategoryId);
       if (!parentCategory || parentCategory.type !== ChannelType.GuildCategory) {
-        parentCategory = guild.channels.cache.find(c => c.id === TICKET_CATEGORY_ID && c.type === ChannelType.GuildCategory) || interaction.channel.parent;
+        parentCategory = guild.channels.cache.find(c => c.id === targetCategoryId && c.type === ChannelType.GuildCategory) || interaction.channel.parent;
       }
 
       const existingChannel = guild.channels.cache.find(c => 
-        c.parentId === TICKET_CATEGORY_ID && 
+        c.parentId === targetCategoryId && 
         c.name === channelName && 
         c.type === ChannelType.GuildText
       );
