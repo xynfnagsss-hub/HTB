@@ -11,8 +11,12 @@ const { linkRobloxUser, autoRankMemberFromDiscordRoles, getLinkedRobloxUser } = 
 const VERIFIED_ROLE_IDS = ['1396299470244810942', '1399811369489928354'];
 const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 
+const UNVERIFIED_ROLE_ID = '1493511744339836939';
+
 async function grantVerifiedRoles(member) {
   if (!member) return;
+  
+  // 1. Grant verified roles
   for (const roleId of VERIFIED_ROLE_IDS) {
     try {
       if (!member.roles.cache.has(roleId)) {
@@ -23,7 +27,16 @@ async function grantVerifiedRoles(member) {
     }
   }
 
-  // Auto-role "HTB FAM" in Discord if role exists
+  // 2. Strip unverified role upon successful verification
+  try {
+    if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
+      await member.roles.remove(UNVERIFIED_ROLE_ID, 'Verified - Removing Unverified Role');
+    }
+  } catch (e) {
+    console.warn('[Unverified Role Removal Warning]:', e.message);
+  }
+
+  // 3. Auto-role "HTB FAM" in Discord if role exists
   try {
     const htbFamRole = member.guild.roles.cache.find(r => r.name.toLowerCase() === 'htb fam');
     if (htbFamRole && !member.roles.cache.has(htbFamRole.id)) {
