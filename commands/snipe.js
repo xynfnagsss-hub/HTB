@@ -27,10 +27,23 @@ function buildRow(index, total) {
 
 module.exports = {
   name: 'snipe',
-  description: 'Show recently deleted messages in this channel',
-  usage: '.snipe',
+  description: 'Show or clear recently deleted messages in this channel',
+  usage: '.snipe [clear]',
 
   async execute(message, args, client) {
+    const sub = args[0] ? args[0].toLowerCase() : '';
+
+    // Handle cache clearing: .snipe clear [all]
+    if (sub === 'clear' || sub === 'clean' || sub === 'wipe' || sub === 'reset') {
+      if (args[1] && args[1].toLowerCase() === 'all') {
+        client.snipeStore.clear();
+        return message.reply('🧹 **Server-wide snipe cache completely wiped!** All deleted messages have been cleared from memory.');
+      }
+
+      client.snipeStore.delete(message.channel.id);
+      return message.reply('🧹 **Channel snipe cache wiped!** Deleted messages in this channel have been cleared.');
+    }
+
     const snipes = client.snipeStore.get(message.channel.id);
 
     if (!snipes || snipes.length === 0) {

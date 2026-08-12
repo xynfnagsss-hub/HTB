@@ -50,9 +50,17 @@ client.commands.set('leave', client.commands.get('stop'));
 client.commands.set('disconnect', client.commands.get('stop'));
 client.commands.set('dc', client.commands.get('stop'));
 client.commands.set('unpause', client.commands.get('resume'));
-client.commands.set('repeat', client.commands.get('loop'));
 client.commands.set('link', client.commands.get('verify'));
 client.commands.set('rblx', client.commands.get('roblox'));
+client.commands.set('clearsnipe', {
+  name: 'clearsnipe',
+  description: 'Clear deleted message snipe cache',
+  async execute(message, args, client) {
+    return client.commands.get('snipe').execute(message, ['clear', ...args], client);
+  },
+});
+client.commands.set('snipeclear', client.commands.get('clearsnipe'));
+client.commands.set('csnipe', client.commands.get('clearsnipe'));
 
 // DisTube Music Engine (Permanent Zero-Drop Voice Playback)
 const { DisTube } = require('distube');
