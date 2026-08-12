@@ -197,14 +197,14 @@ module.exports = {
           topic: `HTB ${typeInfo.name} Ticket for ${user.tag} (${user.id}) • CashApp: $itsnabula`,
         });
 
-        // Luxury In-Ticket Embed
+        // Clean Luxury In-Ticket Embed (No image banner)
         const ticketEmbed = new EmbedBuilder()
           .setColor(typeInfo.color)
           .setAuthor({ name: `${user.tag} • ${typeInfo.name} Support`, iconURL: user.displayAvatarURL({ dynamic: true }) })
           .setTitle(`${typeInfo.emoji}  ＨＴＢ  •  ${typeInfo.name.toUpperCase()}  ＴＩＣＫＥＴ`)
           .setDescription(
             `Welcome <@${user.id}> to your private **${typeInfo.name}** channel!\n\n` +
-            `Our staff team has been notified. Please review the details below:`
+            `Our staff team has been notified. Please review the instructions below:`
           )
           .addFields(
             { name: '👤 Ticket Creator', value: `<@${user.id}>\n\`${user.id}\``, inline: true },
@@ -219,11 +219,15 @@ module.exports = {
               inline: false 
             }
           )
-          .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-          .setFooter({ text: 'HTB Ticket System • Click below when resolved to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'HTB Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp();
 
-        const closeRow = new ActionRowBuilder().addComponents(
+        const ticketActionsRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId('ticket_claim')
+            .setLabel('Claim Ticket')
+            .setEmoji('🛡️')
+            .setStyle(ButtonStyle.Success),
           new ButtonBuilder()
             .setCustomId('ticket_close_prompt')
             .setLabel('Close Ticket')
@@ -232,7 +236,7 @@ module.exports = {
         );
 
         const pings = `${STAFF_ROLE_IDS.map(id => `<@&${id}>`).join(' ')} <@${user.id}>`;
-        await ticketChannel.send({ content: pings, embeds: [ticketEmbed], components: [closeRow] });
+        await ticketChannel.send({ content: pings, embeds: [ticketEmbed], components: [ticketActionsRow] });
 
         return interaction.editReply({
           content: `✅ Your **${typeInfo.name}** ticket has been created: <#${ticketChannel.id}>`,
@@ -245,7 +249,59 @@ module.exports = {
       }
     }
 
-    // 2. Prompt Close Confirmation
+    // 2. Handle Staff Claiming Ticket
+    if (customId === 'ticket_claim') {
+      const isStaff = ADMIN_BYPASS_USERS.includes(user.id) || 
+        member.permissions.has(PermissionsBitField.Flags.ManageMessages) || 
+        member.permissions.has(PermissionsBitField.Flags.ManageChannels) || 
+        STAFF_ROLE_IDS.some(id => member.roles.cache.has(id));
+
+      if (!isStaff) {
+        return interaction.reply({
+          content: '❌ Only staff members can claim tickets.',
+          ephemeral: true,
+        });
+      }
+
+      // Update buttons: Disable claim button and show who claimed it
+      const updatedRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId('ticket_claimed_info')
+          .setLabel(`Claimed by ${user.username}`)
+          .setEmoji('✅')
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true),
+        new ButtonBuilder()
+          .setCustomId('ticket_close_prompt')
+          .setLabel('Close Ticket')
+          .setEmoji('🔒')
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await interaction.update({ components: [updatedRow] }).catch(() => {});
+
+      // Send Claim Notification Embed
+      const claimEmbed = new EmbedBuilder()
+        .setColor(0x00D632)
+        .setTitle('🛡️  ＴＩＣＫＥＴ  ＣＬＡＩＭＥＤ')
+        .setDescription(
+          `Staff member <@${user.id}> has **claimed** this ticket!\n\n` +
+          `They will be assisting you with your inquiry or order directly.`
+        )
+        .setFooter({ text: `Claimed by @${user.tag}`, iconURL: user.displayAvatarURL({ dynamic: true }) })
+        .setTimestamp();
+
+      await interaction.channel.send({ embeds: [claimEmbed] });
+
+      // Update channel topic to record staff claim
+      const currentTopic = interaction.channel.topic || '';
+      if (!currentTopic.includes('Claimed by')) {
+        await interaction.channel.setTopic(`${currentTopic} • Claimed by: ${user.tag} (${user.id})`).catch(() => {});
+      }
+      return;
+    }
+
+    // 3. Prompt Close Confirmation
     if (customId === 'ticket_close_prompt') {
       const confirmEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
@@ -273,7 +329,7 @@ module.exports = {
       return interaction.reply({ embeds: [confirmEmbed], components: [confirmRow] });
     }
 
-    // 3. Confirm Close -> Delete Channel with countdown
+    // 4. Confirm Close -> Delete Channel with countdown
     if (customId === 'ticket_confirm_close') {
       const closingEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
@@ -296,7 +352,7 @@ module.exports = {
       return;
     }
 
-    // 4. Cancel Close
+    // 5. Cancel Close
     if (customId === 'ticket_cancel_close') {
       return interaction.message.delete().catch(() => {
         interaction.reply({ content: '✅ Ticket close cancelled.', ephemeral: true });
