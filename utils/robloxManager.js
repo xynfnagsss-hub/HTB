@@ -306,53 +306,102 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
   return { success: true, rank: currentRankName };
 }
 
+const processedJoiners = new Set();
+
 /**
  * Start Background Poller for Roblox Group Joins
  */
-function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, intervalMs = 30000) {
+function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, intervalMs = 10000) {
   if (!groupId) return;
 
-  console.log(`👀 [Roblox Manager]: Group Join Watcher started for Group ID ${groupId} (Auto-Rank HTB FAM enabled)`);
-  setInterval(async () => {
+  const cleanGroupId = parseInt(groupId);
+  console.log(`👀 [Roblox Manager]: Fast Group Join Watcher started for Group ID ${cleanGroupId} (Auto-Rank HTB FAM active - 10s poll)`);
+
+  const pollGroupJoins = async () => {
     try {
       if (!isRobloxAuthenticated) return;
-      const cleanGroupId = parseInt(groupId);
-      const auditLog = await noblox.getAuditLog(cleanGroupId, { actionType: 'JoinGroup', limit: 15 });
+
+      // 1. Handle Join Requests if group is on request-to-join
+      try {
+        const joinReqs = await noblox.getJoinRequests(cleanGroupId, { limit: 25 }).catch(() => null);
+        if (joinReqs && joinReqs.data && joinReqs.data.length > 0) {
+          for (const req of joinReqs.data) {
+            const requesterId = req.requester?.userId;
+            if (requesterId) {
+              await noblox.handleJoinRequest(cleanGroupId, requesterId, true).catch(() => {});
+              await noblox.setRank(cleanGroupId, requesterId, 'HTB FAM').catch(async () => {
+                await noblox.setRank(cleanGroupId, requesterId, 1).catch(() => {});
+              });
+              console.log(`🎉 [Join Request Accepted]: Auto-accepted & ranked Roblox ID ${requesterId} to "HTB FAM"`);
+            }
+          }
+        }
+      } catch (reqErr) {
+        // Ignored if group is public
+      }
+
+      // 2. Poll recent JoinGroup audit logs
+      const auditLog = await noblox.getAuditLog(cleanGroupId, { actionType: 'JoinGroup', limit: 20 }).catch(() => null);
       
       if (auditLog && auditLog.data) {
         for (const entry of auditLog.data) {
           const robloxUserId = entry.actor?.user?.userId;
           if (!robloxUserId) continue;
 
-          // 1. Auto-Role in Roblox Group to "HTB FAM"
+          // Prevent repeated duplicate processing in same session
+          const cacheKey = `${robloxUserId}-${entry.created}`;
+          if (processedJoiners.has(cacheKey)) continue;
+          processedJoiners.add(cacheKey);
+
+          // Keep cache size bounded
+          if (processedJoiners.size > 500) {
+            const first = processedJoiners.values().next().value;
+            processedJoiners.delete(first);
+          }
+
+          // 3. Auto-Role in Roblox Group to "HTB FAM"
           try {
-            const currentRank = await noblox.getRankNameInGroup(cleanGroupId, robloxUserId).catch(() => 'Guest');
-            if (currentRank.toLowerCase() === 'guest' || currentRank.toLowerCase() === 'free access' || currentRank === '1') {
+            const currentRankName = await noblox.getRankNameInGroup(cleanGroupId, robloxUserId).catch(() => 'Guest');
+            const currentRankId = await noblox.getRankInGroup(cleanGroupId, robloxUserId).catch(() => 0);
+
+            if (currentRankId <= 1 || currentRankName.toLowerCase() === 'guest' || currentRankName.toLowerCase() === 'free access' || currentRankName.toLowerCase() === 'member') {
               await noblox.setRank(cleanGroupId, robloxUserId, 'HTB FAM').catch(async () => {
                 await noblox.setRank(cleanGroupId, robloxUserId, 1).catch(() => {});
               });
-              console.log(`🎉 [Group Join Auto-Role]: Auto-roled new joiner Roblox ID ${robloxUserId} to "HTB FAM"`);
+              console.log(`🎉 [Group Join Auto-Role]: Auto-roled new joiner Roblox ID ${robloxUserId} (@${entry.actor?.user?.username || 'User'}) to "HTB FAM"`);
             }
           } catch (rankErr) {
             console.warn(`[Join Auto-Rank Error ${robloxUserId}]:`, rankErr.message);
           }
 
-          // 2. Find if this Roblox user is verified in our database & sync Discord
-          const record = await RobloxUser.findOne({ robloxId: robloxUserId });
-          if (record && record.discordId) {
-            for (const guild of client.guilds.cache.values()) {
-              try {
-                const member = await guild.members.fetch(record.discordId);
+          // 4. Sync Discord roles if verified in DB
+          try {
+            const record = await RobloxUser.findOne({ robloxId: robloxUserId });
+            if (record && record.discordId) {
+              for (const guild of client.guilds.cache.values()) {
+                const member = await guild.members.fetch(record.discordId).catch(() => null);
                 if (member) {
-                  await autoRankMemberFromDiscordRoles(member, cleanGroupId);
+                  const htbFamRole = member.guild.roles.cache.find(r => r.name.toLowerCase() === 'htb fam');
+                  if (htbFamRole && !member.roles.cache.has(htbFamRole.id)) {
+                    await member.roles.add(htbFamRole.id, 'HTB Auto-Role on Group Join').catch(() => {});
+                  }
+                  await autoRankMemberFromDiscordRoles(member, cleanGroupId).catch(() => {});
                 }
-              } catch {}
+              }
             }
+          } catch (dbErr) {
+            console.warn(`[Discord Role Sync Error]:`, dbErr.message);
           }
         }
       }
-    } catch {}
-  }, intervalMs);
+    } catch (globalErr) {
+      console.warn(`[Group Watcher Loop Warning]:`, globalErr.message);
+    }
+  };
+
+  // Run immediately on boot + every interval
+  pollGroupJoins();
+  setInterval(pollGroupJoins, intervalMs);
 }
 
 module.exports = {
