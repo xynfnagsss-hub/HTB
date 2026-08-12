@@ -27,7 +27,7 @@ const TICKET_TYPES = {
     emoji: '🔵',
     description: 'Half Access tier purchase, basic VIP perks, and payment verification.',
     color: 0x0EA5E9,
-    categoryId: '1536984212941443112',
+    categoryId: '1536985177929027684',
   },
   ticket_create_hitta: {
     name: 'Hitta Access',
