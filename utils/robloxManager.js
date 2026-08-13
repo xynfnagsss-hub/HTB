@@ -381,10 +381,10 @@ function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, in
               for (const guild of client.guilds.cache.values()) {
                 const member = await guild.members.fetch(record.discordId).catch(() => null);
                 if (member) {
-                  const htbFamRole = member.guild.roles.cache.find(r => r.name.toLowerCase() === 'htb fam');
-                  if (htbFamRole && !member.roles.cache.has(htbFamRole.id)) {
-                    await member.roles.add(htbFamRole.id, 'HTB Auto-Role on Group Join').catch(() => {});
-                  }
+                  try {
+                    const { grantVerifiedRoles } = require('../commands/verify');
+                    await grantVerifiedRoles(member);
+                  } catch {}
                   await autoRankMemberFromDiscordRoles(member, cleanGroupId).catch(() => {});
                 }
               }

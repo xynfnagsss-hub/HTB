@@ -137,6 +137,52 @@ module.exports = {
     .setName('ticket')
     .setDescription('Ticket system management.')
     .addSubcommand(sub =>
+function findUniversalCategory(guild, typeInfo) {
+  // 1. Try hardcoded ID
+  if (typeInfo.categoryId && guild.channels.cache.has(typeInfo.categoryId)) {
+    const cat = guild.channels.cache.get(typeInfo.categoryId);
+    if (cat && cat.type === ChannelType.GuildCategory) return cat;
+  }
+
+  // 2. Fuzzy match category by name in the server
+  const allCats = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
+  const slug = (typeInfo.slug || '').toLowerCase();
+  const name = (typeInfo.name || '').toLowerCase();
+
+  const matched = allCats.find(c => {
+    const n = c.name.toLowerCase();
+    if (slug.includes('onetap') && (n.includes('onetap') || n.includes('one tap'))) return true;
+    if (slug.includes('hitta') && n.includes('hitta')) return true;
+    if (slug.includes('half') && n.includes('half')) return true;
+    if (slug.includes('free') && n.includes('free')) return true;
+    if ((slug.includes('general') || slug.includes('report')) && (n.includes('general') || n.includes('support') || n.includes('ticket') || n.includes('report'))) return true;
+    return n.includes(name) || name.includes(n);
+  });
+
+  if (matched) return matched;
+
+  // 3. Fallback to any general ticket category
+  const generalCat = allCats.find(c => c.name.toLowerCase().includes('ticket') || c.name.toLowerCase().includes('support'));
+  return generalCat || null;
+}
+
+function getUniversalStaffRoles(guild) {
+  return guild.roles.cache.filter(r => 
+    STAFF_ROLE_IDS.includes(r.id) ||
+    r.name.toLowerCase() === 'staff' ||
+    r.name.toLowerCase() === 'htb staff' ||
+    r.name.toLowerCase().includes('moderator') ||
+    r.name.toLowerCase().includes('admin') ||
+    r.name.toLowerCase().includes('support') ||
+    r.name.toLowerCase().includes('ticket')
+  );
+}
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('ticket')
+    .setDescription('Ticket system management.')
+    .addSubcommand(sub =>
       sub
         .setName('setup')
         .setDescription('Deploy the official HTB ticket creation panel.')
@@ -163,12 +209,32 @@ module.exports = {
       return message.reply('❌ Only staff/administrators can deploy the ticket panel.');
     }
 
+    // Universal Channel Detection: mention, channel name query, or auto-detect by name
+    let targetChannel = message.mentions.channels.first();
+    if (!targetChannel && args[1]) {
+      const query = args[1].toLowerCase().replace(/^#/, '');
+      targetChannel = message.guild.channels.cache.find(c => 
+        c.id === query || 
+        c.name.toLowerCase() === query || 
+        c.name.toLowerCase().includes(query)
+      );
+    }
+
+    if (!targetChannel) {
+      targetChannel = message.guild.channels.cache.find(c => 
+        ['tickets', 'ticket', 'ticket-setup', 'create-a-ticket', 'support', 'open-a-ticket', 'access'].includes(c.name.toLowerCase())
+      ) || message.channel;
+    }
+
     const panelEmbed = buildTicketSetupEmbed();
     const panelButtonRows = buildTicketSetupButtons();
     const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
     const files = [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })];
 
-    await message.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+    await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+    if (targetChannel.id !== message.channel.id) {
+      await message.reply(`✅ Ticket panel successfully deployed in <#${targetChannel.id}>!`);
+    }
     if (message.deletable) message.delete().catch(() => {});
   },
 
@@ -183,14 +249,10 @@ module.exports = {
       const cleanUser = user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) || user.id.slice(-4);
       const channelName = `${typeInfo.slug}-${cleanUser}`;
 
-      const targetCategoryId = typeInfo.categoryId || DEFAULT_TICKET_CATEGORY_ID;
-      let parentCategory = guild.channels.cache.get(targetCategoryId);
-      if (!parentCategory || parentCategory.type !== ChannelType.GuildCategory) {
-        parentCategory = guild.channels.cache.find(c => c.id === targetCategoryId && c.type === ChannelType.GuildCategory) || interaction.channel.parent;
-      }
+      const parentCategory = findUniversalCategory(guild, typeInfo) || interaction.channel.parent;
 
       const existingChannel = guild.channels.cache.find(c => 
-        c.parentId === targetCategoryId && 
+        (parentCategory ? c.parentId === parentCategory.id : true) && 
         c.name === channelName && 
         c.type === ChannelType.GuildText
       );
@@ -229,20 +291,19 @@ module.exports = {
         },
       ];
 
-      for (const staffId of STAFF_ROLE_IDS) {
-        const staffRole = guild.roles.cache.get(staffId);
-        if (staffRole) {
-          permissionOverwrites.push({
-            id: staffId,
-            allow: [
-              PermissionsBitField.Flags.ViewChannel,
-              PermissionsBitField.Flags.SendMessages,
-              PermissionsBitField.Flags.ReadMessageHistory,
-              PermissionsBitField.Flags.AttachFiles,
-              PermissionsBitField.Flags.EmbedLinks,
-            ],
-          });
-        }
+      // Dynamic Universal Staff Role Permission Overwrites
+      const staffRoles = getUniversalStaffRoles(guild);
+      for (const staffRole of staffRoles.values()) {
+        permissionOverwrites.push({
+          id: staffRole.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory,
+            PermissionsBitField.Flags.AttachFiles,
+            PermissionsBitField.Flags.EmbedLinks,
+          ],
+        });
       }
 
       try {

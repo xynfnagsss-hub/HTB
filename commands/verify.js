@@ -10,40 +10,47 @@ const { linkRobloxUser, autoRankMemberFromDiscordRoles, getLinkedRobloxUser } = 
 
 const VERIFIED_ROLE_IDS = ['1396299470244810942', '1399811369489928354'];
 const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
-
 const UNVERIFIED_ROLE_ID = '1493511744339836939';
 
 async function grantVerifiedRoles(member) {
-  if (!member) return;
-  
-  // 1. Grant verified roles
-  for (const roleId of VERIFIED_ROLE_IDS) {
+  if (!member || !member.guild) return;
+  const guild = member.guild;
+
+  // 1. Universal Verified Roles Grant (Find by ID or by Name)
+  const verifiedRolesToGrant = guild.roles.cache.filter(r => 
+    VERIFIED_ROLE_IDS.includes(r.id) ||
+    r.name.toLowerCase() === 'verified' ||
+    r.name.toLowerCase() === 'htb verified' ||
+    r.name.toLowerCase() === 'htb fam' ||
+    r.name.toLowerCase() === 'member'
+  );
+
+  for (const role of verifiedRolesToGrant.values()) {
     try {
-      if (!member.roles.cache.has(roleId)) {
-        await member.roles.add(roleId, 'HTB Roblox Verification Complete');
+      if (!member.roles.cache.has(role.id)) {
+        await member.roles.add(role.id, 'HTB Roblox Verification Complete');
       }
     } catch (e) {
-      console.warn(`[Role Grant Warning ${roleId}]:`, e.message);
+      console.warn(`[Role Grant Warning ${role.name} (${role.id})]:`, e.message);
     }
   }
 
-  // 2. Strip unverified role upon successful verification
-  try {
-    if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
-      await member.roles.remove(UNVERIFIED_ROLE_ID, 'Verified - Removing Unverified Role');
-    }
-  } catch (e) {
-    console.warn('[Unverified Role Removal Warning]:', e.message);
-  }
+  // 2. Universal Unverified Role Removal (Find by ID or by Name)
+  const unverifiedRolesToRemove = guild.roles.cache.filter(r => 
+    r.id === UNVERIFIED_ROLE_ID ||
+    r.name.toLowerCase() === 'unverified' ||
+    r.name.toLowerCase() === 'not verified' ||
+    r.name.toLowerCase() === 'pending verification'
+  );
 
-  // 3. Auto-role "HTB FAM" in Discord if role exists
-  try {
-    const htbFamRole = member.guild.roles.cache.find(r => r.name.toLowerCase() === 'htb fam');
-    if (htbFamRole && !member.roles.cache.has(htbFamRole.id)) {
-      await member.roles.add(htbFamRole.id, 'HTB Auto-Role HTB FAM');
+  for (const role of unverifiedRolesToRemove.values()) {
+    try {
+      if (member.roles.cache.has(role.id)) {
+        await member.roles.remove(role.id, 'Verified - Removing Unverified Role');
+      }
+    } catch (e) {
+      console.warn(`[Unverified Role Removal Warning ${role.name}]:`, e.message);
     }
-  } catch (e) {
-    console.warn('[Role Grant Warning HTB FAM]:', e.message);
   }
 }
 
@@ -63,7 +70,7 @@ function buildVerificationPanelEmbed() {
       { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
     .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'HTB Roblox Gateway • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    .setFooter({ text: 'HTB Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 }
 
 function buildVerificationPanelButtons() {
@@ -89,6 +96,11 @@ module.exports = {
       option.setName('username')
         .setDescription('Your exact Roblox username (or type "setup" for Admin panel)')
         .setRequired(false)
+    )
+    .addChannelOption(option =>
+      option.setName('channel')
+        .setDescription('Target channel for the verification panel (optional)')
+        .setRequired(false)
     ),
 
   async execute(interaction) {
@@ -97,14 +109,18 @@ module.exports = {
     // 1. Setup Panel command
     if (input.toLowerCase() === 'setup') {
       const isBypass = ADMIN_BYPASS_USERS.includes(interaction.user.id);
-      if (!isBypass && !interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+      if (!isBypass && !interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild) && !interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
         return interaction.reply({ content: '❌ Only administrators can set up the verification panel.', ephemeral: true });
       }
 
+      const targetChannel = interaction.options.getChannel('channel') || 
+        interaction.guild.channels.cache.find(c => ['verify', 'verification', 'verify-here', 'get-verified'].includes(c.name.toLowerCase())) ||
+        interaction.channel;
+
       const panelEmbed = buildVerificationPanelEmbed();
       const panelRow = buildVerificationPanelButtons();
-      await interaction.channel.send({ embeds: [panelEmbed], components: [panelRow] });
-      return interaction.reply({ content: '✅ Verification panel successfully deployed!', ephemeral: true });
+      await targetChannel.send({ embeds: [panelEmbed], components: [panelRow] });
+      return interaction.reply({ content: `✅ Verification panel successfully deployed to <#${targetChannel.id}>!`, ephemeral: true });
     }
 
     if (!input) {
@@ -135,16 +151,37 @@ module.exports = {
   async prefixExecute(message, args) {
     const firstArg = args[0] ? args[0].toLowerCase() : '';
 
-    // 1. Setup Panel command
+    // 1. Setup Panel command: .verify setup [#channel/channel_name]
     if (firstArg === 'setup') {
       const isBypass = ADMIN_BYPASS_USERS.includes(message.author.id);
-      if (!isBypass && !message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+      if (!isBypass && !message.member.permissions.has(PermissionsBitField.Flags.ManageGuild) && !message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
         return message.reply('❌ Only administrators can set up the verification panel.');
+      }
+
+      // Universal Channel Detection: Look for mention, channel name argument, or auto-detect by name
+      let targetChannel = message.mentions.channels.first();
+      if (!targetChannel && args[1]) {
+        const query = args[1].toLowerCase().replace(/^#/, '');
+        targetChannel = message.guild.channels.cache.find(c => 
+          c.id === query || 
+          c.name.toLowerCase() === query || 
+          c.name.toLowerCase().includes(query)
+        );
+      }
+
+      if (!targetChannel) {
+        targetChannel = message.guild.channels.cache.find(c => 
+          ['verify', 'verification', 'verify-here', 'get-verified', 'link-account'].includes(c.name.toLowerCase())
+        ) || message.channel;
       }
 
       const panelEmbed = buildVerificationPanelEmbed();
       const panelRow = buildVerificationPanelButtons();
-      await message.channel.send({ embeds: [panelEmbed], components: [panelRow] });
+      await targetChannel.send({ embeds: [panelEmbed], components: [panelRow] });
+      
+      if (targetChannel.id !== message.channel.id) {
+        await message.reply(`✅ Verification panel successfully deployed in <#${targetChannel.id}>!`);
+      }
       if (message.deletable) message.delete().catch(() => {});
       return;
     }

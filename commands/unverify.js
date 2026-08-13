@@ -103,33 +103,65 @@ module.exports = {
   },
 };
 
+function getGuildUnverifiedRoles(guild) {
+  return guild.roles.cache.filter(r => 
+    r.id === UNVERIFIED_ROLE_ID ||
+    r.name.toLowerCase() === 'unverified' ||
+    r.name.toLowerCase() === 'not verified' ||
+    r.name.toLowerCase() === 'pending verification'
+  );
+}
+
+function getGuildVerifiedRoles(guild) {
+  return guild.roles.cache.filter(r => 
+    VERIFIED_ROLE_IDS.includes(r.id) ||
+    r.name.toLowerCase() === 'verified' ||
+    r.name.toLowerCase() === 'htb verified' ||
+    r.name.toLowerCase() === 'htb fam' ||
+    r.name.toLowerCase() === 'member'
+  );
+}
+
 /**
  * Handle Server-Wide Mass Role Purge (Removes UNVERIFIED from all VERIFIED members)
  */
 async function handleMassRolePurge(guild, executor, progressCallback) {
   try {
-    // 1. Fetch entire guild member list (force fetch for 17k+ communities)
-    await progressCallback('🔄 **Fetching server member roster (17,000+ members)...**');
+    // 1. Fetch entire guild member list (force fetch for large communities)
+    await progressCallback('🔄 **Fetching server member roster...**');
     const allMembers = await guild.members.fetch({ force: true }).catch(async () => {
       return guild.members.cache;
     });
 
-    const unverifiedRole = guild.roles.cache.get(UNVERIFIED_ROLE_ID);
-    if (!unverifiedRole) {
+    const unverifiedRoles = getGuildUnverifiedRoles(guild);
+    const verifiedRoles = getGuildVerifiedRoles(guild);
+
+    if (unverifiedRoles.size === 0) {
       const errorEmbed = new EmbedBuilder()
         .setColor(0xEF4444)
         .setTitle('❌ Unverified Role Not Found')
-        .setDescription(`Could not find the Unverified role (\`${UNVERIFIED_ROLE_ID}\`) in this server.`);
+        .setDescription(`Could not find an Unverified role (by ID or named "Unverified") in **${guild.name}**.`);
       return progressCallback(errorEmbed, true);
     }
 
-    // 2. Find ALL members who have the UNVERIFIED role AND at least one VERIFIED role
+    if (verifiedRoles.size === 0) {
+      const errorEmbed = new EmbedBuilder()
+        .setColor(0xEF4444)
+        .setTitle('❌ Verified Role Not Found')
+        .setDescription(`Could not find a Verified role (by ID or named "Verified") in **${guild.name}**.`);
+      return progressCallback(errorEmbed, true);
+    }
+
+    const unverifiedRoleIds = Array.from(unverifiedRoles.keys());
+    const verifiedRoleIds = Array.from(verifiedRoles.keys());
+
+    // 2. Find ALL members who have ANY unverified role AND ANY verified role
     const membersToClean = [];
     for (const member of allMembers.values()) {
       if (member.user.bot) continue;
 
-      const hasUnverified = member.roles.cache.has(UNVERIFIED_ROLE_ID);
-      const hasVerified = VERIFIED_ROLE_IDS.some(id => member.roles.cache.has(id));
+      const hasUnverified = unverifiedRoleIds.some(id => member.roles.cache.has(id));
+      const hasVerified = verifiedRoleIds.some(id => member.roles.cache.has(id));
 
       if (hasUnverified && hasVerified) {
         membersToClean.push(member);
@@ -143,10 +175,10 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
         .setColor(0x00D632)
         .setTitle('✅ Server Already Clean!')
         .setDescription(
-          `Scanned **${allMembers.size}** total members.\n\n` +
-          `Zero members have both **Verified** and **Unverified** roles. Everyone with Verified is clean!`
+          `Scanned **${allMembers.size}** total members in **${guild.name}**.\n\n` +
+          `Zero members hold both **Verified** and **Unverified** roles. Everyone with Verified is clean!`
         )
-        .setFooter({ text: 'HTB Role Cleaner • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'HTB Role Cleaner • Universal Server Guard', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
       return progressCallback(cleanEmbed, true);
     }
 
@@ -160,10 +192,13 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
     for (let i = 0; i < totalToClean; i++) {
       const targetMember = membersToClean[i];
       try {
-        await targetMember.roles.remove(
-          UNVERIFIED_ROLE_ID,
-          `Mass purge by ${executor.tag} (.unverify purge) - Member already holds Verified role`
-        );
+        const rolesToRemove = unverifiedRoleIds.filter(id => targetMember.roles.cache.has(id));
+        if (rolesToRemove.length > 0) {
+          await targetMember.roles.remove(
+            rolesToRemove,
+            `Mass purge by ${executor.tag} (.unverify purge) - Member already holds Verified role`
+          );
+        }
         removedCount++;
       } catch (err) {
         failedCount++;
