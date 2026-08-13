@@ -65,8 +65,8 @@ const TICKET_TYPES = {
   },
 };
 
-function buildTicketSetupEmbed() {
-  return new EmbedBuilder()
+function buildTicketSetupEmbed(useAttachment = false) {
+  const embed = new EmbedBuilder()
     .setColor(0xF5AF19)
     .setAuthor({ name: 'HIT THE BLOCK • 17,000+ COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTitle('🎫 HIT THE BLOCK • TICKET GATEWAY')
@@ -87,9 +87,16 @@ function buildTicketSetupEmbed() {
       { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
-    .setImage('attachment://ticket_banner.jpg')
     .setFooter({ text: 'HTB Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
+
+  if (useAttachment) {
+    embed.setImage('attachment://ticket_banner.jpg');
+  } else {
+    embed.setImage('https://xynfnagsss-hub.github.io/htbwshop/ticket_banner.jpg');
+  }
+
+  return embed;
 }
 
 function buildTicketSetupButtons() {
@@ -133,13 +140,11 @@ function buildTicketSetupButtons() {
 }
 
 function findUniversalCategory(guild, typeInfo) {
-  // 1. Try hardcoded ID
   if (typeInfo.categoryId && guild.channels.cache.has(typeInfo.categoryId)) {
     const cat = guild.channels.cache.get(typeInfo.categoryId);
     if (cat && cat.type === ChannelType.GuildCategory) return cat;
   }
 
-  // 2. Fuzzy match category by name in the server
   const allCats = guild.channels.cache.filter(c => c.type === ChannelType.GuildCategory);
   const slug = (typeInfo.slug || '').toLowerCase();
   const name = (typeInfo.name || '').toLowerCase();
@@ -156,7 +161,6 @@ function findUniversalCategory(guild, typeInfo) {
 
   if (matched) return matched;
 
-  // 3. Fallback to any general ticket category
   const generalCat = allCats.find(c => c.name.toLowerCase().includes('ticket') || c.name.toLowerCase().includes('support'));
   return generalCat || null;
 }
@@ -189,13 +193,19 @@ module.exports = {
       return interaction.reply({ content: '❌ Only staff/administrators can deploy the ticket panel.', ephemeral: true });
     }
 
-    const panelEmbed = buildTicketSetupEmbed();
-    const panelButtonRows = buildTicketSetupButtons();
-    const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
-    const files = [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })];
+    try {
+      const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+      const hasLocalBanner = fs.existsSync(bannerPath);
+      const panelEmbed = buildTicketSetupEmbed(hasLocalBanner);
+      const panelButtonRows = buildTicketSetupButtons();
+      const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
 
-    await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
-    return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
+      await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
+    } catch (err) {
+      console.error('[Ticket Setup Error]:', err);
+      return interaction.reply({ content: `❌ Failed to deploy ticket panel: \`${err.message}\``, ephemeral: true });
+    }
   },
 
   async prefixExecute(message, args) {
@@ -204,33 +214,38 @@ module.exports = {
       return message.reply('❌ Only staff/administrators can deploy the ticket panel.');
     }
 
-    // Universal Channel Detection: mention, channel name query, or auto-detect by name
-    let targetChannel = message.mentions.channels.first();
-    if (!targetChannel && args[1]) {
-      const query = args[1].toLowerCase().replace(/^#/, '');
-      targetChannel = message.guild.channels.cache.find(c => 
-        c.id === query || 
-        c.name.toLowerCase() === query || 
-        c.name.toLowerCase().includes(query)
-      );
-    }
+    try {
+      let targetChannel = message.mentions.channels.first();
+      if (!targetChannel && args[1]) {
+        const query = args[1].toLowerCase().replace(/^#/, '');
+        targetChannel = message.guild.channels.cache.find(c => 
+          c.id === query || 
+          c.name.toLowerCase() === query || 
+          c.name.toLowerCase().includes(query)
+        );
+      }
 
-    if (!targetChannel) {
-      targetChannel = message.guild.channels.cache.find(c => 
-        ['tickets', 'ticket', 'ticket-setup', 'create-a-ticket', 'support', 'open-a-ticket', 'access'].includes(c.name.toLowerCase())
-      ) || message.channel;
-    }
+      if (!targetChannel) {
+        targetChannel = message.guild.channels.cache.find(c => 
+          ['tickets', 'ticket', 'ticket-setup', 'create-a-ticket', 'support', 'open-a-ticket', 'access'].includes(c.name.toLowerCase())
+        ) || message.channel;
+      }
 
-    const panelEmbed = buildTicketSetupEmbed();
-    const panelButtonRows = buildTicketSetupButtons();
-    const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
-    const files = [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })];
+      const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+      const hasLocalBanner = fs.existsSync(bannerPath);
+      const panelEmbed = buildTicketSetupEmbed(hasLocalBanner);
+      const panelButtonRows = buildTicketSetupButtons();
+      const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
 
-    await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
-    if (targetChannel.id !== message.channel.id) {
-      await message.reply(`✅ Ticket panel successfully deployed in <#${targetChannel.id}>!`);
+      await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      if (targetChannel.id !== message.channel.id) {
+        await message.reply(`✅ Ticket panel successfully deployed in <#${targetChannel.id}>!`);
+      }
+      if (message.deletable) message.delete().catch(() => {});
+    } catch (err) {
+      console.error('[Ticket Prefix Setup Error]:', err);
+      return message.reply(`❌ Failed to deploy ticket panel: \`${err.message}\`. Make sure the bot has "Embed Links" and "Attach Files" permissions in this channel.`);
     }
-    if (message.deletable) message.delete().catch(() => {});
   },
 
   async handleButton(interaction, client) {
