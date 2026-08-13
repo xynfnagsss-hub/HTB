@@ -9,6 +9,7 @@ const {
   AttachmentBuilder,
 } = require('discord.js');
 const path = require('path');
+const fs = require('fs');
 
 const DEFAULT_TICKET_CATEGORY_ID = '1399821317556932718';
 const STAFF_ROLE_IDS = ['1399808373230403634', '1462214761856110706'];
