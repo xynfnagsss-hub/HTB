@@ -1,7 +1,6 @@
 // Protected Admin / Owner User IDs who cannot be pinged under ANY circumstances
 const PROTECTED_PING_USER_IDS = [
   '674218467041345536',
-  '1508174981396168755',
 ];
 
 async function handleAutoMod(message) {

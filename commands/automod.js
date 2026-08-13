@@ -24,7 +24,7 @@ module.exports = {
         .setTitle('🛡️ Discord Native AutoMod Active')
         .setDescription(
           `Official Discord AutoMod rule **"HTB Anti-Ping Protection"** is fully deployed and active!\n\n` +
-          `• **Protected Owners**: <@674218467041345536>, <@1508174981396168755>\n` +
+          `• **Protected Owners**: <@674218467041345536>\n` +
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`
         )
@@ -51,7 +51,7 @@ module.exports = {
         .setTitle('🛡️ Discord Native AutoMod Active')
         .setDescription(
           `Official Discord AutoMod rule **"HTB Anti-Ping Protection"** is fully deployed and active!\n\n` +
-          `• **Protected Owners**: <@674218467041345536>, <@1508174981396168755>\n` +
+          `• **Protected Owners**: <@674218467041345536>\n` +
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`
         )

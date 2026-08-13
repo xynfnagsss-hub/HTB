@@ -5,7 +5,7 @@ const {
   AutoModerationActionType,
 } = require('discord.js');
 
-const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536', '1508174981396168755'];
+const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536'];
 const RULE_NAME = 'HTB Anti-Ping Protection';
 
 async function ensureNativeAutoModRule(guild) {
@@ -28,10 +28,7 @@ async function ensureNativeAutoModRule(guild) {
     const keywordFilter = [
       '<@674218467041345536>',
       '<@!674218467041345536>',
-      '<@1508174981396168755>',
-      '<@!1508174981396168755>',
       '*674218467041345536*',
-      '*1508174981396168755*',
     ];
 
     const ruleData = {
