@@ -113,37 +113,37 @@
         </a>
       </div>
 
-      <!-- Trust Metrics Strip -->
+      <!-- Server & Payment Info Strip -->
       <div class="metrics-grid">
         <div class="metric-card">
-          <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="metric-icon"><i class="fa-brands fa-discord"></i></div>
           <div class="metric-info">
             <span class="metric-val">17,000+</span>
-            <span class="metric-lbl">Active Members</span>
+            <span class="metric-lbl">Discord Members</span>
           </div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
+          <div class="metric-icon"><i class="fa-solid fa-cube"></i></div>
           <div class="metric-info">
-            <span class="metric-val">Instant</span>
-            <span class="metric-lbl">Role Assignment</span>
+            <span class="metric-val">316559660</span>
+            <span class="metric-lbl">Roblox Group ID</span>
           </div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-icon"><i class="fa-solid fa-shield-check"></i></div>
+          <div class="metric-icon"><i class="fa-solid fa-dollar-sign"></i></div>
           <div class="metric-info">
-            <span class="metric-val">100% Legit</span>
-            <span class="metric-lbl">Direct Staff Verification</span>
+            <span class="metric-val">$itsnabula</span>
+            <span class="metric-lbl">Official CashApp</span>
           </div>
         </div>
 
         <div class="metric-card">
-          <div class="metric-icon"><i class="fa-solid fa-ticket"></i></div>
+          <div class="metric-icon"><i class="fa-solid fa-shield"></i></div>
           <div class="metric-info">
-            <span class="metric-val">24/7 Staff</span>
-            <span class="metric-lbl">Ticket Support</span>
+            <span class="metric-val">Discord Tickets</span>
+            <span class="metric-lbl">Staff Delivery</span>
           </div>
         </div>
       </div>
@@ -205,6 +205,13 @@
         </div>
       </div>
 
+      <!-- Live Search & Filter Controls -->
+      <div class="search-bar-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="roleSearchInput" class="search-input" placeholder="Search roles, passes, staff positions, or command perks (e.g. Hitta, Mod, Custom, Admin)...">
+        <button class="search-clear-btn" id="searchClearBtn" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
       <!-- Category Filter Tabs -->
       <div class="filter-tabs" id="filterTabs">
         <button class="filter-tab active" data-category="all">
@@ -233,6 +240,8 @@
       </div>
     </div>
   </section>
+
+
 
   <!-- Rules & Policies Section -->
   <section class="features-section" id="rules">
@@ -432,13 +441,13 @@
         <div class="admin-shield-icon">
           <i class="fa-solid fa-shield-halved"></i>
         </div>
-        <h2 class="admin-title">HTB STAFF & ADMIN COMMAND</h2>
-        <p class="admin-subtitle">Restricted to authorized staff (IDs: <code>674218467041345536</code>, <code>1508174981396168755</code>) or Master Passcode.</p>
+        <h2 class="admin-title">HTB STAFF COMMAND CENTER</h2>
+        <p class="admin-subtitle">Authorized for Owner IDs (<code>674218467041345536</code>, <code>1508174981396168755</code>) or Master Passcode.</p>
 
         <div class="admin-auth-form">
-          <input type="password" id="adminPasscodeInput" class="form-input" placeholder="Enter Staff Passcode or ID...">
+          <input type="password" id="adminPasscodeInput" class="form-input" placeholder="Enter Master Passcode...">
           <button class="btn btn-primary btn-block" onclick="authenticateAdmin()">
-            <i class="fa-solid fa-key"></i> Unlock Admin Panel
+            <i class="fa-solid fa-key"></i> Unlock Command Center
           </button>
         </div>
       </div>
@@ -448,53 +457,136 @@
         <div class="admin-dash-header">
           <div class="admin-dash-title">
             <i class="fa-solid fa-terminal"></i>
-            <span>HTB Order Verification Command</span>
+            <span>HTB STAFF COMMAND CENTER</span>
+            <span class="admin-status-live"><span class="pulse-dot"></span> LIVE ESCROW</span>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="lockAdminPanel()">
-            <i class="fa-solid fa-lock"></i> Lock
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportOrdersToCSV()">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="lockAdminPanel()">
+              <i class="fa-solid fa-lock"></i> Lock
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Navigation Tabs -->
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="orders" onclick="switchAdminTab('orders')">
+            <i class="fa-solid fa-list-check"></i> Orders & Verification
+          </button>
+          <button class="admin-tab" data-tab="analytics" onclick="switchAdminTab('analytics')">
+            <i class="fa-solid fa-chart-pie"></i> Revenue Analytics
+          </button>
+          <button class="admin-tab" data-tab="roblox" onclick="switchAdminTab('roblox')">
+            <i class="fa-solid fa-cube"></i> Roblox Rank Sync
           </button>
         </div>
 
-        <!-- 1. Order Verification Tool -->
-        <div class="admin-verify-box">
-          <label class="admin-box-lbl"><i class="fa-solid fa-magnifying-glass"></i> VERIFY ORDER ID ON WEB</label>
-          <div class="verify-input-group">
-            <input type="text" id="verifyOrderIdInput" class="form-input" placeholder="Paste Order ID (e.g. HTB-748291)...">
-            <button class="btn btn-primary" onclick="verifyOrderOnWeb()">
-              <i class="fa-solid fa-check-double"></i> Verify Order ID
-            </button>
+        <!-- Tab 1: Orders & Verification -->
+        <div id="adminTabOrders" class="admin-tab-content active">
+          <!-- KPI Summary Strip -->
+          <div class="admin-kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">Total Revenue</span>
+              <span class="kpi-val" id="adminKpiRevenue">$0.00</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Total Orders</span>
+              <span class="kpi-val" id="adminKpiTotalOrders">0</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Pending Orders</span>
+              <span class="kpi-val" style="color: #f5af19;" id="adminKpiPending">0</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Delivered</span>
+              <span class="kpi-val" style="color: #00D632;" id="adminKpiDelivered">0</span>
+            </div>
           </div>
 
-          <!-- Result Container -->
-          <div id="verifyResultContainer" class="verify-result-container" style="display: none;">
-            <!-- Rendered by JS -->
+          <!-- Order Search & Inspector -->
+          <div class="admin-verify-box">
+            <label class="admin-box-lbl"><i class="fa-solid fa-magnifying-glass"></i> INSTANT ORDER LOOKUP</label>
+            <div class="verify-input-group">
+              <input type="text" id="verifyOrderIdInput" class="form-input" placeholder="Paste Order ID (e.g. HTB-123456)...">
+              <button class="btn btn-primary" onclick="verifyOrderOnWeb()">
+                <i class="fa-solid fa-magnifying-glass"></i> Inspect
+              </button>
+            </div>
+            <div id="verifyResultContainer" class="verify-result-container" style="display: none;"></div>
+          </div>
+
+          <!-- Orders Table with Filter -->
+          <div class="admin-orders-table-wrap">
+            <div class="table-header-flex">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="admin-box-lbl"><i class="fa-solid fa-receipt"></i> ORDER REGISTRY</span>
+                <select id="adminOrderFilterStatus" class="form-input" style="padding: 4px 10px; font-size: 0.8rem; width: auto;" onchange="filterAdminOrdersTable()">
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="VERIFIED">Verified</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="fetchRecentOrders()">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+
+            <div class="orders-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Buyer Discord</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminOrdersTableBody">
+                  <tr><td colspan="5" style="text-align: center; color: #8c97af; padding: 18px;">No orders found.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <!-- 2. Recent Live Orders Table -->
-        <div class="admin-orders-table-wrap">
-          <div class="table-header-flex">
-            <span class="admin-box-lbl"><i class="fa-solid fa-list-ol"></i> RECENT WEB ORDERS</span>
-            <button class="btn btn-secondary btn-sm" onclick="fetchRecentOrders()">
-              <i class="fa-solid fa-rotate"></i> Refresh
-            </button>
+        <!-- Tab 2: Analytics -->
+        <div id="adminTabAnalytics" class="admin-tab-content" style="display: none;">
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: #fff; margin-bottom: 12px;">Top Selling Roles & Tiers</h3>
+            <div id="adminTopSellingList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Populated by JS -->
+            </div>
           </div>
 
-          <div class="orders-table-container">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Buyer</th>
-                  <th>Total</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="adminOrdersTableBody">
-                <tr><td colspan="5" style="text-align: center; color: #8c97af;">Loading orders...</td></tr>
-              </tbody>
-            </table>
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light); margin-bottom: 8px;">Escrow & CashApp Settlement</h3>
+            <p style="font-size: 0.85rem; color: #a2afc6; line-height: 1.5;">
+              All incoming payments go directly to <strong>$itsnabula</strong>. Staff members must verify the Order ID in CashApp before marking orders as <strong>DELIVERED</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Roblox Rank Tool -->
+        <div id="adminTabRoblox" class="admin-tab-content" style="display: none;">
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: #fff; margin-bottom: 6px;">
+              <i class="fa-solid fa-shield"></i> Group Rank Management (ID: <code>316559660</code>)
+            </h3>
+            <p style="font-size: 0.84rem; color: #8c97af; margin-bottom: 16px;">Direct lookup and role syncing for Hit The Block Roblox members.</p>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+              <input type="text" id="adminRobloxUserInput" class="form-input" placeholder="Roblox Username or User ID..." style="flex: 1;">
+              <button class="btn btn-primary" onclick="lookupAdminRobloxUser()">
+                <i class="fa-solid fa-magnifying-glass"></i> Check User
+              </button>
+            </div>
+
+            <div id="adminRobloxResultBox" style="display: none; background: #080a0e; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px;"></div>
           </div>
         </div>
       </div>

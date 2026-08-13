@@ -45,7 +45,7 @@ module.exports = {
           { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${interaction.user.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -83,7 +83,7 @@ module.exports = {
           { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${message.author.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });

@@ -55,6 +55,6 @@ function buildRobloxEmbed(profile) {
       { name: '🔗 Profile Link', value: `[View on Roblox](https://www.roblox.com/users/${profile.userId}/profile)`, inline: true },
       { name: '⛔ Account Status', value: profile.isBanned ? '🚨 Banned' : '✅ Active', inline: true }
     )
-    .setFooter({ text: 'HTB Roblox System • 17k+ Community', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setFooter({ text: 'HTB Roblox System • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 }

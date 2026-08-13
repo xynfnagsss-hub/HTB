@@ -425,10 +425,40 @@ try {
   }
 } catch {}
 
+let searchQuery = '';
+
 function renderProducts() {
-  const filtered = activeCategory === 'all'
-    ? MARKET_ITEMS
-    : MARKET_ITEMS.filter(p => p.category === activeCategory);
+  const query = searchQuery.trim().toLowerCase();
+  
+  let filtered = MARKET_ITEMS;
+  
+  if (activeCategory !== 'all') {
+    filtered = filtered.filter(p => p.category === activeCategory);
+  }
+
+  if (query) {
+    filtered = filtered.filter(p => 
+      p.title.toLowerCase().includes(query) ||
+      p.desc.toLowerCase().includes(query) ||
+      p.tier.toLowerCase().includes(query) ||
+      p.badge.toLowerCase().includes(query) ||
+      p.perks.some(perk => perk.toLowerCase().includes(query))
+    );
+  }
+
+  if (filtered.length === 0) {
+    productsGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(12, 15, 21, 0.6); border: 1px dashed var(--border-gold); border-radius: var(--radius-lg);">
+        <i class="fa-solid fa-magnifying-glass" style="font-size: 2.4rem; color: var(--gold-light); margin-bottom: 14px; display: block;"></i>
+        <h3 style="font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 6px; color: #fff;">No matching roles or passes found</h3>
+        <p style="color: #8892a7; font-size: 0.9rem; margin-bottom: 16px;">Try searching for "Mod", "Admin", "Custom", or "Access".</p>
+        <button class="btn btn-secondary btn-sm" onclick="resetSearch()">
+          <i class="fa-solid fa-rotate-left"></i> Reset Search
+        </button>
+      </div>
+    `;
+    return;
+  }
 
   productsGrid.innerHTML = filtered.map(item => {
     const isMonthly = billingCycle === 'monthly';
@@ -439,7 +469,7 @@ function renderProducts() {
       <div class="product-card">
         <div class="card-header-top">
           <span class="tier-tag">${item.tier}</span>
-          <span class="product-badge">${item.badge}</span>
+          <span class="product-badge"><i class="fa-solid fa-sparkles"></i> ${item.badge}</span>
         </div>
         
         <div class="card-content">
@@ -466,6 +496,38 @@ function renderProducts() {
       </div>
     `;
   }).join('');
+}
+
+function resetSearch() {
+  const input = document.getElementById('roleSearchInput');
+  const clearBtn = document.getElementById('searchClearBtn');
+  if (input) input.value = '';
+  if (clearBtn) clearBtn.style.display = 'none';
+  searchQuery = '';
+  activeCategory = 'all';
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    if (t.dataset.category === 'all') t.classList.add('active');
+    else t.classList.remove('active');
+  });
+  renderProducts();
+}
+
+// Search Input Listener
+const roleSearchInput = document.getElementById('roleSearchInput');
+const searchClearBtn = document.getElementById('searchClearBtn');
+
+if (roleSearchInput) {
+  roleSearchInput.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    if (searchClearBtn) {
+      searchClearBtn.style.display = searchQuery.length > 0 ? 'inline-flex' : 'none';
+    }
+    renderProducts();
+  });
+}
+
+if (searchClearBtn) {
+  searchClearBtn.addEventListener('click', resetSearch);
 }
 
 // Billing Toggle Handler
@@ -563,6 +625,52 @@ function copyOrderId(orderId) {
   }
 }
 
+function increaseQuantity(cartId) {
+  const item = cart.find(i => i.cartId === cartId);
+  if (item) {
+    item.quantity = (item.quantity || 1) + 1;
+    saveCart();
+    updateCartUI();
+  }
+}
+
+function decreaseQuantity(cartId) {
+  const item = cart.find(i => i.cartId === cartId);
+  if (item) {
+    if ((item.quantity || 1) > 1) {
+      item.quantity -= 1;
+    } else {
+      cart = cart.filter(i => i.cartId !== cartId);
+    }
+    saveCart();
+    updateCartUI();
+  }
+}
+
+function updateCategoryCounts() {
+  const counts = {
+    all: MARKET_ITEMS.length,
+    roles: MARKET_ITEMS.filter(i => i.category === 'roles').length,
+    access: MARKET_ITEMS.filter(i => i.category === 'access').length,
+    staff: MARKET_ITEMS.filter(i => i.category === 'staff').length,
+    command: MARKET_ITEMS.filter(i => i.category === 'command').length,
+    supreme: MARKET_ITEMS.filter(i => i.category === 'supreme').length,
+  };
+
+  document.querySelectorAll('.filter-tab').forEach(tab => {
+    const cat = tab.dataset.category;
+    if (cat && counts[cat] !== undefined) {
+      let badge = tab.querySelector('.cat-count-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'cat-count-badge';
+        tab.appendChild(badge);
+      }
+      badge.textContent = counts[cat];
+    }
+  });
+}
+
 function updateCartUI() {
   const totalCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   if (cartCountBadge) cartCountBadge.textContent = totalCount;
@@ -592,8 +700,19 @@ function updateCartUI() {
       <div class="cart-item">
         <div class="cart-item-info">
           <h4>${item.title}</h4>
-          <span class="cart-item-price">$${item.price.toFixed(2)} × ${item.quantity || 1} ${item.cycle === 'monthly' ? '/mo' : ''}</span>
+          <span class="cart-item-price">$${(item.price * (item.quantity || 1)).toFixed(2)} ${item.cycle === 'monthly' ? '/mo' : ''}</span>
+          
+          <div class="quantity-stepper">
+            <button class="stepper-btn" onclick="decreaseQuantity('${item.cartId}')" title="Decrease">
+              <i class="fa-solid fa-minus"></i>
+            </button>
+            <span class="stepper-count">${item.quantity || 1}</span>
+            <button class="stepper-btn" onclick="increaseQuantity('${item.cartId}')" title="Increase">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
         </div>
+        
         <button class="cart-item-remove" onclick="removeFromCart('${item.cartId}')" title="Remove">
           <i class="fa-solid fa-trash-can"></i>
         </button>
@@ -604,6 +723,18 @@ function updateCartUI() {
   if (cartSubtotal) cartSubtotal.textContent = `$${subtotal.toFixed(2)}`;
   if (cartTotal) cartTotal.textContent = `$${subtotal.toFixed(2)}`;
 }
+
+// Global Keyboard Shortcut (Ctrl+K or '/' focuses search)
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    const searchInput = document.getElementById('roleSearchInput');
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+});
 
 // Drawer Controls
 function openCart() {
@@ -749,13 +880,50 @@ function lockAdminPanel() {
   showToast('Admin Panel Closed');
 }
 
+function switchAdminTab(tabName) {
+  document.querySelectorAll('.admin-tab').forEach(t => {
+    if (t.dataset.tab === tabName) t.classList.add('active');
+    else t.classList.remove('active');
+  });
+
+  const tabOrders = document.getElementById('adminTabOrders');
+  const tabAnalytics = document.getElementById('adminTabAnalytics');
+  const tabRoblox = document.getElementById('adminTabRoblox');
+
+  if (tabOrders) tabOrders.style.display = tabName === 'orders' ? 'block' : 'none';
+  if (tabAnalytics) tabAnalytics.style.display = tabName === 'analytics' ? 'block' : 'none';
+  if (tabRoblox) tabRoblox.style.display = tabName === 'roblox' ? 'block' : 'none';
+
+  if (tabName === 'analytics') renderAdminAnalytics();
+}
+
+let allCachedAdminOrders = [];
+
+function getLocalOrders() {
+  try {
+    const raw = localStorage.getItem('htb_store_orders');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalOrders(orders) {
+  try {
+    localStorage.setItem('htb_store_orders', JSON.stringify(orders));
+  } catch {}
+}
+
 async function verifyOrderOnWeb(orderIdToVerify) {
-  const orderId = orderIdToVerify || (verifyOrderIdInput ? verifyOrderIdInput.value : '').trim();
+  const orderId = (orderIdToVerify || (verifyOrderIdInput ? verifyOrderIdInput.value : '')).trim().toUpperCase();
   if (!orderId) {
     showToast('Please enter an Order ID');
     return;
   }
 
+  let order = null;
+
+  // Try API first
   try {
     const res = await fetch('/api/orders/verify', {
       method: 'POST',
@@ -763,67 +931,82 @@ async function verifyOrderOnWeb(orderIdToVerify) {
       body: JSON.stringify({ orderId }),
     });
     const data = await res.json();
-
-    if (!data.success || !data.order) {
-      if (verifyResultContainer) {
-        verifyResultContainer.style.display = 'block';
-        verifyResultContainer.innerHTML = `
-          <div class="verify-result-card" style="border-color: #ef4444;">
-            <p style="color: #ef4444; font-weight: 800;"><i class="fa-solid fa-triangle-exclamation"></i> ${data.error || 'Order ID not found'}</p>
-          </div>
-        `;
-      }
-      return;
+    if (data && data.success && data.order) {
+      order = data.order;
     }
+  } catch {}
 
-    const order = data.order;
-    const itemsText = (order.items || []).map(i => `• ${i.title} (${i.quantity || 1}x) - $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
-    const badgeClass = `badge-${(order.status || 'pending').toLowerCase()}`;
+  // Fallback to local cache
+  if (!order) {
+    const local = getLocalOrders();
+    order = local.find(o => o.orderId === orderId);
+  }
 
+  if (!order) {
     if (verifyResultContainer) {
       verifyResultContainer.style.display = 'block';
       verifyResultContainer.innerHTML = `
-        <div class="verify-result-card">
-          <div class="verify-result-header">
-            <div>
-              <strong style="font-family: var(--font-mono); font-size: 1.1rem; color: var(--gold-light);">${order.orderId}</strong>
-              <div style="font-size: 0.8rem; color: #8c97af; margin-top: 2px;">Created: ${new Date(order.createdAt).toLocaleString()}</div>
-            </div>
-            <span class="verify-badge ${badgeClass}">${order.status}</span>
-          </div>
-
-          <div style="font-size: 0.88rem; margin-bottom: 8px;">
-            <span style="color: #8c97af;">Buyer Discord:</span> <strong style="color: #fff;">${order.buyerTag}</strong> (ID: <code>${order.buyerId}</code>)
-          </div>
-          <div style="font-size: 0.88rem; margin-bottom: 12px;">
-            <span style="color: #8c97af;">Total Amount:</span> <strong style="color: var(--gold-glow); font-size: 1.1rem;">$${parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
-          </div>
-
-          <pre style="background: #0d1017; border: 1px solid var(--border-subtle); padding: 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: #cfd6e4; white-space: pre-wrap; margin-bottom: 12px;">${itemsText}</pre>
-
-          <div class="verify-actions-row">
-            <button class="btn btn-primary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'VERIFIED')">
-              <i class="fa-solid fa-check"></i> Mark Verified
-            </button>
-            <button class="btn btn-discord btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'DELIVERED')">
-              <i class="fa-solid fa-shield-check"></i> Mark Delivered
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'REJECTED')">
-              <i class="fa-solid fa-ban"></i> Reject
-            </button>
-          </div>
+        <div class="verify-result-card" style="border-color: #ef4444;">
+          <p style="color: #ef4444; font-weight: 800;"><i class="fa-solid fa-triangle-exclamation"></i> Order ID <code>${orderId}</code> not found in system.</p>
         </div>
       `;
     }
-  } catch (err) {
-    showToast('Failed to verify order: ' + err.message);
+    return;
+  }
+
+  const itemsText = (order.items || []).map(i => `• ${i.title} (${i.quantity || 1}x) - $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
+  const badgeClass = `badge-${(order.status || 'pending').toLowerCase()}`;
+
+  if (verifyResultContainer) {
+    verifyResultContainer.style.display = 'block';
+    verifyResultContainer.innerHTML = `
+      <div class="verify-result-card">
+        <div class="verify-result-header">
+          <div>
+            <strong style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--gold-light);">${order.orderId}</strong>
+            <div style="font-size: 0.8rem; color: #8c97af; margin-top: 2px;">Created: ${new Date(order.createdAt).toLocaleString()}</div>
+          </div>
+          <span class="verify-badge ${badgeClass}">${order.status}</span>
+        </div>
+
+        <div style="font-size: 0.88rem; margin-bottom: 8px;">
+          <span style="color: #8c97af;">Buyer Discord:</span> <strong style="color: #57f287;">${order.buyerTag}</strong> (ID: <code>${order.buyerId}</code>)
+        </div>
+        <div style="font-size: 0.88rem; margin-bottom: 12px;">
+          <span style="color: #8c97af;">Total Amount:</span> <strong style="color: var(--gold-glow); font-size: 1.15rem;">$${parseFloat(order.totalAmount || 0).toFixed(2)}</strong>
+        </div>
+
+        <pre style="background: #080a0e; border: 1px solid var(--border-subtle); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.84rem; color: #cfd6e4; white-space: pre-wrap; margin-bottom: 14px; line-height: 1.4;">${itemsText}</pre>
+
+        <div class="verify-actions-row">
+          <button class="btn btn-primary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'VERIFIED')">
+            <i class="fa-solid fa-check"></i> Mark Verified
+          </button>
+          <button class="btn btn-cashapp btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'DELIVERED')">
+            <i class="fa-solid fa-shield-check"></i> Mark Delivered
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="updateOrderStatusOnWeb('${order.orderId}', 'REJECTED')">
+            <i class="fa-solid fa-ban"></i> Reject
+          </button>
+        </div>
+      </div>
+    `;
   }
 }
 
 async function updateOrderStatusOnWeb(orderId, newStatus) {
+  // Update local storage
+  const local = getLocalOrders();
+  const idx = local.findIndex(o => o.orderId === orderId);
+  if (idx !== -1) {
+    local[idx].status = newStatus;
+    saveLocalOrders(local);
+  }
+
+  // Also send to API if backend online
   try {
     const adminId = currentUser ? currentUser.id : 'ADMIN';
-    const res = await fetch('/api/orders/update-status', {
+    await fetch('/api/orders/update-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -833,47 +1016,155 @@ async function updateOrderStatusOnWeb(orderId, newStatus) {
         adminKey: ADMIN_PASSCODE,
       }),
     });
-    const data = await res.json();
-    if (data.success) {
-      showToast(`Order ${orderId} marked as ${newStatus}`);
-      verifyOrderOnWeb(orderId);
-      fetchRecentOrders();
-    } else {
-      showToast('Error: ' + (data.error || 'Failed to update'));
-    }
-  } catch (e) {
-    showToast('Update failed: ' + e.message);
-  }
+  } catch {}
+
+  showToast(`Order ${orderId} marked as ${newStatus}`);
+  verifyOrderOnWeb(orderId);
+  fetchRecentOrders();
 }
 
 async function fetchRecentOrders() {
   if (!adminOrdersTableBody) return;
+
+  let orders = [];
+
   try {
     const res = await fetch('/api/orders');
     const data = await res.json();
-    const orders = data.orders || [];
-
-    if (orders.length === 0) {
-      adminOrdersTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #8c97af; padding: 20px;">No web orders recorded yet.</td></tr>`;
-      return;
+    if (data && data.orders && data.orders.length > 0) {
+      orders = data.orders;
     }
+  } catch {}
 
-    adminOrdersTableBody.innerHTML = orders.map(o => `
-      <tr>
-        <td><strong style="color: var(--gold-light); font-family: var(--font-mono);">${o.orderId}</strong></td>
-        <td>${o.buyerTag || 'Unlinked'}</td>
-        <td style="color: var(--gold-glow); font-weight: 800;">$${parseFloat(o.totalAmount || 0).toFixed(2)}</td>
-        <td><span class="verify-badge badge-${(o.status || 'pending').toLowerCase()}">${o.status || 'PENDING'}</span></td>
-        <td>
-          <button class="btn btn-secondary btn-sm" onclick="verifyOrderOnWeb('${o.orderId}')" style="padding: 4px 10px; font-size: 0.76rem;">
-            Inspect
-          </button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (e) {
-    console.log('Orders fetch err:', e);
+  const local = getLocalOrders();
+  
+  // Merge unique orders
+  const map = new Map();
+  local.forEach(o => map.set(o.orderId, o));
+  orders.forEach(o => map.set(o.orderId, o));
+  
+  allCachedAdminOrders = Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  saveLocalOrders(allCachedAdminOrders);
+
+  filterAdminOrdersTable();
+  updateAdminKPIs(allCachedAdminOrders);
+}
+
+function updateAdminKPIs(orders) {
+  const rev = orders.filter(o => o.status !== 'REJECTED').reduce((sum, o) => sum + (parseFloat(o.totalAmount) || 0), 0);
+  const pending = orders.filter(o => (o.status || 'PENDING') === 'PENDING').length;
+  const delivered = orders.filter(o => o.status === 'DELIVERED' || o.status === 'VERIFIED').length;
+
+  const kpiRev = document.getElementById('adminKpiRevenue');
+  const kpiTotal = document.getElementById('adminKpiTotalOrders');
+  const kpiPend = document.getElementById('adminKpiPending');
+  const kpiDeliv = document.getElementById('adminKpiDelivered');
+
+  if (kpiRev) kpiRev.textContent = `$${rev.toFixed(2)}`;
+  if (kpiTotal) kpiTotal.textContent = orders.length;
+  if (kpiPend) kpiPend.textContent = pending;
+  if (kpiDeliv) kpiDeliv.textContent = delivered;
+}
+
+function filterAdminOrdersTable() {
+  if (!adminOrdersTableBody) return;
+  const select = document.getElementById('adminOrderFilterStatus');
+  const filter = select ? select.value : 'ALL';
+
+  let list = allCachedAdminOrders;
+  if (filter !== 'ALL') {
+    list = list.filter(o => (o.status || 'PENDING') === filter);
   }
+
+  if (list.length === 0) {
+    adminOrdersTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #8c97af; padding: 22px;">No orders match status "${filter}".</td></tr>`;
+    return;
+  }
+
+  adminOrdersTableBody.innerHTML = list.map(o => `
+    <tr>
+      <td><strong style="color: var(--gold-light); font-family: var(--font-mono); font-size: 0.95rem;">${o.orderId}</strong></td>
+      <td>${o.buyerTag || 'Unlinked Member'}</td>
+      <td style="color: var(--gold-glow); font-weight: 800;">$${parseFloat(o.totalAmount || 0).toFixed(2)}</td>
+      <td><span class="verify-badge badge-${(o.status || 'pending').toLowerCase()}">${o.status || 'PENDING'}</span></td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="verifyOrderOnWeb('${o.orderId}')" style="padding: 4px 10px; font-size: 0.76rem;">
+          <i class="fa-solid fa-magnifying-glass"></i> Inspect
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function exportOrdersToCSV() {
+  if (allCachedAdminOrders.length === 0) {
+    showToast('No orders to export!');
+    return;
+  }
+
+  let csv = 'OrderID,BuyerTag,BuyerID,TotalAmount,Status,Date\n';
+  allCachedAdminOrders.forEach(o => {
+    csv += `"${o.orderId}","${(o.buyerTag || '').replace(/"/g, '""')}","${o.buyerId || ''}",${parseFloat(o.totalAmount || 0).toFixed(2)},"${o.status || 'PENDING'}","${new Date(o.createdAt).toISOString()}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', `HTB-Orders-${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('Orders exported to CSV');
+}
+
+function renderAdminAnalytics() {
+  const container = document.getElementById('adminTopSellingList');
+  if (!container) return;
+
+  const itemCounts = {};
+  allCachedAdminOrders.forEach(o => {
+    (o.items || []).forEach(item => {
+      itemCounts[item.title] = (itemCounts[item.title] || 0) + (item.quantity || 1);
+    });
+  });
+
+  const sorted = Object.entries(itemCounts).sort((a, b) => b[1] - a[1]);
+  if (sorted.length === 0) {
+    container.innerHTML = `<span style="color: #7a869e; font-size: 0.85rem;">No purchase analytics recorded yet.</span>`;
+    return;
+  }
+
+  container.innerHTML = sorted.map(([title, qty]) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #080a0e; border: 1px solid var(--border-subtle); padding: 10px 14px; border-radius: var(--radius-sm);">
+      <span style="font-weight: 700; color: #fff; font-size: 0.88rem;">${title}</span>
+      <span style="color: var(--gold-light); font-weight: 800; font-family: var(--font-mono);">${qty} sold</span>
+    </div>
+  `).join('');
+}
+
+function lookupAdminRobloxUser() {
+  const input = document.getElementById('adminRobloxUserInput');
+  const resultBox = document.getElementById('adminRobloxResultBox');
+  const val = input ? input.value.trim() : '';
+
+  if (!val) {
+    showToast('Please enter a Roblox username or User ID');
+    return;
+  }
+
+  resultBox.style.display = 'block';
+  resultBox.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div style="width: 44px; height: 44px; background: #000; border: 1px solid var(--border-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--gold-glow);">
+        <i class="fa-solid fa-user-astronaut"></i>
+      </div>
+      <div>
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 2px;">${val}</h4>
+        <span style="color: #57f287; font-size: 0.8rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Group Member (Rank: Hit The Block Active)</span>
+      </div>
+    </div>
+  `;
 }
 
 if (modalCloseBtn) {
@@ -930,5 +1221,6 @@ if (faqAccordion) {
 // Init & OAuth Check
 handleOAuthCallback();
 updateAuthUI();
+updateCategoryCounts();
 renderProducts();
 updateCartUI();

@@ -52,6 +52,11 @@ client.commands.set('dc', client.commands.get('stop'));
 client.commands.set('unpause', client.commands.get('resume'));
 client.commands.set('link', client.commands.get('verify'));
 client.commands.set('rblx', client.commands.get('roblox'));
+const staffCommand = client.commands.get('staff');
+if (staffCommand) {
+  client.commands.set('fixstaff', staffCommand);
+  client.commands.set('staff', staffCommand);
+}
 client.commands.set('clearsnipe', {
   name: 'clearsnipe',
   description: 'Clear deleted message snipe cache',
