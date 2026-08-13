@@ -132,11 +132,6 @@ function buildTicketSetupButtons() {
   return [row1, row2];
 }
 
-module.exports = {
-  data: new SlashCommandBuilder()
-    .setName('ticket')
-    .setDescription('Ticket system management.')
-    .addSubcommand(sub =>
 function findUniversalCategory(guild, typeInfo) {
   // 1. Try hardcoded ID
   if (typeInfo.categoryId && guild.channels.cache.has(typeInfo.categoryId)) {
