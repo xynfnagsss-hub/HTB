@@ -189,8 +189,12 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const isBypass = ADMIN_BYPASS_USERS.includes(interaction.user.id);
-    if (!isBypass && !interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild) && !interaction.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    const isBypass = ADMIN_BYPASS_USERS.includes(interaction.user.id) ||
+      interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild) ||
+      interaction.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+      interaction.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
+
+    if (!isBypass) {
       return interaction.reply({ content: '❌ Only staff/administrators can deploy the ticket panel.', ephemeral: true });
     }
 
@@ -201,7 +205,14 @@ module.exports = {
       const panelButtonRows = buildTicketSetupButtons();
       const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
 
-      await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      try {
+        await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      } catch {
+        // Fallback without local file attachment (use CDN link)
+        const cdnEmbed = buildTicketSetupEmbed(false);
+        await interaction.channel.send({ embeds: [cdnEmbed], components: panelButtonRows });
+      }
+
       return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
     } catch (err) {
       console.error('[Ticket Setup Error]:', err);
@@ -210,12 +221,17 @@ module.exports = {
   },
 
   async prefixExecute(message, args) {
-    const isBypass = ADMIN_BYPASS_USERS.includes(message.author.id);
-    if (!isBypass && !message.member.permissions.has(PermissionsBitField.Flags.ManageGuild) && !message.member.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    const isBypass = ADMIN_BYPASS_USERS.includes(message.author.id) ||
+      message.member.permissions.has(PermissionsBitField.Flags.ManageGuild) ||
+      message.member.permissions.has(PermissionsBitField.Flags.Administrator) ||
+      message.member.permissions.has(PermissionsBitField.Flags.ManageChannels);
+
+    if (!isBypass) {
       return message.reply('❌ Only staff/administrators can deploy the ticket panel.');
     }
 
     try {
+      // If a channel is explicitly passed (.ticket setup #channel or .ticket setup channel_name)
       let targetChannel = message.mentions.channels.first();
       if (!targetChannel && args[1]) {
         const query = args[1].toLowerCase().replace(/^#/, '');
@@ -226,10 +242,9 @@ module.exports = {
         );
       }
 
+      // Default directly to the channel where the command was typed
       if (!targetChannel) {
-        targetChannel = message.guild.channels.cache.find(c => 
-          ['tickets', 'ticket', 'ticket-setup', 'create-a-ticket', 'support', 'open-a-ticket', 'access'].includes(c.name.toLowerCase())
-        ) || message.channel;
+        targetChannel = message.channel;
       }
 
       const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
@@ -238,14 +253,21 @@ module.exports = {
       const panelButtonRows = buildTicketSetupButtons();
       const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
 
-      await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      try {
+        await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      } catch {
+        // Fallback without local file attachment (use CDN link)
+        const cdnEmbed = buildTicketSetupEmbed(false);
+        await targetChannel.send({ embeds: [cdnEmbed], components: panelButtonRows });
+      }
+
       if (targetChannel.id !== message.channel.id) {
         await message.reply(`✅ Ticket panel successfully deployed in <#${targetChannel.id}>!`);
       }
       if (message.deletable) message.delete().catch(() => {});
     } catch (err) {
       console.error('[Ticket Prefix Setup Error]:', err);
-      return message.reply(`❌ Failed to deploy ticket panel: \`${err.message}\`. Make sure the bot has "Embed Links" and "Attach Files" permissions in this channel.`);
+      return message.reply(`❌ Failed to deploy ticket panel: \`${err.message}\`. Make sure the bot has "Send Messages" and "Embed Links" permissions in this channel.`);
     }
   },
 
