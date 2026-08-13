@@ -28,10 +28,12 @@ async function initRoblox(cookie = process.env.ROBLOX_COOKIE) {
   }
 }
 
+const DEFAULT_ROBLOX_GROUP_ID = 316559660;
+
 /**
  * Lookup Player Profile & Avatars
  */
-async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP_ID) {
+async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_ROBLOX_GROUP_ID) {
   let userId;
   if (/^\d+$/.test(usernameOrId)) {
     userId = parseInt(usernameOrId);
@@ -45,12 +47,27 @@ async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP
   const avatars = await noblox.getPlayerThumbnail(userId, '420x420', 'png', false, 'Headshot');
   const avatarUrl = avatars && avatars[0] ? avatars[0].imageUrl : 'https://www.roblox.com/images/default.png';
 
+  const cleanGroupId = parseInt(groupId || DEFAULT_ROBLOX_GROUP_ID);
   let groupRank = 'Not in Group';
   let groupRankId = 0;
-  if (groupId) {
+
+  try {
+    groupRankId = await noblox.getRankInGroup(cleanGroupId, userId);
+    groupRank = await noblox.getRankNameInGroup(cleanGroupId, userId);
+  } catch {}
+
+  // Resilient REST API fallback if noblox returns 0 or errors
+  if (groupRankId === 0) {
     try {
-      groupRank = await noblox.getRankNameInGroup(parseInt(groupId), userId);
-      groupRankId = await noblox.getRankInGroup(parseInt(groupId), userId);
+      const fetch = globalThis.fetch || require('node-fetch');
+      const res = await fetch(`https://groups.roblox.com/v2/users/${userId}/groups/roles`).then(r => r.json());
+      if (res && res.data) {
+        const found = res.data.find(g => g.group && g.group.id === cleanGroupId);
+        if (found && found.role) {
+          groupRank = found.role.name || 'Member';
+          groupRankId = found.role.rank || 1;
+        }
+      }
     } catch {}
   }
 
@@ -71,12 +88,12 @@ async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP
 /**
  * Set / Change Member Rank in Roblox Group
  */
-async function setPlayerRank(groupId, targetUserId, rankIdentifier) {
+async function setPlayerRank(groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_ROBLOX_GROUP_ID, targetUserId, rankIdentifier) {
   if (!isRobloxAuthenticated) {
     throw new Error('Roblox bot session is not logged in. Set ROBLOX_COOKIE in environment variables to enable group ranking.');
   }
 
-  const cleanGroupId = parseInt(groupId || process.env.ROBLOX_GROUP_ID);
+  const cleanGroupId = parseInt(groupId || DEFAULT_ROBLOX_GROUP_ID);
   if (!cleanGroupId) throw new Error('Roblox Group ID is not configured.');
 
   let targetId = targetUserId;
@@ -184,11 +201,14 @@ async function getLinkedRobloxUser(discordId) {
 /**
  * Link Discord ID with Roblox Account
  */
-async function linkRobloxUser(discordId, robloxUsernameOrId, groupId = process.env.ROBLOX_GROUP_ID) {
-  const profile = await getPlayerProfile(robloxUsernameOrId, groupId);
+async function linkRobloxUser(discordId, robloxUsernameOrId, groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_ROBLOX_GROUP_ID) {
+  const cleanGroupId = parseInt(groupId || DEFAULT_ROBLOX_GROUP_ID);
+  const profile = await getPlayerProfile(robloxUsernameOrId, cleanGroupId);
 
-  const cleanGroupId = parseInt(groupId || '316559660');
-  if (profile.groupRankId === 0 || profile.groupRank === 'Not in Group') {
+  const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
+  const isBypass = ADMIN_BYPASS_USERS.includes(discordId);
+
+  if (!isBypass && (profile.groupRankId === 0 || profile.groupRank === 'Not in Group')) {
     const error = new Error(`You must join the official HTB Roblox Group before verifying.`);
     error.mustJoinGroup = true;
     error.groupId = cleanGroupId;
@@ -214,7 +234,7 @@ async function linkRobloxUser(discordId, robloxUsernameOrId, groupId = process.e
 /**
  * Auto-Rank a Discord Member in the Roblox Group based on their Discord Roles
  */
-async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBLOX_GROUP_ID) {
+async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_ROBLOX_GROUP_ID) {
   if (!member || !groupId || !isRobloxAuthenticated) return null;
 
   const linked = await getLinkedRobloxUser(member.id);
