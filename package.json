@@ -1,7 +1,7 @@
 {
-  "name": "tmn-bot",
+  "name": "tnm-bot",
   "version": "1.0.0",
-  "description": "TMN (Trust No Mob) Discord Bot with moderation and market commands",
+  "description": "TNM (Trust No Mob) Discord Bot with moderation and market commands",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

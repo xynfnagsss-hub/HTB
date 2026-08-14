@@ -1,6 +1,6 @@
-# TMN Bot — Trust No Mob Discord Bot
+# TNM Bot — Trust No Mob Discord Bot
 
-A Discord bot for the TMN server with moderation commands and a market price display.
+A Discord bot for the TNM server with moderation commands and a market price display.
 
 ---
 

@@ -6,7 +6,7 @@ const {
 } = require('discord.js');
 
 const DEFAULT_PROTECTED_USER_IDS = ['674218467041345536'];
-const RULE_NAME = 'TMN Anti-Ping Protection';
+const RULE_NAME = 'TNM Anti-Ping Protection';
 
 async function ensureNativeAutoModRule(guild) {
   if (!guild) return { success: false, reason: 'Invalid guild' };

@@ -83,7 +83,7 @@ module.exports = {
     const targetUser = message.mentions.users.first() || (args[0] ? await message.client.users.fetch(args[0]).catch(() => null) : null);
     if (!targetUser) {
       return message.reply(
-        '📌 **TMN Unverify Management:**\n' +
+        '📌 **TNM Unverify Management:**\n' +
         '• `.unverify purge` — **Removes the UNVERIFIED role (`1493511744339836939`) from EVERY member who has the VERIFIED role (`1399811369489928354`)** so they only keep Verified.\n' +
         '• `.unverify @member` — Unverifies and strips verified roles from a single member.'
       );
@@ -116,9 +116,9 @@ function getGuildVerifiedRoles(guild) {
   return guild.roles.cache.filter(r => 
     VERIFIED_ROLE_IDS.includes(r.id) ||
     r.name.toLowerCase() === 'verified' ||
-    r.name.toLowerCase() === 'tmn verified' ||
+    r.name.toLowerCase() === 'tnm verified' ||
     r.name.toLowerCase() === 'htb verified' ||
-    r.name.toLowerCase() === 'tmn fam' ||
+    r.name.toLowerCase() === 'tnm fam' ||
     r.name.toLowerCase() === 'htb fam' ||
     r.name.toLowerCase() === 'member'
   );
@@ -180,7 +180,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
           `Scanned **${allMembers.size}** total members in **${guild.name}**.\n\n` +
           `Zero members hold both **Verified** and **Unverified** roles. Everyone with Verified is clean!`
         )
-        .setFooter({ text: 'TMN Role Cleaner • Universal Server Guard', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Role Cleaner • Universal Server Guard' });
       return progressCallback(cleanEmbed, true);
     }
 
@@ -235,7 +235,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
         `• **Status:** Verified members now **ONLY** have Verified, with Unverified completely removed!\n\n` +
         `👮 **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TMN Role Management • Clean Verification System', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Role Management • Clean Verification System' })
       .setTimestamp();
 
     return progressCallback(finalEmbed, true);
@@ -277,7 +277,7 @@ async function handleUnverifySingleUser(member, executor, replyCallback) {
         `• **Database Link Cleared:** Yes\n` +
         `• **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TMN Roblox System • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Roblox System • 17k+ Community' })
       .setTimestamp();
 
     return replyCallback(embed);

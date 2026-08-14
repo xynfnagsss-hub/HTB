@@ -97,7 +97,7 @@ client.distube
         { name: 'Volume', value: `${queue.volume}%`, inline: true }
       )
       .setThumbnail(song.thumbnail)
-      .setFooter({ text: 'TMN Music System • 17k+ Community', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+      .setFooter({ text: 'TNM Music System • 17k+ Community' })
       .setTimestamp();
 
     queue.textChannel?.send({ embeds: [embed] }).catch(() => {});
@@ -166,7 +166,7 @@ app.get('/health', (req, res) => res.status(200).send('OK'));
 const inMemoryOrders = new Map();
 const Order = require('./models/Order');
 const ADMIN_USER_IDS = ['674218467041345536', '1508174981396168755'];
-const ADMIN_PASSCODE = 'TMN-ADMIN-2026';
+const ADMIN_PASSCODE = 'TNM-ADMIN-2026';
 
 // 1. Create / Save Order from Store
 app.post('/api/orders', async (req, res) => {
@@ -212,7 +212,7 @@ app.post('/api/orders/verify', async (req, res) => {
     }
 
     if (!order) {
-      return res.status(404).json({ error: `Order ID "${cleanId}" not found in TMN records.` });
+      return res.status(404).json({ error: `Order ID "${cleanId}" not found in TNM records.` });
     }
 
     res.json({ success: true, order });
@@ -232,7 +232,7 @@ app.post('/api/orders/update-status', async (req, res) => {
     let order = inMemoryOrders.get(cleanId) || { orderId: cleanId };
     order.status = status || 'VERIFIED';
     order.updatedAt = new Date();
-    order.verifiedBy = adminId || 'TMN Admin';
+    order.verifiedBy = adminId || 'TNM Admin';
     inMemoryOrders.set(cleanId, order);
 
     if (mongoose.connection.readyState === 1) {
@@ -264,7 +264,7 @@ app.get('/api/orders', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'online',
-    service: 'TMN Storefront & Discord Bot',
+    service: 'TNM Storefront & Discord Bot',
     bot: client.user?.tag || 'connecting...',
     uptime: process.uptime(),
   });
@@ -275,7 +275,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🌐 TMN Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
+  console.log(`🌐 TNM Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
 });
 
 if (String(PORT) !== '3000') {
@@ -334,8 +334,8 @@ async function startBotServices() {
 startBotServices();
 
 client.once('ready', async () => {
-  console.log(`✅ TMN Bot is online as ${client.user.tag}`);
-  client.user.setActivity('TMN | Trust No Mob', { type: 3 });
+  console.log(`✅ TNM Bot is online as ${client.user.tag}`);
+  client.user.setActivity('TNM | Trust No Mob', { type: 3 });
 
   // Grant ban and moderator roles + apply native Discord AutoMod anti-ping rules
   for (const guild of client.guilds.cache.values()) {
@@ -394,11 +394,11 @@ client.on('messageDelete', (message) => {
 
 client.on('interactionCreate', async (interaction) => {
   // 1. Verification Gateway Button Click
-  if (interaction.isButton() && interaction.customId === 'tmn_verify_btn') {
+  if (interaction.isButton() && interaction.customId === 'tnm_verify_btn') {
     const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
     const modal = new ModalBuilder()
-      .setCustomId('tmn_verify_modal')
-      .setTitle('TMN Roblox Verification');
+      .setCustomId('tnm_verify_modal')
+      .setTitle('TNM Roblox Verification');
 
     const usernameInput = new TextInputBuilder()
       .setCustomId('roblox_username_input')
@@ -413,7 +413,7 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   // 2. Verification Modal Submission
-  if (interaction.isModalSubmit() && interaction.customId === 'tmn_verify_modal') {
+  if (interaction.isModalSubmit() && interaction.customId === 'tnm_verify_modal') {
     const username = interaction.fields.getTextInputValue('roblox_username_input').trim();
     await interaction.deferReply({ ephemeral: true });
 

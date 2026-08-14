@@ -67,9 +67,9 @@ async function fixStaffChannels(guild) {
     const verifiedRoles = guild.roles.cache.filter(r => 
       VERIFIED_ROLE_IDS.includes(r.id) ||
       r.name.toLowerCase() === 'verified' ||
-      r.name.toLowerCase() === 'tmn verified' ||
+      r.name.toLowerCase() === 'tnm verified' ||
       r.name.toLowerCase() === 'htb verified' ||
-      r.name.toLowerCase() === 'tmn fam' ||
+      r.name.toLowerCase() === 'tnm fam' ||
       r.name.toLowerCase() === 'htb fam' ||
       r.name.toLowerCase() === 'member'
     );

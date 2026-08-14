@@ -21,7 +21,7 @@ module.exports = {
         { name: 'XP', value: `${userData.xp}`, inline: true },
         { name: 'Robux Earned', value: `💰 ${userData.robux} Robux`, inline: false },
       )
-      .setFooter({ text: 'TMN | Trust No Mob — Payout System' })
+      .setFooter({ text: 'TNM | Trust No Mob — Payout System' })
       .setTimestamp();
 
     message.channel.send({ embeds: [embed] });

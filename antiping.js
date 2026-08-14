@@ -24,7 +24,7 @@ module.exports = {
         { name: 'Replies Status', value: '✅ **Allowed** (Users can reply freely)' },
         { name: 'Direct @ Mentions', value: '🚫 **Filtered** (Manual @ pings removed)' }
       )
-      .setFooter({ text: 'TMN Security System' })
+      .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -45,7 +45,7 @@ module.exports = {
         { name: 'Replies Status', value: '✅ **Allowed** (Users can reply freely)' },
         { name: 'Direct @ Mentions', value: '🚫 **Filtered** (Manual @ pings removed)' }
       )
-      .setFooter({ text: 'TMN Security System' })
+      .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
     await message.reply({ embeds: [embed] });

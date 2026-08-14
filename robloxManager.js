@@ -120,7 +120,7 @@ async function setPlayerRank(groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_RO
   const previousRankName = await noblox.getRankNameInGroup(cleanGroupId, parseInt(targetId)).catch(() => 'Guest');
 
   if (previousRankId === 0) {
-    throw new Error(`Player "${targetName}" is not currently in the TMN Roblox Group. They must join the group (https://www.roblox.com/groups/${cleanGroupId}) before they can be ranked.`);
+    throw new Error(`Player "${targetName}" is not currently in the TNM Roblox Group. They must join the group (https://www.roblox.com/groups/${cleanGroupId}) before they can be ranked.`);
   }
 
   if (previousRankId === 255) {
@@ -209,7 +209,7 @@ async function linkRobloxUser(discordId, robloxUsernameOrId, groupId = process.e
   const isBypass = ADMIN_BYPASS_USERS.includes(discordId);
 
   if (!isBypass && (profile.groupRankId === 0 || profile.groupRank === 'Not in Group')) {
-    const error = new Error(`You must join the official TMN Roblox Group before verifying.`);
+    const error = new Error(`You must join the official TNM Roblox Group before verifying.`);
     error.mustJoinGroup = true;
     error.groupId = cleanGroupId;
     error.profile = profile;
@@ -240,7 +240,7 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
   const linked = await getLinkedRobloxUser(member.id);
   if (!linked) return null;
 
-  // Exact Role-to-Roblox Rank mapping for TMN Group 316559660
+  // Exact Role-to-Roblox Rank mapping for TNM Group 316559660
   const ROLE_RANK_MAP = [
     // Co Creator (Rank 254)
     { roleName: 'First in Command', rankName: 'Co Creator' },
@@ -255,10 +255,10 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     { roleName: 'Lead Moderator', rankName: 'Admin' },
     { roleName: 'Administrator', rankName: 'Admin' },
 
-    // TMN STAFF (Rank 252)
-    { roleName: 'Ticket Support', rankName: 'TMN STAFF' },
-    { roleName: 'CHAT/VC MOD', rankName: 'TMN STAFF' },
-    { roleName: 'Staff', rankName: 'TMN STAFF' },
+    // TNM STAFF (Rank 252)
+    { roleName: 'Ticket Support', rankName: 'TNM STAFF' },
+    { roleName: 'CHAT/VC MOD', rankName: 'TNM STAFF' },
+    { roleName: 'Staff', rankName: 'TNM STAFF' },
 
     // OneTap Access (Rank 3)
     { roleName: 'ONE-TAP ACCESS', rankName: 'OneTap Access' },
@@ -270,11 +270,11 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     { roleName: 'CUSTOM ROLE', rankName: 'Hitta Acess' },
     { roleName: 'Noted Member', rankName: 'Hitta Acess' },
 
-    // Free Access / TMN FAM (Rank 1 - Default Entry Rank)
-    { roleName: 'TMN FAM', rankName: 'TMN FAM' },
-    { roleName: 'Free Access', rankName: 'TMN FAM' },
-    { roleName: 'Verified', rankName: 'TMN FAM' },
-    { roleName: 'Member', rankName: 'TMN FAM' },
+    // Free Access / TNM FAM (Rank 1 - Default Entry Rank)
+    { roleName: 'TNM FAM', rankName: 'TNM FAM' },
+    { roleName: 'Free Access', rankName: 'TNM FAM' },
+    { roleName: 'Verified', rankName: 'TNM FAM' },
+    { roleName: 'Member', rankName: 'TNM FAM' },
   ];
 
   // If user is the bot account itself, skip ranking self
@@ -310,14 +310,14 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
     }
   }
 
-  // Default fallback: If in group, ensure they have at least "TMN FAM"
+  // Default fallback: If in group, ensure they have at least "TNM FAM"
   try {
-    if (currentRankName.toLowerCase() !== 'tmn fam' && currentRankName.toLowerCase() !== 'htb fam' && currentRankId <= 1) {
-      await noblox.setRank(parseInt(groupId), linked.robloxId, 'TMN FAM').catch(async () => {
+    if (currentRankName.toLowerCase() !== 'tnm fam' && currentRankName.toLowerCase() !== 'htb fam' && currentRankId <= 1) {
+      await noblox.setRank(parseInt(groupId), linked.robloxId, 'TNM FAM').catch(async () => {
         await noblox.setRank(parseInt(groupId), linked.robloxId, 1).catch(() => {});
       });
-      console.log(`⚡ [Auto-Rank]: Auto-roled ${linked.robloxUsername} to "TMN FAM" in Roblox Group`);
-      return { success: true, rank: 'TMN FAM' };
+      console.log(`⚡ [Auto-Rank]: Auto-roled ${linked.robloxUsername} to "TNM FAM" in Roblox Group`);
+      return { success: true, rank: 'TNM FAM' };
     }
   } catch (e) {
     console.error(`[Auto-Rank Default Error]:`, e.message);
@@ -335,7 +335,7 @@ function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, in
   if (!groupId) return;
 
   const cleanGroupId = parseInt(groupId);
-  console.log(`👀 [Roblox Manager]: Fast Group Join Watcher started for Group ID ${cleanGroupId} (Auto-Rank TMN FAM active - 10s poll)`);
+  console.log(`👀 [Roblox Manager]: Fast Group Join Watcher started for Group ID ${cleanGroupId} (Auto-Rank TNM FAM active - 10s poll)`);
 
   const pollGroupJoins = async () => {
     try {
@@ -349,10 +349,10 @@ function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, in
             const requesterId = req.requester?.userId;
             if (requesterId) {
               await noblox.handleJoinRequest(cleanGroupId, requesterId, true).catch(() => {});
-              await noblox.setRank(cleanGroupId, requesterId, 'TMN FAM').catch(async () => {
+              await noblox.setRank(cleanGroupId, requesterId, 'TNM FAM').catch(async () => {
                 await noblox.setRank(cleanGroupId, requesterId, 1).catch(() => {});
               });
-              console.log(`🎉 [Join Request Accepted]: Auto-accepted & ranked Roblox ID ${requesterId} to "TMN FAM"`);
+              console.log(`🎉 [Join Request Accepted]: Auto-accepted & ranked Roblox ID ${requesterId} to "TNM FAM"`);
             }
           }
         }
@@ -379,16 +379,16 @@ function startGroupJoinWatcher(client, groupId = process.env.ROBLOX_GROUP_ID, in
             processedJoiners.delete(first);
           }
 
-          // 3. Auto-Role in Roblox Group to "TMN FAM"
+          // 3. Auto-Role in Roblox Group to "TNM FAM"
           try {
             const currentRankName = await noblox.getRankNameInGroup(cleanGroupId, robloxUserId).catch(() => 'Guest');
             const currentRankId = await noblox.getRankInGroup(cleanGroupId, robloxUserId).catch(() => 0);
 
             if (currentRankId <= 1 || currentRankName.toLowerCase() === 'guest' || currentRankName.toLowerCase() === 'free access' || currentRankName.toLowerCase() === 'member') {
-              await noblox.setRank(cleanGroupId, robloxUserId, 'TMN FAM').catch(async () => {
+              await noblox.setRank(cleanGroupId, robloxUserId, 'TNM FAM').catch(async () => {
                 await noblox.setRank(cleanGroupId, robloxUserId, 1).catch(() => {});
               });
-              console.log(`🎉 [Group Join Auto-Role]: Auto-roled new joiner Roblox ID ${robloxUserId} (@${entry.actor?.user?.username || 'User'}) to "TMN FAM"`);
+              console.log(`🎉 [Group Join Auto-Role]: Auto-roled new joiner Roblox ID ${robloxUserId} (@${entry.actor?.user?.username || 'User'}) to "TNM FAM"`);
             }
           } catch (rankErr) {
             console.warn(`[Join Auto-Rank Error ${robloxUserId}]:`, rankErr.message);

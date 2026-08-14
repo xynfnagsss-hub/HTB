@@ -20,9 +20,9 @@ async function grantVerifiedRoles(member) {
   const verifiedRolesToGrant = guild.roles.cache.filter(r => 
     VERIFIED_ROLE_IDS.includes(r.id) ||
     r.name.toLowerCase() === 'verified' ||
-    r.name.toLowerCase() === 'tmn verified' ||
+    r.name.toLowerCase() === 'tnm verified' ||
     r.name.toLowerCase() === 'htb verified' ||
-    r.name.toLowerCase() === 'tmn fam' ||
+    r.name.toLowerCase() === 'tnm fam' ||
     r.name.toLowerCase() === 'htb fam' ||
     r.name.toLowerCase() === 'member'
   );
@@ -30,7 +30,7 @@ async function grantVerifiedRoles(member) {
   for (const role of verifiedRolesToGrant.values()) {
     try {
       if (!member.roles.cache.has(role.id)) {
-        await member.roles.add(role.id, 'TMN Roblox Verification Complete');
+        await member.roles.add(role.id, 'TNM Roblox Verification Complete');
       }
     } catch (e) {
       console.warn(`[Role Grant Warning ${role.name} (${role.id})]:`, e.message);
@@ -59,20 +59,19 @@ async function grantVerifiedRoles(member) {
 function buildVerificationPanelEmbed() {
   return new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setTitle('🛡️ HIT THE BLOCK • ROBLOX VERIFICATION GATEWAY')
+    .setTitle('🛡️ TRUST NO MOB • ROBLOX VERIFICATION GATEWAY')
     .setDescription(
-      `Welcome to **Trust No Mob (TMN)**! To unlock all server channels, community chat, voice rooms, and access passes, you must link your Roblox account.\n\n` +
+      `Welcome to **Trust No Mob (TNM)**! To unlock all server channels, community chat, voice rooms, and access passes, you must link your Roblox account.\n\n` +
       `📌 **VERIFICATION STEPS:**\n` +
-      `**1.** Click **"1. Join Roblox Group"** below to join the official **TMN | Trust No Mob** Roblox Group.\n` +
+      `**1.** Click **"1. Join Roblox Group"** below to join the official **TNM | Trust No Mob** Roblox Group.\n` +
       `**2.** Click **"2. Verify Account"** and enter your exact Roblox username in the popup modal.\n` +
       `**3.** Once confirmed, the bot grants you your **Verified Roles** and full server access immediately!\n\n` +
       `⚠️ *Note: You MUST be a member of the Roblox Group or verification will be rejected.*`
     )
     .addFields(
-      { name: '🛡️ Official Roblox Group', value: `[TMN | Trust No Mob (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
+      { name: '🛡️ Official Roblox Group', value: `[TNM | Trust No Mob (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
-    .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'TMN Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    .setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660' });
 }
 
 function buildVerificationPanelButtons() {
@@ -83,7 +82,7 @@ function buildVerificationPanelButtons() {
       .setStyle(ButtonStyle.Link)
       .setEmoji('🔗'),
     new ButtonBuilder()
-      .setCustomId('tmn_verify_btn')
+      .setCustomId('tnm_verify_btn')
       .setLabel('2. Verify Account')
       .setStyle(ButtonStyle.Success)
       .setEmoji('✅')
@@ -227,15 +226,15 @@ function buildMustJoinEmbed(profile, groupId) {
     .setTitle('⚠️ Roblox Group Membership Required')
     .setThumbnail(profile ? profile.avatarUrl : null)
     .setDescription(
-      `Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **TMN | Trust No Mob** Roblox Group before you can verify.\n\n` +
-      `👉 **[Click Here to Join TMN Roblox Group](${groupUrl})**\n\n` +
+      `Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **TNM | Trust No Mob** Roblox Group before you can verify.\n\n` +
+      `👉 **[Click Here to Join TNM Roblox Group](${groupUrl})**\n\n` +
       `*Once you click "Join Group" on Roblox, click the **Verify Account** button again (or run \`.verify ${profile ? profile.username : ''}\`) to unlock the server and claim your ranks!*`
     )
     .addFields(
-      { name: '🛡️ Target Group', value: `[TMN | Trust No Mob](${groupUrl})`, inline: true },
+      { name: '🛡️ Target Group', value: `[TNM | Trust No Mob](${groupUrl})`, inline: true },
       { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
     )
-    .setFooter({ text: 'TMN Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Group Join Required' })
     .setTimestamp();
 }
 
@@ -250,10 +249,10 @@ function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
     )
     .addFields(
       { name: '🆔 Roblox ID', value: `\`${robloxProfile.userId}\``, inline: true },
-      { name: '🛡️ TMN Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
+      { name: '🛡️ TNM Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
       { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Synced to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
     )
-    .setFooter({ text: 'TMN Roblox Verification • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Trust No Mob' })
     .setTimestamp();
 
   return embed;
