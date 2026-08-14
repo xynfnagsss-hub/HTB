@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  <title>TNM MARKET | Trust No Mob Official Store</title>
+  <meta name="description" content="Official TNM (Trust No Mob) Market. Official roles, server access passes, staff clearance, and high command ranks for 17,000+ verified members.">
+  
+  <!-- Open Graph / Meta -->
+  <meta property="og:title" content="TNM MARKET | Trust No Mob Official Store">
+  <meta property="og:description" content="Official TNM Roles, Access Passes, and High Command Tiers. Trusted by 17k+ community members.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://xynfnagsss-hub.github.io/htbwshop/">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+  
+  <!-- Google Fonts: Space Grotesk, Outfit, Inter, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800;900&family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient Gold Atmosphere -->
+  <div class="ambient-grid"></div>
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <!-- Announcement Bar -->
+  <div class="top-banner">
+    <div class="banner-content">
+      <span class="pulse-dot"></span>
+      <span class="banner-text">⚡ <strong>TNM OFFICIAL MARKET:</strong> Instant ticket delivery in our 17k+ Discord server. NO REFUNDS.</span>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand-logo">
+        <img src="logo.png" alt="TNM Logo" class="brand-logo-img">
+        <span class="logo-text">TNM<span class="text-gradient">MARKET</span></span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="#products" class="nav-link active">Marketplace</a>
+        <a href="#how-to-buy" class="nav-link">How To Buy</a>
+        <a href="#rules" class="nav-link">Rules & Policy</a>
+        <a href="#faq" class="nav-link">FAQ</a>
+        <a href="javascript:void(0)" class="nav-link nav-admin-link" id="navAdminBtn" onclick="openAdminPanel()" style="display: none;">
+          <i class="fa-solid fa-crown"></i> Admin Panel
+        </a>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Auth Container (Switches between Login Button & User Profile Pill) -->
+        <div id="authContainer">
+          <button class="btn btn-auth" id="loginModalBtn">
+            <i class="fa-solid fa-user-lock"></i>
+            <span>Login</span>
+          </button>
+        </div>
+
+        <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener" class="btn btn-discord" id="discordJoinBtn">
+          <i class="fa-brands fa-discord"></i>
+          <span>17k+ Server</span>
+        </a>
+
+        <button class="cart-trigger-btn" id="cartToggleBtn" aria-label="Open Order List">
+          <i class="fa-solid fa-ticket"></i>
+          <span class="cart-badge" id="cartCountBadge">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-container">
+      <div class="hero-emblem-wrap">
+        <img src="logo.png" alt="Trust No Mob Emblem" class="hero-emblem">
+      </div>
+
+      <div class="hero-badge">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>TRUST NO MOB • OFFICIAL COMMUNITY MARKET • 17,000+ MEMBERS</span>
+      </div>
+
+      <h1 class="hero-title">
+        CLAIM YOUR STATUS IN <span class="text-gradient">TRUST NO MOB</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Official recognized roles, server access passes, staff positions, and Supreme Command ranks. Available in Lifetime Access or Monthly Subscriptions.
+      </p>
+
+      <div class="hero-buttons">
+        <a href="#products" class="btn btn-primary btn-lg" id="exploreMarketBtn">
+          <i class="fa-solid fa-fire"></i>
+          <span>Browse All Roles</span>
+        </a>
+        <a href="#how-to-buy" class="btn btn-secondary btn-lg">
+          <i class="fa-solid fa-list-check"></i>
+          <span>How To Purchase</span>
+        </a>
+      </div>
+
+      <!-- Server & Payment Info Strip -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-brands fa-discord"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">17,000+</span>
+            <span class="metric-lbl">Discord Members</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-cube"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">316559660</span>
+            <span class="metric-lbl">Roblox Group ID</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-dollar-sign"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">$itsnabula</span>
+            <span class="metric-lbl">Official CashApp</span>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon"><i class="fa-solid fa-shield"></i></div>
+          <div class="metric-info">
+            <span class="metric-val">Discord Tickets</span>
+            <span class="metric-lbl">Staff Delivery</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step-by-Step "How to Purchase" Section -->
+  <section class="steps-section" id="how-to-buy">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">PURCHASE GUIDE</span>
+        <h2 class="section-title">How To Purchase (3 Simple Steps)</h2>
+        <p class="section-desc">Follow these quick steps to get your roles and access granted immediately.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon"><i class="fa-solid fa-cubes"></i></div>
+          <h3 class="step-title">Select Your Roles & Plan</h3>
+          <p class="step-desc">Choose between <strong>Lifetime Access</strong> or <strong>Monthly Subscriptions</strong> and click "Select" on any roles or access passes you want.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon"><i class="fa-solid fa-ticket"></i></div>
+          <h3 class="step-title">Generate Order Code</h3>
+          <p class="step-desc">Open your cart drawer and click <strong>"Create Ticket Order"</strong> to generate your unique <code>TNM-XXXXXX</code> Order Summary ID.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon"><i class="fa-brands fa-discord"></i></div>
+          <h3 class="step-title">Claim in Discord Ticket</h3>
+          <p class="step-desc">Click the Discord button to join <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener">discord.gg/xqz5TztwNM</a>, open a purchase ticket, and paste your Order ID!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Store Market Section -->
+  <section class="products-section" id="products">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">TNM INVENTORY</span>
+        <h2 class="section-title">Official Roles & Access Tiers</h2>
+        <p class="section-desc">Select any role below to generate your order ticket summary.</p>
+      </div>
+
+      <!-- Billing Cycle Toggle Switcher -->
+      <div class="billing-toggle-container">
+        <div class="billing-toggle" id="billingToggle">
+          <button class="billing-btn active" data-cycle="lifetime">
+            <i class="fa-solid fa-infinity"></i> Lifetime Access
+          </button>
+          <button class="billing-btn" data-cycle="monthly">
+            <i class="fa-solid fa-calendar-days"></i> Monthly Subscriptions <span class="discount-badge">Save ~55%</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Search & Filter Controls -->
+      <div class="search-bar-wrap">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="roleSearchInput" class="search-input" placeholder="Search roles, passes, staff positions, or command perks (e.g. Hitta, Mod, Custom, Admin)...">
+        <button class="search-clear-btn" id="searchClearBtn" style="display: none;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-category="all">
+          <i class="fa-solid fa-border-all"></i> All Tiers
+        </button>
+        <button class="filter-tab" data-category="roles">
+          <i class="fa-solid fa-tag"></i> Member & Custom
+        </button>
+        <button class="filter-tab" data-category="access">
+          <i class="fa-solid fa-key"></i> Access Passes
+        </button>
+        <button class="filter-tab" data-category="staff">
+          <i class="fa-solid fa-shield-halved"></i> Staff & Mod
+        </button>
+        <button class="filter-tab" data-category="command">
+          <i class="fa-solid fa-medal"></i> High Command
+        </button>
+        <button class="filter-tab" data-category="supreme">
+          <i class="fa-solid fa-crown"></i> Supreme Leadership
+        </button>
+      </div>
+
+      <!-- Products Grid (Populated via JS) -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Rendered dynamically by app.js from .market -->
+      </div>
+    </div>
+  </section>
+
+
+
+  <!-- Rules & Policies Section -->
+  <section class="features-section" id="rules">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">MARKETPLACE POLICY</span>
+        <h2 class="section-title">Important Market Rules</h2>
+        <p class="section-desc">Please review our official purchasing policies before opening a ticket.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-ban"></i></div>
+          <h3 class="feature-title">Strictly No Refunds</h3>
+          <p class="feature-text">All transactions for roles, passes, and command tiers are final once granted in the Discord server.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-ticket"></i></div>
+          <h3 class="feature-title">Ticket Claim System</h3>
+          <p class="feature-text">All purchases are completed inside Discord tickets to ensure security and direct staff verification.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-wallet"></i></div>
+          <h3 class="feature-title">Accepted Payment Methods</h3>
+          <p class="feature-text">CashApp, Venmo, PayPal, Crypto (LTC/BTC/USDT), Apple Pay, and Robux rates via official ticket staff.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fa-solid fa-gavel"></i></div>
+          <h3 class="feature-title">Staff Guidelines</h3>
+          <p class="feature-text">Staff roles marked (CANT SELL) are bound to server rules and subject to high-command leadership reviews.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="faq-section" id="faq">
+    <div class="section-container">
+      <div class="section-header">
+        <span class="section-tag">QUESTIONS & ANSWERS</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-desc">Everything you need to know about purchasing roles and access in TNM.</p>
+      </div>
+
+      <div class="faq-accordion" id="faqAccordion">
+        <div class="faq-item active">
+          <button class="faq-question" aria-expanded="true">
+            <span>How do I purchase a role or access pass?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Click "Select" on any role to add it to your ticket summary, then click "Create Ticket Order" to copy your Order Code and open a ticket in <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener">discord.gg/xqz5TztwNM</a>!</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>How does the Monthly option work?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Monthly subscriptions give you active access and role status for 30 days at over 50% discount. You can renew every month inside your Discord ticket!</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>What payment methods are supported?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>We accept CashApp, Venmo, PayPal, Crypto (LTC/BTC/USDT), Apple Pay, Card, and Robux gamepass transfers.</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>How long does role delivery take?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>Role assignment is processed immediately once payment is confirmed inside your support ticket (usually 1–3 minutes).</p>
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            <span>What is the refund policy?</span>
+            <i class="fa-solid fa-chevron-down"></i>
+          </button>
+          <div class="faq-answer">
+            <p>As stated in our server rules and `.market` command, all sales are final with NO REFUNDS.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Slide-Over Shopping / Ticket Drawer -->
+  <div class="cart-backdrop" id="cartBackdrop"></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-label="Ticket Order Summary">
+    <div class="cart-header">
+      <div class="cart-title">
+        <i class="fa-solid fa-ticket"></i>
+        <span>Your Order Summary</span>
+      </div>
+      <button class="close-cart-btn" id="closeCartBtn" aria-label="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="cart-body" id="cartItemsContainer">
+      <!-- Injected by app.js -->
+    </div>
+
+    <div class="cart-footer" id="cartFooter">
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>Subtotal:</span>
+          <span class="summary-val" id="cartSubtotal">$0.00</span>
+        </div>
+        <div class="summary-row total-row">
+          <span>Total:</span>
+          <span class="summary-val total-val" id="cartTotal">$0.00</span>
+        </div>
+      </div>
+
+      <div class="cart-actions">
+        <button class="btn btn-primary btn-block" id="checkoutBtn">
+          <i class="fa-brands fa-discord"></i>
+          <span>Create Ticket Order</span>
+        </button>
+        <button class="btn btn-secondary btn-block btn-sm" id="clearCartBtn">
+          <i class="fa-solid fa-trash-can"></i>
+          <span>Clear Selection</span>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Login Modal (Discord & Google OAuth) -->
+  <div class="modal-backdrop" id="loginModalBackdrop">
+    <div class="modal-card" id="loginModalCard">
+      <button class="modal-close" id="loginModalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="login-modal-content">
+        <div class="login-logo-wrap">
+          <img src="logo.png" alt="TNM Emblem" class="login-logo">
+        </div>
+        <h2 class="login-title">LINK DISCORD ACCOUNT</h2>
+        <p class="login-desc">Connect your Discord username or ID to instantly sync roles, passes, and order tickets.</p>
+
+        <!-- Primary Option: 1-Tap Instant Discord Link (Works 100% on Mobile & PC) -->
+        <div style="background: rgba(245, 175, 25, 0.06); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; text-align: left;">
+          <label style="display: block; font-size: 0.82rem; font-weight: 800; color: var(--gold-light); text-transform: uppercase; margin-bottom: 8px;">
+            <i class="fa-brands fa-discord"></i> Enter Discord Username or User ID
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="manualDiscordUsernameInput" class="form-input" placeholder="e.g. ctsjayl or 674218467041345536" style="flex: 1; padding: 12px 14px; font-size: 0.95rem;">
+            <button class="btn btn-primary" onclick="loginWithManualUsername()" style="padding: 0 18px; font-weight: 800;">
+              <i class="fa-solid fa-check"></i> Link
+            </button>
+          </div>
+          <span style="display: block; font-size: 0.76rem; color: #8892a7; margin-top: 6px;">Instant link — no popups or permissions required!</span>
+        </div>
+
+        <div style="margin: 14px 0 12px; display: flex; align-items: center; gap: 8px;">
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+          <span style="font-size: 0.74rem; color: #768196; text-transform: uppercase; font-weight: 700;">or authenticate via discord oauth</span>
+          <div style="flex: 1; height: 1px; background: var(--border-subtle);"></div>
+        </div>
+
+        <div class="oauth-buttons-wrap">
+          <!-- Discord OAuth Button -->
+          <a href="#" class="btn-oauth btn-oauth-discord" id="discordAuthBtn" style="padding: 13px;">
+            <i class="fa-brands fa-discord"></i>
+            <span>Continue with Discord OAuth</span>
+          </a>
+        </div>
+
+        <p class="oauth-disclaimer" style="margin-top: 14px;">
+          By linking your account, you agree to TNM community rules & instant order delivery.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Panel Modal -->
+  <div class="modal-backdrop" id="adminModalBackdrop">
+    <div class="modal-card admin-modal-card" id="adminModalCard">
+      <button class="modal-close" id="adminModalCloseBtn" onclick="closeAdminPanel()"><i class="fa-solid fa-xmark"></i></button>
+      
+      <!-- Admin Login Screen (if not unlocked) -->
+      <div id="adminAuthScreen" class="admin-auth-screen">
+        <div class="admin-shield-icon">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2 class="admin-title">TNM STAFF COMMAND CENTER</h2>
+        <p class="admin-subtitle">Authorized for Owner IDs (<code>674218467041345536</code>, <code>1508174981396168755</code>) or Master Passcode.</p>
+
+        <div class="admin-auth-form">
+          <input type="password" id="adminPasscodeInput" class="form-input" placeholder="Enter Master Passcode...">
+          <button class="btn btn-primary btn-block" onclick="authenticateAdmin()">
+            <i class="fa-solid fa-key"></i> Unlock Command Center
+          </button>
+        </div>
+      </div>
+
+      <!-- Admin Dashboard Screen (Unlocked) -->
+      <div id="adminDashboardScreen" class="admin-dashboard-screen" style="display: none;">
+        <div class="admin-dash-header">
+          <div class="admin-dash-title">
+            <i class="fa-solid fa-terminal"></i>
+            <span>TNM STAFF COMMAND CENTER</span>
+            <span class="admin-status-live"><span class="pulse-dot"></span> LIVE ESCROW</span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportOrdersToCSV()">
+              <i class="fa-solid fa-file-csv"></i> Export CSV
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="lockAdminPanel()">
+              <i class="fa-solid fa-lock"></i> Lock
+            </button>
+          </div>
+        </div>
+
+        <!-- Admin Navigation Tabs -->
+        <div class="admin-tabs">
+          <button class="admin-tab active" data-tab="orders" onclick="switchAdminTab('orders')">
+            <i class="fa-solid fa-list-check"></i> Orders & Verification
+          </button>
+          <button class="admin-tab" data-tab="analytics" onclick="switchAdminTab('analytics')">
+            <i class="fa-solid fa-chart-pie"></i> Revenue Analytics
+          </button>
+          <button class="admin-tab" data-tab="roblox" onclick="switchAdminTab('roblox')">
+            <i class="fa-solid fa-cube"></i> Roblox Rank Sync
+          </button>
+        </div>
+
+        <!-- Tab 1: Orders & Verification -->
+        <div id="adminTabOrders" class="admin-tab-content active">
+          <!-- KPI Summary Strip -->
+          <div class="admin-kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-title">Total Revenue</span>
+              <span class="kpi-val" id="adminKpiRevenue">$0.00</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Total Orders</span>
+              <span class="kpi-val" id="adminKpiTotalOrders">0</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Pending Orders</span>
+              <span class="kpi-val" style="color: #f5af19;" id="adminKpiPending">0</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-title">Delivered</span>
+              <span class="kpi-val" style="color: #00D632;" id="adminKpiDelivered">0</span>
+            </div>
+          </div>
+
+          <!-- Order Search & Inspector -->
+          <div class="admin-verify-box">
+            <label class="admin-box-lbl"><i class="fa-solid fa-magnifying-glass"></i> INSTANT ORDER LOOKUP</label>
+            <div class="verify-input-group">
+              <input type="text" id="verifyOrderIdInput" class="form-input" placeholder="Paste Order ID (e.g. TNM-123456)...">
+              <button class="btn btn-primary" onclick="verifyOrderOnWeb()">
+                <i class="fa-solid fa-magnifying-glass"></i> Inspect
+              </button>
+            </div>
+            <div id="verifyResultContainer" class="verify-result-container" style="display: none;"></div>
+          </div>
+
+          <!-- Orders Table with Filter -->
+          <div class="admin-orders-table-wrap">
+            <div class="table-header-flex">
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="admin-box-lbl"><i class="fa-solid fa-receipt"></i> ORDER REGISTRY</span>
+                <select id="adminOrderFilterStatus" class="form-input" style="padding: 4px 10px; font-size: 0.8rem; width: auto;" onchange="filterAdminOrdersTable()">
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="VERIFIED">Verified</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="REJECTED">Rejected</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="fetchRecentOrders()">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+
+            <div class="orders-table-container">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order ID</th>
+                    <th>Buyer Discord</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminOrdersTableBody">
+                  <tr><td colspan="5" style="text-align: center; color: #8c97af; padding: 18px;">No orders found.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Analytics -->
+        <div id="adminTabAnalytics" class="admin-tab-content" style="display: none;">
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: #fff; margin-bottom: 12px;">Top Selling Roles & Tiers</h3>
+            <div id="adminTopSellingList" style="display: flex; flex-direction: column; gap: 8px;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1rem; color: var(--gold-light); margin-bottom: 8px;">Escrow & CashApp Settlement</h3>
+            <p style="font-size: 0.85rem; color: #a2afc6; line-height: 1.5;">
+              All incoming payments go directly to <strong>$itsnabula</strong>. Staff members must verify the Order ID in CashApp before marking orders as <strong>DELIVERED</strong>.
+            </p>
+          </div>
+        </div>
+
+        <!-- Tab 3: Roblox Rank Tool -->
+        <div id="adminTabRoblox" class="admin-tab-content" style="display: none;">
+          <div style="background: rgba(12, 15, 21, 0.7); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 20px;">
+            <h3 style="font-family: var(--font-heading); font-size: 1.1rem; color: #fff; margin-bottom: 6px;">
+              <i class="fa-solid fa-shield"></i> Group Rank Management (ID: <code>316559660</code>)
+            </h3>
+            <p style="font-size: 0.84rem; color: #8c97af; margin-bottom: 16px;">Direct lookup and role syncing for Trust No Mob Roblox members.</p>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+              <input type="text" id="adminRobloxUserInput" class="form-input" placeholder="Roblox Username or User ID..." style="flex: 1;">
+              <button class="btn btn-primary" onclick="lookupAdminRobloxUser()">
+                <i class="fa-solid fa-magnifying-glass"></i> Check User
+              </button>
+            </div>
+
+            <div id="adminRobloxResultBox" style="display: none; background: #080a0e; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ticket Order Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-card" id="modalCard">
+      <button class="modal-close" id="modalCloseBtn"><i class="fa-solid fa-xmark"></i></button>
+      <div class="modal-content" id="modalContent">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <div class="brand-logo">
+          <img src="logo.png" alt="TNM Logo" class="brand-logo-img">
+          <span class="logo-text">TNM<span class="text-gradient">MARKET</span></span>
+        </div>
+        <p class="footer-tagline">Trust No Mob official community market & role verification. 17,000+ strong.</p>
+      </div>
+
+      <div class="footer-links">
+        <h4>Market Tiers</h4>
+        <a href="#products">Noted & Custom Roles</a>
+        <a href="#products">Access Passes</a>
+        <a href="#products">Staff Positions</a>
+        <a href="#products">Supreme Command</a>
+      </div>
+
+      <div class="footer-links">
+        <h4>Community</h4>
+        <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener">Official Discord (17k+)</a>
+        <a href="#how-to-buy">Purchase Steps</a>
+        <a href="#rules">No Refund Policy</a>
+        <a href="#faq">Ticket Support</a>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 TNM (Trust No Mob). All rights reserved.</p>
+      <p>Domain: <code>xynfnagsss-hub.github.io/htbwshop</code></p>
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Action Bar (App-like UX) -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="mobile-nav-item">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </a>
+    <a href="#products" class="mobile-nav-item">
+      <i class="fa-solid fa-shield"></i>
+      <span>Roles</span>
+    </a>
+    <a href="#products" class="mobile-nav-item" onclick="switchToMonthlyMobile()">
+      <i class="fa-solid fa-calendar-days"></i>
+      <span>Monthly</span>
+    </a>
+    <a href="javascript:void(0)" class="mobile-nav-item" onclick="openCart()">
+      <div class="mobile-nav-cart-badge-wrap">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <span class="mobile-cart-badge" id="mobileCartBadge">0</span>
+      </div>
+      <span>Order</span>
+    </a>
+    <a href="javascript:void(0)" class="mobile-nav-item" onclick="openLoginModal()">
+      <i class="fa-brands fa-discord"></i>
+      <span id="mobileNavUserLabel">Link</span>
+    </a>
+  </nav>
+
+  <!-- Script -->
+  <script src="app.js"></script>
+</body>
+</html>

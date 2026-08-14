@@ -69,7 +69,7 @@ const TICKET_TYPES = {
 function buildTicketSetupEmbed(useAttachment = false) {
   const embed = new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setAuthor({ name: 'TRUST NO MOB • 17,000+ COMMUNITY' })
+    .setAuthor({ name: 'TRUST NO MOB • 17,000+ COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTitle('🎫 TRUST NO MOB • TICKET GATEWAY')
     .setDescription(
       `Welcome to the official **Trust No Mob (TNM)** Support & Access Gateway.\n\n` +
@@ -88,12 +88,14 @@ function buildTicketSetupEmbed(useAttachment = false) {
       { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
-    .setFooter({ text: 'TNM Support System • 17,000+ Members • Instant Delivery' })
+    .setFooter({ text: 'TNM Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 
-  // Banner image intentionally not attached — the old ticket_banner.jpg has
-  // "HTB / HIT THE BLOCK" branding baked into the artwork. Drop in a new
-  // TNM-branded banner file and restore embed.setImage(...) here once ready.
+  if (useAttachment) {
+    embed.setImage('attachment://ticket_banner.jpg');
+  } else {
+    embed.setImage('https://xynfnagsss-hub.github.io/htbwshop/ticket_banner.jpg');
+  }
 
   return embed;
 }
@@ -169,7 +171,6 @@ function getUniversalStaffRoles(guild) {
     STAFF_ROLE_IDS.includes(r.id) ||
     r.name.toLowerCase() === 'staff' ||
     r.name.toLowerCase() === 'tnm staff' ||
-    r.name.toLowerCase() === 'htb staff' ||
     r.name.toLowerCase().includes('moderator') ||
     r.name.toLowerCase().includes('admin') ||
     r.name.toLowerCase().includes('support') ||
@@ -198,9 +199,19 @@ module.exports = {
     }
 
     try {
-      const panelEmbed = buildTicketSetupEmbed();
+      const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+      const hasLocalBanner = fs.existsSync(bannerPath);
+      const panelEmbed = buildTicketSetupEmbed(hasLocalBanner);
       const panelButtonRows = buildTicketSetupButtons();
-      await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows });
+      const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
+
+      try {
+        await interaction.channel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      } catch {
+        // Fallback without local file attachment (use CDN link)
+        const cdnEmbed = buildTicketSetupEmbed(false);
+        await interaction.channel.send({ embeds: [cdnEmbed], components: panelButtonRows });
+      }
 
       return interaction.reply({ content: '✅ Ticket panel deployed successfully!', ephemeral: true });
     } catch (err) {
@@ -236,9 +247,19 @@ module.exports = {
         targetChannel = message.channel;
       }
 
-      const panelEmbed = buildTicketSetupEmbed();
+      const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+      const hasLocalBanner = fs.existsSync(bannerPath);
+      const panelEmbed = buildTicketSetupEmbed(hasLocalBanner);
       const panelButtonRows = buildTicketSetupButtons();
-      await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows });
+      const files = hasLocalBanner ? [new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' })] : [];
+
+      try {
+        await targetChannel.send({ embeds: [panelEmbed], components: panelButtonRows, files });
+      } catch {
+        // Fallback without local file attachment (use CDN link)
+        const cdnEmbed = buildTicketSetupEmbed(false);
+        await targetChannel.send({ embeds: [cdnEmbed], components: panelButtonRows });
+      }
 
       if (targetChannel.id !== message.channel.id) {
         await message.reply(`✅ Ticket panel successfully deployed in <#${targetChannel.id}>!`);
@@ -349,7 +370,7 @@ module.exports = {
               inline: false 
             }
           )
-          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close' })
+          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp();
 
         const ticketActionsRow = new ActionRowBuilder().addComponents(
@@ -438,7 +459,7 @@ module.exports = {
           `• All message transcripts in this channel will be removed.\n` +
           `• Click **"Yes, Close Ticket"** to proceed or **"Cancel"** to keep it open.`
         )
-        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone' });
+        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

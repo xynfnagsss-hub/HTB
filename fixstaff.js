@@ -68,9 +68,7 @@ async function fixStaffChannels(guild) {
       VERIFIED_ROLE_IDS.includes(r.id) ||
       r.name.toLowerCase() === 'verified' ||
       r.name.toLowerCase() === 'tnm verified' ||
-      r.name.toLowerCase() === 'htb verified' ||
       r.name.toLowerCase() === 'tnm fam' ||
-      r.name.toLowerCase() === 'htb fam' ||
       r.name.toLowerCase() === 'member'
     );
 

@@ -312,7 +312,7 @@ async function autoRankMemberFromDiscordRoles(member, groupId = process.env.ROBL
 
   // Default fallback: If in group, ensure they have at least "TNM FAM"
   try {
-    if (currentRankName.toLowerCase() !== 'tnm fam' && currentRankName.toLowerCase() !== 'htb fam' && currentRankId <= 1) {
+    if (currentRankName.toLowerCase() !== 'tnm fam' && currentRankId <= 1) {
       await noblox.setRank(parseInt(groupId), linked.robloxId, 'TNM FAM').catch(async () => {
         await noblox.setRank(parseInt(groupId), linked.robloxId, 1).catch(() => {});
       });
