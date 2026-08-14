@@ -1,6 +1,6 @@
-# HTB Bot — Hit The Block Discord Bot
+# TMN Bot — Trust No Mob Discord Bot
 
-A Discord bot for the HTB server with moderation commands and a market price display.
+A Discord bot for the TMN server with moderation commands and a market price display.
 
 ---
 

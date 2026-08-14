@@ -1,7 +1,7 @@
 {
-  "name": "htb-bot",
+  "name": "tmn-bot",
   "version": "1.0.0",
-  "description": "HTB (Hit The Block) Discord Bot with moderation and market commands",
+  "description": "TMN (Trust No Mob) Discord Bot with moderation and market commands",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
