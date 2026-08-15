@@ -44,12 +44,14 @@ module.exports = {
           .setColor(0xffaa00)
           .setTitle('⚠️ You have been warned')
           .setDescription(`**Server:** ${interaction.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${interaction.user.tag}\n**Total Warnings:** ${totalWarns}`)
+          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp(),
       ],
     }).catch(() => {});
 
     const embed = new EmbedBuilder()
       .setColor(0xffaa00)
+      .setThumbnail(target.user.displayAvatarURL())
       .setTitle('⚠️ Member Warned')
       .addFields(
         { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
@@ -57,6 +59,7 @@ module.exports = {
         { name: 'Total Warnings', value: `${totalWarns}`, inline: true },
         { name: 'Reason', value: reason },
       )
+      .setFooter({ text: `Warned by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -89,12 +92,14 @@ module.exports = {
           .setColor(0xffaa00)
           .setTitle('⚠️ You have been warned')
           .setDescription(`**Server:** ${message.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${message.author.tag}\n**Total Warnings:** ${totalWarns}`)
+          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp(),
       ],
     }).catch(() => {});
 
     const embed = new EmbedBuilder()
       .setColor(0xffaa00)
+      .setThumbnail(target.user.displayAvatarURL())
       .setTitle('⚠️ Member Warned')
       .addFields(
         { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
@@ -102,6 +107,7 @@ module.exports = {
         { name: 'Total Warnings', value: `${totalWarns}`, inline: true },
         { name: 'Reason', value: reason },
       )
+      .setFooter({ text: `Warned by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
       .setTimestamp();
 
     await message.reply({ embeds: [embed] });

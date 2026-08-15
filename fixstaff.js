@@ -33,6 +33,7 @@ module.exports = {
       .setColor(0xED4245)
       .setTitle('🛡️ Staff Channels Secured')
       .setDescription(`Successfully removed verified member roles from **${result.fixedCount}** staff/admin channels in **${interaction.guild.name}**.\n\nStaff channels are now completely hidden from regular verified users!`)
+      .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
     await status.edit({ content: '', embeds: [embed] });
@@ -50,6 +51,7 @@ module.exports = {
       .setColor(0xED4245)
       .setTitle('🛡️ Staff Channels Secured')
       .setDescription(`Successfully removed verified member roles from **${result.fixedCount}** staff/admin channels in **${message.guild.name}**.\n\nStaff channels are now completely hidden from regular verified users!`)
+      .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
     await statusMsg.edit({ content: '', embeds: [embed] });

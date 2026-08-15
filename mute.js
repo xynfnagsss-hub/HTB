@@ -36,6 +36,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0xffff00)
+        .setThumbnail(target.user.displayAvatarURL())
         .setTitle('🔇 Member Muted')
         .addFields(
           { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
@@ -43,6 +44,7 @@ module.exports = {
           { name: 'Duration', value: `${duration} minute(s)`, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Muted by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
@@ -77,6 +79,7 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0xffff00)
+        .setThumbnail(target.user.displayAvatarURL())
         .setTitle('🔇 Member Muted')
         .addFields(
           { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
@@ -84,6 +87,7 @@ module.exports = {
           { name: 'Duration', value: `${duration} minute(s)`, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Muted by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });

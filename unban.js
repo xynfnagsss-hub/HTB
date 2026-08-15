@@ -47,12 +47,14 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
+        .setThumbnail(ban.user ? ban.user.displayAvatarURL() : null)
         .setTitle('✅ Member Unbanned')
         .addFields(
           { name: 'User', value: userDisplay, inline: true },
           { name: 'Moderator', value: interaction.user.tag, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Unbanned by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
@@ -96,12 +98,14 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
+        .setThumbnail(ban.user ? ban.user.displayAvatarURL() : null)
         .setTitle('✅ Member Unbanned')
         .addFields(
           { name: 'User', value: userDisplay, inline: true },
           { name: 'Moderator', value: message.author.tag, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Unbanned by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });

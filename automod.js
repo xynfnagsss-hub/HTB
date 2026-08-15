@@ -28,6 +28,7 @@ module.exports = {
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`
         )
+        .setFooter({ text: 'TNM Security System' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -55,6 +56,7 @@ module.exports = {
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`
         )
+        .setFooter({ text: 'TNM Security System' })
         .setTimestamp();
 
       await statusMsg.edit({ content: '', embeds: [embed] });

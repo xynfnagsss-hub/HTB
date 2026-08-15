@@ -33,12 +33,14 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
+        .setThumbnail(target.user.displayAvatarURL())
         .setTitle('🔊 Member Unmuted')
         .addFields(
           { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
           { name: 'Moderator', value: interaction.user.tag, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Unmuted by ${interaction.user.tag}`, iconURL: interaction.user.displayAvatarURL() })
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });
@@ -68,12 +70,14 @@ module.exports = {
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
+        .setThumbnail(target.user.displayAvatarURL())
         .setTitle('🔊 Member Unmuted')
         .addFields(
           { name: 'User', value: `${target.user.tag} (${target.id})`, inline: true },
           { name: 'Moderator', value: message.author.tag, inline: true },
           { name: 'Reason', value: reason },
         )
+        .setFooter({ text: `Unmuted by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });
