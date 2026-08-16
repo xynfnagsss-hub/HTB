@@ -434,7 +434,7 @@ client.on('interactionCreate', async (interaction) => {
       await grantVerifiedRoles(interaction.member);
       const rankResult = await autoRankMemberFromDiscordRoles(interaction.member);
 
-      const embed = buildVerifyEmbed(interaction.user, profile, rankResult);
+      const embed = buildVerifyEmbed(interaction.user, profile, rankResult, interaction.guild);
       return await interaction.editReply({
         content: '🎉 **Verification Complete!** You have been verified and granted full server access.',
         embeds: [embed]

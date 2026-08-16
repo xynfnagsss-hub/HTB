@@ -141,7 +141,7 @@ module.exports = {
       await grantVerifiedRoles(interaction.member);
       const rankResult = await autoRankMemberFromDiscordRoles(interaction.member);
 
-      const embed = buildVerifyEmbed(interaction.user, profile, rankResult);
+      const embed = buildVerifyEmbed(interaction.user, profile, rankResult, interaction.guild);
       await interaction.editReply({ embeds: [embed] });
     } catch (err) {
       if (err.mustJoinGroup) {
@@ -203,7 +203,7 @@ module.exports = {
       await grantVerifiedRoles(message.member);
       const rankResult = await autoRankMemberFromDiscordRoles(message.member);
 
-      const embed = buildVerifyEmbed(message.author, profile, rankResult);
+      const embed = buildVerifyEmbed(message.author, profile, rankResult, message.guild);
       await message.reply({ embeds: [embed] });
     } catch (err) {
       if (err.mustJoinGroup) {
@@ -241,14 +241,32 @@ function buildMustJoinEmbed(profile, groupId) {
     .setTimestamp();
 }
 
-function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
+function buildVerifyEmbed(discordUser, robloxProfile, rankResult, guild = null) {
+  let rolesText = '';
+  if (guild) {
+    const verifiedRoles = guild.roles.cache.filter(r => 
+      VERIFIED_ROLE_IDS.includes(r.id) ||
+      r.name.toLowerCase() === 'verified' ||
+      r.name.toLowerCase() === 'tnm verified' ||
+      r.name.toLowerCase() === 'tnm fam' ||
+      r.name.toLowerCase() === 'member'
+    );
+    if (verifiedRoles.size > 0) {
+      rolesText = Array.from(verifiedRoles.keys()).map(id => `<@&${id}>`).join(', ');
+    }
+  }
+
+  if (!rolesText) {
+    rolesText = 'Verified roles';
+  }
+
   const embed = new EmbedBuilder()
     .setColor(0x57F287) // Green
     .setTitle('✅ Roblox Account Verified & Roles Assigned')
     .setThumbnail(robloxProfile.avatarUrl)
     .setDescription(
       `Successfully linked **<@${discordUser.id}>** to Roblox user **[${robloxProfile.displayName} (@${robloxProfile.username})](https://www.roblox.com/users/${robloxProfile.userId}/profile)**.\n\n` +
-      `🔓 **Server Unlocked:** Verified roles (<@&1396299470244810942>, <@&1399811369489928354>) have been granted!`
+      `🔓 **Server Unlocked:** ${rolesText} have been granted!`
     )
     .addFields(
       { name: '🆔 Roblox ID', value: `\`${robloxProfile.userId}\``, inline: true },
