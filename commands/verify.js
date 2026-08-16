@@ -5,7 +5,10 @@ const {
   ButtonBuilder,
   ButtonStyle,
   PermissionsBitField,
+  AttachmentBuilder,
 } = require('discord.js');
+const path = require('path');
+const fs = require('fs');
 const { linkRobloxUser, autoRankMemberFromDiscordRoles, getLinkedRobloxUser } = require('../utils/robloxManager');
 
 const VERIFIED_ROLE_IDS = ['1396299470244810942', '1399811369489928354'];
@@ -58,8 +61,8 @@ async function grantVerifiedRoles(member) {
   }
 }
 
-function buildVerificationPanelEmbed() {
-  return new EmbedBuilder()
+function buildVerificationPanelEmbed(useAttachment = false) {
+  const embed = new EmbedBuilder()
     .setColor(0xF5AF19)
     .setTitle('🛡️ TNM • ROBLOX VERIFICATION GATEWAY')
     .setDescription(
@@ -72,9 +75,19 @@ function buildVerificationPanelEmbed() {
     )
     .addFields(
       { name: '🛡️ Official Roblox Group', value: `[TNM (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
-    )
-    .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    );
+
+  if (useAttachment) {
+    embed.setThumbnail('attachment://logo.png');
+    embed.setImage('attachment://ticket_banner.jpg');
+    embed.setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'attachment://logo.png' });
+  } else {
+    embed.setThumbnail('https://xynfnagsss-hub.github.io/htbwshop/logo.png');
+    embed.setImage('https://xynfnagsss-hub.github.io/htbwshop/ticket_banner.jpg');
+    embed.setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+  }
+
+  return embed;
 }
 
 function buildVerificationPanelButtons() {
@@ -121,10 +134,31 @@ module.exports = {
         interaction.guild.channels.cache.find(c => ['verify', 'verification', 'verify-here', 'get-verified'].includes(c.name.toLowerCase())) ||
         interaction.channel;
 
-      const panelEmbed = buildVerificationPanelEmbed();
-      const panelRow = buildVerificationPanelButtons();
-      await targetChannel.send({ embeds: [panelEmbed], components: [panelRow] });
-      return interaction.reply({ content: `✅ Verification panel successfully deployed to <#${targetChannel.id}>!`, ephemeral: true });
+      try {
+        const logoPath = path.join(__dirname, '../public/logo.png');
+        const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+        const hasLocalLogo = fs.existsSync(logoPath);
+        const hasLocalBanner = fs.existsSync(bannerPath);
+        const panelEmbed = buildVerificationPanelEmbed(hasLocalLogo && hasLocalBanner);
+        const panelRow = buildVerificationPanelButtons();
+        const files = [];
+
+        if (hasLocalLogo) files.push(new AttachmentBuilder(logoPath, { name: 'logo.png' }));
+        if (hasLocalBanner) files.push(new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' }));
+
+        try {
+          await targetChannel.send({ embeds: [panelEmbed], components: [panelRow], files });
+        } catch {
+          // Fallback without local file attachments (use CDN URLs)
+          const cdnEmbed = buildVerificationPanelEmbed(false);
+          await targetChannel.send({ embeds: [cdnEmbed], components: [panelRow] });
+        }
+
+        return interaction.reply({ content: `✅ Verification panel successfully deployed to <#${targetChannel.id}>!`, ephemeral: true });
+      } catch (err) {
+        console.error('[Verify Setup Error]:', err);
+        return interaction.reply({ content: `❌ Failed to deploy verification panel: \`${err.message}\``, ephemeral: true });
+      }
     }
 
     if (!input) {
@@ -179,13 +213,34 @@ module.exports = {
         ) || message.channel;
       }
 
-      const panelEmbed = buildVerificationPanelEmbed();
-      const panelRow = buildVerificationPanelButtons();
-      await targetChannel.send({ embeds: [panelEmbed], components: [panelRow] });
-      
-      if (targetChannel.id !== message.channel.id) {
-        await message.reply(`✅ Verification panel successfully deployed in <#${targetChannel.id}>!`);
+      try {
+        const logoPath = path.join(__dirname, '../public/logo.png');
+        const bannerPath = path.join(__dirname, '../public/ticket_banner.jpg');
+        const hasLocalLogo = fs.existsSync(logoPath);
+        const hasLocalBanner = fs.existsSync(bannerPath);
+        const panelEmbed = buildVerificationPanelEmbed(hasLocalLogo && hasLocalBanner);
+        const panelRow = buildVerificationPanelButtons();
+        const files = [];
+
+        if (hasLocalLogo) files.push(new AttachmentBuilder(logoPath, { name: 'logo.png' }));
+        if (hasLocalBanner) files.push(new AttachmentBuilder(bannerPath, { name: 'ticket_banner.jpg' }));
+
+        try {
+          await targetChannel.send({ embeds: [panelEmbed], components: [panelRow], files });
+        } catch {
+          // Fallback without local file attachments (use CDN URLs)
+          const cdnEmbed = buildVerificationPanelEmbed(false);
+          await targetChannel.send({ embeds: [cdnEmbed], components: [panelRow] });
+        }
+        
+        if (targetChannel.id !== message.channel.id) {
+          await message.reply(`✅ Verification panel successfully deployed in <#${targetChannel.id}>!`);
+        }
+      } catch (err) {
+        console.error('[Verify Prefix Setup Error]:', err);
+        await message.reply(`❌ Failed to deploy verification panel: \`${err.message}\``);
       }
+
       if (message.deletable) message.delete().catch(() => {});
       return;
     }
