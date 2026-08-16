@@ -2,11 +2,11 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'market',
-  description: 'Display HTB role prices',
+  description: 'Display TNM role prices',
   usage: '.market',
   async execute(message) {
     const embed = new EmbedBuilder()
-      .setTitle('💰 HTB (HIT THE BLOCK) PRICES')
+      .setTitle('💰 TNM PRICES')
       .setColor(0x000000)
       .setDescription('> **Purchase any role below by opening a ticket!**')
       .addFields(
@@ -54,7 +54,7 @@ module.exports = {
             '> **@everyone @HTB Members**',
         },
       )
-      .setFooter({ text: 'HTB | Hit The Block' })
+      .setFooter({ text: 'TNM Community' })
       .setTimestamp();
 
     try {

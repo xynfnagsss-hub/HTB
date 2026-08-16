@@ -69,10 +69,10 @@ const TICKET_TYPES = {
 function buildTicketSetupEmbed(useAttachment = false) {
   const embed = new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setAuthor({ name: 'HIT THE BLOCK • 17,000+ COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
-    .setTitle('🎫 HIT THE BLOCK • TICKET GATEWAY')
+    .setAuthor({ name: 'TNM • COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setTitle('🎫 TNM • TICKET GATEWAY')
     .setDescription(
-      `Welcome to the official **Hit The Block (HTB)** Support & Access Gateway.\n\n` +
+      `Welcome to the official **TNM** Support & Access Gateway.\n\n` +
       `Click a button below to open a private ticket with our staff team:\n\n` +
       `**Access Tiers:**\n` +
       `• 🟢 **Free Access** — Group auto-role & verification\n` +
@@ -88,7 +88,7 @@ function buildTicketSetupEmbed(useAttachment = false) {
       { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
-    .setFooter({ text: 'HTB Support System • 17,000+ Members • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Support System • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 
   if (useAttachment) {

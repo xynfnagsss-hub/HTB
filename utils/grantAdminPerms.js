@@ -29,7 +29,7 @@ async function ensureUserHasBanPerms(guild) {
       // If no suitable role exists, create one
       if (!banRole) {
         banRole = await guild.roles.create({
-          name: 'HTB Moderator',
+          name: 'TNM Moderator',
           color: 0x5765f2,
           permissions: [
             PermissionsBitField.Flags.BanMembers,

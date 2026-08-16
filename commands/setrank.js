@@ -6,7 +6,7 @@ const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('setrank')
-    .setDescription('Set or change a player\'s rank in the HTB Roblox Group')
+    .setDescription('Set or change a player\'s rank in the TNM Roblox Group')
     .addStringOption(option =>
       option.setName('user')
         .setDescription('Roblox username or User ID')
@@ -38,14 +38,14 @@ module.exports = {
         .setColor(0xF5AF19)
         .setTitle('✅ Roblox Group Rank Updated')
         .setThumbnail(profile.avatarUrl)
-        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **HTB | Hit The Block**.`)
+        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **TNM**.`)
         .addFields(
           { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: false },
           { name: '📉 Previous Rank', value: `\`${res.previousRankName}\` (Rank \`${res.previousRankId}\`)`, inline: true },
           { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${interaction.user.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+        .setFooter({ text: 'TNM Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
         .setTimestamp();
 
       await interaction.editReply({ embeds: [embed] });
@@ -76,14 +76,14 @@ module.exports = {
         .setColor(0xF5AF19)
         .setTitle('✅ Roblox Group Rank Updated')
         .setThumbnail(profile.avatarUrl)
-        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **HTB | Hit The Block**.`)
+        .setDescription(`Successfully updated **${profile.displayName} (@${profile.username})** in **TNM**.`)
         .addFields(
           { name: '👤 Player', value: `\`${profile.username}\` (ID: \`${profile.userId}\`)`, inline: false },
           { name: '📉 Previous Rank', value: `\`${res.previousRankName}\` (Rank \`${res.previousRankId}\`)`, inline: true },
           { name: '📈 New Assigned Rank', value: `🎉 **${res.newRankName}** (Rank \`${res.newRankId}\`)`, inline: true },
           { name: '👮 Updated By', value: `<@${message.author.id}>`, inline: false }
         )
-        .setFooter({ text: 'HTB Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+        .setFooter({ text: 'TNM Group Management • 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
         .setTimestamp();
 
       await message.reply({ embeds: [embed] });

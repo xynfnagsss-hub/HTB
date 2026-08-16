@@ -143,7 +143,7 @@ client.distube
 // Roblox Integration Service
 const { initRoblox, startGroupJoinWatcher } = require('./utils/robloxManager');
 
-// Express Web Server for htbwshop.jo3.org Storefront
+// Express Web Server for the TNM storefront
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;

@@ -1,5 +1,5 @@
 /**
- * HTB (HIT THE BLOCK) OFFICIAL MARKETPLACE
+ * TNM OFFICIAL MARKETPLACE
  * Real In-Server Roles, Access Passes & Command Tiers (Lifetime & Monthly)
  * Discord & Google OAuth Authentication System
  */
@@ -10,7 +10,7 @@ const MARKET_ITEMS = [
   // 1. Entry & Custom Roles
   {
     id: 'htb-noted',
-    title: 'HTB | Noted Member',
+    title: 'TNM | Noted Member',
     category: 'roles',
     tier: 'MEMBER',
     lifetimePrice: 2.00,
@@ -36,7 +36,7 @@ const MARKET_ITEMS = [
   // 2. Access Passes
   {
     id: 'htb-half-access',
-    title: 'HTB | Half Access',
+    title: 'TNM | Half Access',
     category: 'access',
     tier: 'ACCESS',
     lifetimePrice: 5.00,
@@ -48,7 +48,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-hitta-access',
-    title: 'HTB | Hitta Access',
+    title: 'TNM | Hitta Access',
     category: 'access',
     tier: 'ACCESS',
     lifetimePrice: 7.00,
@@ -60,7 +60,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-onetap-access',
-    title: 'HTB | ONE-TAP ACCESS',
+    title: 'TNM | ONE-TAP ACCESS',
     category: 'access',
     tier: 'TOP ACCESS',
     lifetimePrice: 9.00,
@@ -74,7 +74,7 @@ const MARKET_ITEMS = [
   // 3. Staff & Moderation
   {
     id: 'htb-chat-vc-mod',
-    title: 'HTB | CHAT/VC MOD',
+    title: 'TNM | CHAT/VC MOD',
     category: 'staff',
     tier: 'STAFF (CANT SELL)',
     lifetimePrice: 22.00,
@@ -86,7 +86,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-ticket-support',
-    title: 'HTB | Ticket Support',
+    title: 'TNM | Ticket Support',
     category: 'staff',
     tier: 'STAFF',
     lifetimePrice: 25.00,
@@ -98,7 +98,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-administrator',
-    title: 'HTB | Administrator',
+    title: 'TNM | Administrator',
     category: 'staff',
     tier: 'ADMIN (CANT SELL)',
     lifetimePrice: 32.00,
@@ -110,7 +110,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-lead-moderator',
-    title: 'HTB | Lead Moderator',
+    title: 'TNM | Lead Moderator',
     category: 'staff',
     tier: 'LEAD (CANT SELL)',
     lifetimePrice: 38.00,
@@ -122,7 +122,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-ranking-staff',
-    title: 'HTB | Ranking Staff',
+    title: 'TNM | Ranking Staff',
     category: 'staff',
     tier: 'RANKING',
     lifetimePrice: 44.00,
@@ -136,7 +136,7 @@ const MARKET_ITEMS = [
   // 4. High Command
   {
     id: 'htb-overseer',
-    title: 'HTB | OVERSEER',
+    title: 'TNM | OVERSEER',
     category: 'command',
     tier: 'OVERSEER',
     lifetimePrice: 49.00,
@@ -148,7 +148,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-sergeant',
-    title: 'HTB | Sergeant',
+    title: 'TNM | Sergeant',
     category: 'command',
     tier: 'HIGH COMMAND',
     lifetimePrice: 75.00,
@@ -160,7 +160,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-command-officer',
-    title: 'HTB | Command Officer',
+    title: 'TNM | Command Officer',
     category: 'command',
     tier: 'HIGH COMMAND',
     lifetimePrice: 80.00,
@@ -174,7 +174,7 @@ const MARKET_ITEMS = [
   // 5. Supreme Leadership (In Command)
   {
     id: 'htb-third-in-command',
-    title: 'HTB | Third in Command',
+    title: 'TNM | Third in Command',
     category: 'supreme',
     tier: '3RD IN COMMAND',
     lifetimePrice: 123.00,
@@ -186,7 +186,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-second-in-command',
-    title: 'HTB | Second in Command',
+    title: 'TNM | Second in Command',
     category: 'supreme',
     tier: '2ND IN COMMAND',
     lifetimePrice: 150.00,
@@ -198,7 +198,7 @@ const MARKET_ITEMS = [
   },
   {
     id: 'htb-first-in-command',
-    title: 'HTB | First in Command',
+    title: 'TNM | First in Command',
     category: 'supreme',
     tier: '1ST IN COMMAND',
     lifetimePrice: 175.00,

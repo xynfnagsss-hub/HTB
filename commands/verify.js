@@ -57,20 +57,20 @@ async function grantVerifiedRoles(member) {
 function buildVerificationPanelEmbed() {
   return new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setTitle('🛡️ HIT THE BLOCK • ROBLOX VERIFICATION GATEWAY')
+    .setTitle('🛡️ TNM • ROBLOX VERIFICATION GATEWAY')
     .setDescription(
-      `Welcome to **Hit The Block (HTB)**! To unlock all server channels, community chat, voice rooms, and access passes, you must link your Roblox account.\n\n` +
+      `Welcome to **TNM**! To unlock all server channels, community chat, voice rooms, and access passes, you must link your Roblox account.\n\n` +
       `📌 **VERIFICATION STEPS:**\n` +
-      `**1.** Click **"1. Join Roblox Group"** below to join the official **HTB | Hit The Block** Roblox Group.\n` +
+      `**1.** Click **"1. Join Roblox Group"** below to join the official **TNM** Roblox Group.\n` +
       `**2.** Click **"2. Verify Account"** and enter your exact Roblox username in the popup modal.\n` +
       `**3.** Once confirmed, the bot grants you your **Verified Roles** and full server access immediately!\n\n` +
       `⚠️ *Note: You MUST be a member of the Roblox Group or verification will be rejected.*`
     )
     .addFields(
-      { name: '🛡️ Official Roblox Group', value: `[HTB | Hit The Block (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
+      { name: '🛡️ Official Roblox Group', value: `[TNM (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
     .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'HTB Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    .setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 }
 
 function buildVerificationPanelButtons() {
@@ -225,15 +225,15 @@ function buildMustJoinEmbed(profile, groupId) {
     .setTitle('⚠️ Roblox Group Membership Required')
     .setThumbnail(profile ? profile.avatarUrl : null)
     .setDescription(
-      `Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **HTB | Hit The Block** Roblox Group before you can verify.\n\n` +
-      `👉 **[Click Here to Join HTB Roblox Group](${groupUrl})**\n\n` +
+      `Hey **${profile ? profile.displayName : 'there'}**! You must be a member of the official **TNM** Roblox Group before you can verify.\n\n` +
+      `👉 **[Click Here to Join the TNM Roblox Group](${groupUrl})**\n\n` +
       `*Once you click "Join Group" on Roblox, click the **Verify Account** button again (or run \`.verify ${profile ? profile.username : ''}\`) to unlock the server and claim your ranks!*`
     )
     .addFields(
-      { name: '🛡️ Target Group', value: `[HTB | Hit The Block](${groupUrl})`, inline: true },
+      { name: '🛡️ Target Group', value: `[TNM](${groupUrl})`, inline: true },
       { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
     )
-    .setFooter({ text: 'HTB Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 }
 
@@ -248,10 +248,10 @@ function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
     )
     .addFields(
       { name: '🆔 Roblox ID', value: `\`${robloxProfile.userId}\``, inline: true },
-      { name: '🛡️ HTB Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
+      { name: '🛡️ TNM Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
       { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Synced to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
     )
-    .setFooter({ text: 'HTB Roblox Verification • Hit The Block', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 
   return embed;
