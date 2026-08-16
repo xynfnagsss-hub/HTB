@@ -20,9 +20,13 @@ async function grantVerifiedRoles(member) {
   const verifiedRolesToGrant = guild.roles.cache.filter(r => 
     VERIFIED_ROLE_IDS.includes(r.id) ||
     r.name.toLowerCase() === 'verified' ||
-    r.name.toLowerCase() === 'htb verified' ||
-    r.name.toLowerCase() === 'htb fam' ||
-    r.name.toLowerCase() === 'member'
+    r.name.toLowerCase() === 'tnm verified' ||
+    r.name.toLowerCase() === 'tnm fam' ||
+    r.name.toLowerCase() === 'member' ||
+    r.name.toLowerCase() === 'street access' ||
+    r.name.toLowerCase() === 'enforcer access' ||
+    r.name.toLowerCase() === 'boss access' ||
+    r.name.toLowerCase() === 'tnm elite'
   );
 
   for (const role of verifiedRolesToGrant.values()) {

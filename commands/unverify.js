@@ -7,6 +7,7 @@ const RobloxUser = require('../models/RobloxUser');
 
 const UNVERIFIED_ROLE_ID = '1493511744339836939';
 const VERIFIED_ROLE_IDS = ['1399811369489928354', '1396299470244810942'];
+const LEGACY_ACCESS_ROLE_IDS = ['1521726989738709153', '1396309579788189819', '1410103735253995590', '1396309744179871789'];
 const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 
 module.exports = {
@@ -25,6 +26,11 @@ module.exports = {
         .addUserOption(opt =>
           opt.setName('target').setDescription('The member to unverify').setRequired(true)
         )
+    )
+    .addSubcommand(sub =>
+      sub
+        .setName('legacy-access')
+        .setDescription('Remove old retired access roles from all members.')
     ),
 
   async execute(interaction) {
@@ -56,6 +62,13 @@ module.exports = {
         await interaction.editReply({ embeds: [embed] });
       });
     }
+
+    if (sub === 'legacy-access') {
+      await interaction.deferReply({ ephemeral: true });
+      return handleLegacyAccessRoleCleanup(interaction.guild, interaction.user, async (embed) => {
+        await interaction.editReply({ embeds: [embed] });
+      });
+    }
   },
 
   async prefixExecute(message, args) {
@@ -65,6 +78,15 @@ module.exports = {
     }
 
     const sub = args[0] ? args[0].toLowerCase() : '';
+
+    if (sub === 'legacy' || sub === 'legacy-access' || sub === 'old-access') {
+      const statusMsg = await message.reply('🧹 Removing retired legacy access roles from all members...');
+      return handleLegacyAccessRoleCleanup(message.guild, message.author, async (embed) => {
+        await statusMsg.edit({ content: null, embeds: [embed] }).catch(() => {
+          message.channel.send({ embeds: [embed] });
+        });
+      });
+    }
 
     if (sub === 'purge' || sub === 'clean' || sub === 'all') {
       const statusMsg = await message.reply('🔍 **Fetching all server members and scanning for members with BOTH Verified & Unverified roles...**');
@@ -249,6 +271,46 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
 /**
  * Handle Unverifying a single user
  */
+async function handleLegacyAccessRoleCleanup(guild, executor, replyCallback) {
+  try {
+    await guild.members.fetch({ force: true }).catch(() => guild.members.cache);
+    const members = Array.from(guild.members.cache.values());
+    let removed = 0;
+    let scanned = 0;
+
+    for (const member of members) {
+      if (member.user.bot) continue;
+      scanned += 1;
+
+      const rolesToRemove = LEGACY_ACCESS_ROLE_IDS.filter(roleId => member.roles.cache.has(roleId));
+      if (rolesToRemove.length > 0) {
+        await member.roles.remove(rolesToRemove, `Legacy TNM access cleanup by ${executor.tag}`).catch(() => {});
+        removed += 1;
+      }
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00D632)
+      .setTitle('🧹 Legacy Access Cleanup Complete')
+      .setDescription(
+        `Scanned **${scanned}** members and removed the retired access roles from **${removed}** member(s).\n\n` +
+        `Removed role IDs:\n` +
+        LEGACY_ACCESS_ROLE_IDS.map(id => `• <@&${id}>`).join('\n') +
+        `\n\nExecuted by: <@${executor.id}>`
+      )
+      .setFooter({ text: 'TNM Access Management • Legacy Role Cleanup', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setTimestamp();
+
+    return replyCallback(embed);
+  } catch (err) {
+    const embed = new EmbedBuilder()
+      .setColor(0xEF4444)
+      .setTitle('❌ Legacy Access Cleanup Failed')
+      .setDescription(`Failed to remove retired role IDs: \`${err.message}\``);
+    return replyCallback(embed);
+  }
+}
+
 async function handleUnverifySingleUser(member, executor, replyCallback) {
   try {
     // 1. Remove verified roles
@@ -256,13 +318,19 @@ async function handleUnverifySingleUser(member, executor, replyCallback) {
       VERIFIED_ROLE_IDS.filter(id => member.roles.cache.has(id)),
       `Unverified by ${executor.tag}`
     ).catch(() => {});
+
+    // 2. Remove retired legacy access roles
+    await member.roles.remove(
+      LEGACY_ACCESS_ROLE_IDS.filter(id => member.roles.cache.has(id)),
+      `Legacy TNM access cleanup by ${executor.tag}`
+    ).catch(() => {});
     
-    // 2. Add unverified role
+    // 3. Add unverified role
     if (!member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
       await member.roles.add(UNVERIFIED_ROLE_ID, `Unverified by ${executor.tag}`).catch(() => {});
     }
 
-    // 3. Remove DB link
+    // 4. Remove DB link
     await RobloxUser.deleteOne({ discordId: member.id }).catch(() => {});
 
     const embed = new EmbedBuilder()
@@ -271,6 +339,7 @@ async function handleUnverifySingleUser(member, executor, replyCallback) {
       .setDescription(
         `Successfully unverified <@${member.id}>.\n\n` +
         `• **Verified Roles Removed:** Yes\n` +
+        `• **Legacy Access Roles Removed:** Yes\n` +
         `• **Unverified Role Assigned:** <@&${UNVERIFIED_ROLE_ID}>\n` +
         `• **Database Link Cleared:** Yes\n` +
         `• **Executed By:** <@${executor.id}>`

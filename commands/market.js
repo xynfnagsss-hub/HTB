@@ -13,15 +13,15 @@ module.exports = {
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🏷️ **@TNM | Noted Member — $2**\n' +
+            '🏷️ **@TNM | Street Access — $2**\n' +
             '🎨 **CUSTOM ROLE — $3**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🔓 **@TNM | Half Access — $5**\n' +
-            '🔑 **@TNM | Hitta Access — $7**\n' +
-            '⚡ **@TNM | ONE-TAP ACCESS — $9**',
+            '🔓 **@TNM | Enforcer Access — $5**\n' +
+            '🔑 **@TNM | Boss Access — $7**\n' +
+            '⚡ **@TNM | TNM Elite — $9**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',

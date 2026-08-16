@@ -17,34 +17,34 @@ const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 
 const TICKET_TYPES = {
   ticket_create_free: {
-    name: 'Free Access',
-    slug: 'free-access',
+    name: 'Street Access',
+    slug: 'street-access',
     emoji: '🟢',
-    description: 'Free Access role claim, group verification, and entry support.',
+    description: 'Street Access role claim, group verification, and entry support.',
     color: 0x00D632,
     categoryId: '1536984138157133844',
   },
   ticket_create_half: {
-    name: 'Half Access',
-    slug: 'half-access',
+    name: 'Enforcer Access',
+    slug: 'enforcer-access',
     emoji: '🔵',
-    description: 'Half Access tier purchase, basic VIP perks, and payment verification.',
+    description: 'Enforcer Access tier purchase, basic VIP perks, and payment verification.',
     color: 0x0EA5E9,
     categoryId: '1536985177929027684',
   },
   ticket_create_hitta: {
-    name: 'Hitta Access',
-    slug: 'hitta-access',
+    name: 'Boss Access',
+    slug: 'boss-access',
     emoji: '💎',
-    description: 'Hitta Access tier purchase, VIP perks activation, and payment verification.',
+    description: 'Boss Access tier purchase, VIP perks activation, and payment verification.',
     color: 0x3B82F6,
     categoryId: '1536984212941443112',
   },
   ticket_create_onetap: {
-    name: 'OneTap Access',
-    slug: 'onetap-access',
+    name: 'TNM Elite',
+    slug: 'tnm-elite',
     emoji: '⚡',
-    description: 'OneTap Access VIP purchase, priority drop access, and high clearance support.',
+    description: 'TNM Elite tier purchase, priority drop access, and high clearance support.',
     color: 0xF5AF19,
     categoryId: '1536984299868258345',
   },
@@ -75,10 +75,10 @@ function buildTicketSetupEmbed(useAttachment = false) {
       `Welcome to the official **TNM** Support & Access Gateway.\n\n` +
       `Click a button below to open a private ticket with our staff team:\n\n` +
       `**Access Tiers:**\n` +
-      `• 🟢 **Free Access** — Group auto-role & verification\n` +
-      `• 🔵 **Half Access** — Half Access tier & role claim\n` +
-      `• 💎 **Hitta Access** — Hitta VIP clearance & perk activation\n` +
-      `• ⚡ **OneTap Access** — OneTap VIP Pass & instant clearance\n\n` +
+      `• 🟢 **Street Access** — Group auto-role & verification\n` +
+      `• 🔵 **Enforcer Access** — Enforcer tier & role claim\n` +
+      `• 💎 **Boss Access** — Boss VIP clearance & perk activation\n` +
+      `• ⚡ **TNM Elite** — Elite VIP pass & instant clearance\n\n` +
       `**Assistance & Reports:**\n` +
       `• 📩 **General Support** — Questions, bot issues & assistance\n` +
       `• 🚨 **Report a Member** — Report scams, pings & misconduct`
@@ -104,22 +104,22 @@ function buildTicketSetupButtons() {
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('ticket_create_free')
-      .setLabel('Free Access')
+      .setLabel('Street Access')
       .setEmoji('🟢')
       .setStyle(ButtonStyle.Success),
     new ButtonBuilder()
       .setCustomId('ticket_create_half')
-      .setLabel('Half Access')
+      .setLabel('Enforcer Access')
       .setEmoji('🔵')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId('ticket_create_hitta')
-      .setLabel('Hitta Access')
+      .setLabel('Boss Access')
       .setEmoji('💎')
       .setStyle(ButtonStyle.Primary),
     new ButtonBuilder()
       .setCustomId('ticket_create_onetap')
-      .setLabel('OneTap Access')
+      .setLabel('TNM Elite')
       .setEmoji('⚡')
       .setStyle(ButtonStyle.Secondary)
   );
