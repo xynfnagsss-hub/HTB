@@ -41,7 +41,6 @@ for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith('.js'))) 
 }
 
 // Aliases
-client.commands.set('purge', client.commands.get('clear'));
 client.commands.set('nuke', client.commands.get('clear'));
 client.commands.set('p', client.commands.get('play'));
 client.commands.set('q', client.commands.get('queue'));
