@@ -9,7 +9,7 @@ const BOT_CLIENT_ID = '1535426505599881297';
 const MARKET_ITEMS = [
   // 1. Entry & Custom Roles
   {
-    id: 'htb-noted',
+    id: 'tnm-noted',
     title: 'TNM | Noted Member',
     category: 'roles',
     tier: 'MEMBER',
@@ -21,7 +21,7 @@ const MARKET_ITEMS = [
     perks: ['Hoisted Noted Member Role', 'Custom Chat Badge', 'Access to exclusive member channels'],
   },
   {
-    id: 'htb-custom-role',
+    id: 'tnm-custom-role',
     title: 'CUSTOM ROLE',
     category: 'roles',
     tier: 'EXCLUSIVE',
@@ -35,7 +35,7 @@ const MARKET_ITEMS = [
 
   // 2. Access Passes
   {
-    id: 'htb-half-access',
+    id: 'tnm-half-access',
     title: 'TNM | Half Access',
     category: 'access',
     tier: 'ACCESS',
@@ -47,7 +47,7 @@ const MARKET_ITEMS = [
     perks: ['Half Server Permissions', 'Voice Channel Priority', 'Bypass Slowmode'],
   },
   {
-    id: 'htb-hitta-access',
+    id: 'tnm-hitta-access',
     title: 'TNM | Hitta Access',
     category: 'access',
     tier: 'ACCESS',
@@ -59,7 +59,7 @@ const MARKET_ITEMS = [
     perks: ['Hitta Channel Access', 'Private VC Creation', 'Custom Chat Glow'],
   },
   {
-    id: 'htb-onetap-access',
+    id: 'tnm-onetap-access',
     title: 'TNM | ONE-TAP ACCESS',
     category: 'access',
     tier: 'TOP ACCESS',
@@ -73,7 +73,7 @@ const MARKET_ITEMS = [
 
   // 3. Staff & Moderation
   {
-    id: 'htb-chat-vc-mod',
+    id: 'tnm-chat-vc-mod',
     title: 'TNM | CHAT/VC MOD',
     category: 'staff',
     tier: 'STAFF (CANT SELL)',
@@ -85,7 +85,7 @@ const MARKET_ITEMS = [
     perks: ['Chat & VC Timeout perms', 'Mod-Only Channels', 'Official Staff Badge'],
   },
   {
-    id: 'htb-ticket-support',
+    id: 'tnm-ticket-support',
     title: 'TNM | Ticket Support',
     category: 'staff',
     tier: 'STAFF',
@@ -97,7 +97,7 @@ const MARKET_ITEMS = [
     perks: ['Ticket Panel Management', 'Claim Member Tickets', 'Support Role Hoist'],
   },
   {
-    id: 'htb-administrator',
+    id: 'tnm-administrator',
     title: 'TNM | Administrator',
     category: 'staff',
     tier: 'ADMIN (CANT SELL)',
@@ -109,7 +109,7 @@ const MARKET_ITEMS = [
     perks: ['Administrator Channel Access', 'Full Audit Log Visibility', 'Staff Meeting Access'],
   },
   {
-    id: 'htb-lead-moderator',
+    id: 'tnm-lead-moderator',
     title: 'TNM | Lead Moderator',
     category: 'staff',
     tier: 'LEAD (CANT SELL)',
@@ -121,7 +121,7 @@ const MARKET_ITEMS = [
     perks: ['Lead Mod Authority', 'Override Mod Actions', 'Direct High-Command Line'],
   },
   {
-    id: 'htb-ranking-staff',
+    id: 'tnm-ranking-staff',
     title: 'TNM | Ranking Staff',
     category: 'staff',
     tier: 'RANKING',
@@ -135,7 +135,7 @@ const MARKET_ITEMS = [
 
   // 4. High Command
   {
-    id: 'htb-overseer',
+    id: 'tnm-overseer',
     title: 'TNM | OVERSEER',
     category: 'command',
     tier: 'OVERSEER',
@@ -147,7 +147,7 @@ const MARKET_ITEMS = [
     perks: ['Overseer Authority', 'All Staff Channel Visibility', 'Permanent High Rank'],
   },
   {
-    id: 'htb-sergeant',
+    id: 'tnm-sergeant',
     title: 'TNM | Sergeant',
     category: 'command',
     tier: 'HIGH COMMAND',
@@ -159,7 +159,7 @@ const MARKET_ITEMS = [
     perks: ['Command Level Privileges', 'Host Server Operations', 'Priority Support'],
   },
   {
-    id: 'htb-command-officer',
+    id: 'tnm-command-officer',
     title: 'TNM | Command Officer',
     category: 'command',
     tier: 'HIGH COMMAND',
@@ -173,7 +173,7 @@ const MARKET_ITEMS = [
 
   // 5. Supreme Leadership (In Command)
   {
-    id: 'htb-third-in-command',
+    id: 'tnm-third-in-command',
     title: 'TNM | Third in Command',
     category: 'supreme',
     tier: '3RD IN COMMAND',
@@ -185,7 +185,7 @@ const MARKET_ITEMS = [
     perks: ['3rd In Command Role & Hoist', 'Ultimate Decision Making', 'Server-Wide Authority'],
   },
   {
-    id: 'htb-second-in-command',
+    id: 'tnm-second-in-command',
     title: 'TNM | Second in Command',
     category: 'supreme',
     tier: '2ND IN COMMAND',
@@ -197,7 +197,7 @@ const MARKET_ITEMS = [
     perks: ['2nd In Command Authority', 'Full High-Command Veto', 'Permanent Crown Tag'],
   },
   {
-    id: 'htb-first-in-command',
+    id: 'tnm-first-in-command',
     title: 'TNM | First in Command',
     category: 'supreme',
     tier: '1ST IN COMMAND',
@@ -901,7 +901,7 @@ let allCachedAdminOrders = [];
 
 function getLocalOrders() {
   try {
-    const raw = localStorage.getItem('htb_store_orders');
+    const raw = localStorage.getItem('tnm_store_orders');
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
