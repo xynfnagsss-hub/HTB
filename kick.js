@@ -36,7 +36,7 @@ module.exports = {
             .setColor(0xff8800)
             .setTitle('👢 You have been kicked')
             .setDescription(`**Server:** ${interaction.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${interaction.user.tag}`)
-            .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+            .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
             .setTimestamp(),
         ],
       }).catch(() => {});
@@ -85,7 +85,7 @@ module.exports = {
             .setColor(0xff8800)
             .setTitle('👢 You have been kicked')
             .setDescription(`**Server:** ${message.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${message.author.tag}`)
-            .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+            .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
             .setTimestamp(),
         ],
       }).catch(() => {});

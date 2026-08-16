@@ -69,7 +69,7 @@ const TICKET_TYPES = {
 function buildTicketSetupEmbed(useAttachment = false) {
   const embed = new EmbedBuilder()
     .setColor(0xF5AF19)
-    .setAuthor({ name: 'TNM • COMMUNITY', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setAuthor({ name: 'TNM • COMMUNITY', iconURL: 'attachment://logo.png' })
     .setTitle('🎫 TNM • TICKET GATEWAY')
     .setDescription(
       `Welcome to the official **TNM** Support & Access Gateway.\n\n` +
@@ -85,16 +85,16 @@ function buildTicketSetupEmbed(useAttachment = false) {
     )
     .addFields(
       { name: '💳 Official CashApp', value: '`$itsnabula` *(Include Order ID)*', inline: true },
-      { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
+      { name: '🌐 Web Marketplace', value: '[tnmwshop.github.io](https://xynfnagsss-hub.github.io/tnmwshop/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
-    .setFooter({ text: 'TNM Support System • Instant Delivery', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Support System • Instant Delivery', iconURL: 'attachment://logo.png' })
     .setTimestamp();
 
   if (useAttachment) {
     embed.setImage('attachment://ticket_banner.jpg');
   } else {
-    embed.setImage('https://xynfnagsss-hub.github.io/htbwshop/ticket_banner.jpg');
+    embed.setImage('https://xynfnagsss-hub.github.io/tnmwshop/ticket_banner.jpg');
   }
 
   return embed;
@@ -170,7 +170,7 @@ function getUniversalStaffRoles(guild) {
   return guild.roles.cache.filter(r => 
     STAFF_ROLE_IDS.includes(r.id) ||
     r.name.toLowerCase() === 'staff' ||
-    r.name.toLowerCase() === 'htb staff' ||
+    r.name.toLowerCase() === 'tnm staff' ||
     r.name.toLowerCase().includes('moderator') ||
     r.name.toLowerCase().includes('admin') ||
     r.name.toLowerCase().includes('support') ||
@@ -370,7 +370,7 @@ module.exports = {
               inline: false 
             }
           )
-          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
           .setTimestamp();
 
         const ticketActionsRow = new ActionRowBuilder().addComponents(
@@ -459,7 +459,7 @@ module.exports = {
           `• All message transcripts in this channel will be removed.\n` +
           `• Click **"Yes, Close Ticket"** to proceed or **"Cancel"** to keep it open.`
         )
-        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' });
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

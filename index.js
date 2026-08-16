@@ -24,6 +24,7 @@ const client = new Client({
 });
 
 const PREFIX = '.';
+const BOT_AVATAR_PATH = path.join(__dirname, 'public', 'logo.png');
 
 // Snipe store: channelId -> [{ content, author, authorAvatar, deletedAt }]
 client.snipeStore = new Map();
@@ -275,7 +276,7 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🌐 TNM Storefront is live on port ${PORT} at 0.0.0.0 (htbwshop.jo3.org)`);
+  console.log(`🌐 TNM Storefront is live on port ${PORT} at 0.0.0.0 (tnmwshop.github.io)`);
 });
 
 if (String(PORT) !== '3000') {
@@ -336,6 +337,14 @@ startBotServices();
 client.once('ready', async () => {
   console.log(`✅ TNM Bot is online as ${client.user.tag}`);
   client.user.setActivity('TNM | Trust No Mob', { type: 3 });
+
+  try {
+    const botAvatar = fs.readFileSync(BOT_AVATAR_PATH);
+    await client.user.setAvatar(botAvatar);
+    console.log('✅ Bot avatar updated to the TNM logo.');
+  } catch (err) {
+    console.warn('⚠️ Could not apply TNM bot avatar:', err.message);
+  }
 
   // Grant ban and moderator roles + apply native Discord AutoMod anti-ping rules
   for (const guild of client.guilds.cache.values()) {

@@ -178,7 +178,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
           `Scanned **${allMembers.size}** total members in **${guild.name}**.\n\n` +
           `Zero members hold both **Verified** and **Unverified** roles. Everyone with Verified is clean!`
         )
-        .setFooter({ text: 'TNM Role Cleaner • Universal Server Guard', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Role Cleaner • Universal Server Guard', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' });
       return progressCallback(cleanEmbed, true);
     }
 
@@ -233,7 +233,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
         `• **Status:** Verified members now **ONLY** have Verified, with Unverified completely removed!\n\n` +
         `👮 **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TNM Role Management • Clean Verification System', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Role Management • Clean Verification System', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
       .setTimestamp();
 
     return progressCallback(finalEmbed, true);
@@ -275,7 +275,7 @@ async function handleUnverifySingleUser(member, executor, replyCallback) {
         `• **Database Link Cleared:** Yes\n` +
         `• **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TNM Roblox System • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Roblox System • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
       .setTimestamp();
 
     return replyCallback(embed);

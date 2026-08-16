@@ -33,7 +33,7 @@ module.exports = {
         { name: '💰 Robux Earned', value: `\`${userData.robux || 0}\` Robux`, inline: true },
         { name: '🎁 Next Milestone', value: `Level ${nextMilestone} (${levelsUntilRobux} lvl away)`, inline: true }
       )
-      .setFooter({ text: 'Every 15 levels = +100 Robux • TNM Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'Every 15 levels = +100 Robux • TNM Community', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
       .setTimestamp();
 
     message.channel.send({ embeds: [embed] });

@@ -69,8 +69,8 @@ function buildVerificationPanelEmbed() {
     .addFields(
       { name: '🛡️ Official Roblox Group', value: `[TNM | Trust No Mob (316559660)](https://www.roblox.com/groups/316559660)`, inline: false }
     )
-    .setImage('https://xynfnagsss-hub.github.io/htbwshop/logo.png')
-    .setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+    .setImage('https://xynfnagsss-hub.github.io/tnmwshop/logo.png')
+    .setFooter({ text: 'TNM Roblox Gateway • Group ID: 316559660', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' });
 }
 
 function buildVerificationPanelButtons() {
@@ -233,7 +233,7 @@ function buildMustJoinEmbed(profile, groupId) {
       { name: '🛡️ Target Group', value: `[TNM | Trust No Mob](${groupUrl})`, inline: true },
       { name: '🆔 Group ID', value: `\`${groupId || '316559660'}\``, inline: true }
     )
-    .setFooter({ text: 'TNM Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Group Join Required', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
     .setTimestamp();
 }
 
@@ -251,7 +251,7 @@ function buildVerifyEmbed(discordUser, robloxProfile, rankResult) {
       { name: '🛡️ TNM Group Rank', value: `**${robloxProfile.groupRank}**`, inline: true },
       { name: '⚡ Auto-Rank Status', value: rankResult && rankResult.success ? `🎉 Synced to **${rankResult.rank}**!` : 'Synced with Discord roles', inline: false }
     )
-    .setFooter({ text: 'TNM Roblox Verification • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox Verification • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
     .setTimestamp();
 
   return embed;

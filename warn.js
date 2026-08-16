@@ -44,7 +44,7 @@ module.exports = {
           .setColor(0xffaa00)
           .setTitle('⚠️ You have been warned')
           .setDescription(`**Server:** ${interaction.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${interaction.user.tag}\n**Total Warnings:** ${totalWarns}`)
-          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
           .setTimestamp(),
       ],
     }).catch(() => {});
@@ -92,7 +92,7 @@ module.exports = {
           .setColor(0xffaa00)
           .setTitle('⚠️ You have been warned')
           .setDescription(`**Server:** ${message.guild.name}\n**Reason:** ${reason}\n**Moderator:** ${message.author.tag}\n**Total Warnings:** ${totalWarns}`)
-          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'TNM Moderation • Trust No Mob', iconURL: 'https://xynfnagsss-hub.github.io/tnmwshop/favicon.png' })
           .setTimestamp(),
       ],
     }).catch(() => {});
