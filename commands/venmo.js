@@ -2,11 +2,11 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'venmo',
-  description: 'Display HTB Venmo payment info',
+  description: 'Display TNM Venmo payment info',
   usage: '.venmo',
   async execute(message) {
     const embed = new EmbedBuilder()
-      .setTitle('💸 HTB PAYMENT INFO')
+      .setTitle('💸 TNM PAYMENT INFO')
       .setColor(0x008cff)
       .setDescription(
         '**Send payment via Venmo:**\n\n' +
@@ -14,7 +14,7 @@ module.exports = {
         '> ❌ **NO REFUNDS**\n' +
         '> 🎫 Open a ticket after paying to claim your role'
       )
-      .setFooter({ text: 'HTB | Hit The Block' })
+      .setFooter({ text: 'TNM Community' })
       .setTimestamp();
 
     try {

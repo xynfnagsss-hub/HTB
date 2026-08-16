@@ -68,7 +68,7 @@ const MARKET_ITEMS = [
     badge: 'BEST VALUE',
     icon: 'fa-solid fa-bolt',
     desc: 'Full one-tap access across private rooms, giveaways, and drops.',
-    perks: ['One-Tap Full Access', 'VIP Role Pass', 'Double Entry in HTB Giveaways'],
+    perks: ['One-Tap Full Access', 'VIP Role Pass', 'Double Entry in TNM Giveaways'],
   },
 
   // 3. Staff & Moderation
@@ -205,14 +205,14 @@ const MARKET_ITEMS = [
     monthlyPrice: 79.99,
     badge: 'SUPREME #1',
     icon: 'fa-solid fa-trophy',
-    desc: 'The pinnacle of leadership in Hit The Block. Highest obtainable command rank.',
+    desc: 'The pinnacle of leadership in TNM. Highest obtainable command rank.',
     perks: ['1st In Command Apex Authority', 'Direct Ownership Partner', 'Maximum Server Power'],
   },
 ];
 
 // State
-let cart = JSON.parse(localStorage.getItem('htb_market_cart_v2') || '[]');
-let currentUser = JSON.parse(localStorage.getItem('htb_auth_user') || 'null');
+let cart = JSON.parse(localStorage.getItem('tnm_market_cart_v2') || '[]');
+let currentUser = JSON.parse(localStorage.getItem('tnm_auth_user') || 'null');
 let activeCategory = 'all';
 let billingCycle = 'lifetime'; // 'lifetime' | 'monthly'
 
@@ -269,7 +269,7 @@ function handleOAuthCallback() {
             provider: 'discord',
           };
 
-          localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+          localStorage.setItem('tnm_auth_user', JSON.stringify(currentUser));
           updateAuthUI();
           showToast(`Welcome back, ${currentUser.username}!`);
           window.history.replaceState(null, null, window.location.pathname);
@@ -349,7 +349,7 @@ function closeLoginModal() {
 
 function logoutUser() {
   currentUser = null;
-  localStorage.removeItem('htb_auth_user');
+  localStorage.removeItem('tnm_auth_user');
   updateAuthUI();
   showToast('Logged out');
 }
@@ -378,7 +378,7 @@ function loginWithManualUsername() {
     provider: 'discord_instant',
   };
 
-  localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+  localStorage.setItem('tnm_auth_user', JSON.stringify(currentUser));
   updateAuthUI();
   closeLoginModal();
   showToast(`Linked Discord account: ${currentUser.username}!`);
@@ -397,7 +397,7 @@ if (googleAuthBtn) {
         avatar: 'https://cdn-icons-png.flaticon.com/512/300/300221.png',
         provider: 'google',
       };
-      localStorage.setItem('htb_auth_user', JSON.stringify(currentUser));
+      localStorage.setItem('tnm_auth_user', JSON.stringify(currentUser));
       updateAuthUI();
       closeLoginModal();
       showToast(`Linked as ${currentUser.username}!`);
@@ -600,7 +600,7 @@ function clearCart() {
 }
 
 function saveCart() {
-  localStorage.setItem('htb_market_cart_v2', JSON.stringify(cart));
+  localStorage.setItem('tnm_market_cart_v2', JSON.stringify(cart));
 }
 
 function switchToMonthlyMobile() {
@@ -684,7 +684,7 @@ function updateCartUI() {
         <div class="cart-empty">
           <i class="fa-solid fa-shield-halved"></i>
           <p style="font-weight: 700; color: #fff;">No roles selected.</p>
-          <p style="font-size: 0.82rem; margin-top: 6px; color: #8892a7;">Select any HTB role or pass from the market above.</p>
+          <p style="font-size: 0.82rem; margin-top: 6px; color: #8892a7;">Select any TNM role or pass from the market above.</p>
         </div>
       `;
     }
@@ -762,7 +762,7 @@ if (checkoutBtn) {
       return;
     }
 
-    const orderId = 'HTB-' + Math.floor(100000 + Math.random() * 900000);
+    const orderId = 'TNM-' + Math.floor(100000 + Math.random() * 900000);
     const total = cart.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0).toFixed(2);
     const itemList = cart.map(i => `• ${i.title} (${i.quantity || 1}x) — $${(i.price * (i.quantity || 1)).toFixed(2)}`).join('\n');
     const userTag = currentUser ? `${currentUser.tag}` : 'Unlinked Member';
@@ -910,7 +910,7 @@ function getLocalOrders() {
 
 function saveLocalOrders(orders) {
   try {
-    localStorage.setItem('htb_store_orders', JSON.stringify(orders));
+    localStorage.setItem('tnm_store_orders', JSON.stringify(orders));
   } catch {}
 }
 
@@ -1111,7 +1111,7 @@ function exportOrdersToCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);
-  link.setAttribute('download', `HTB-Orders-${new Date().toISOString().slice(0, 10)}.csv`);
+  link.setAttribute('download', `TNM-Orders-${new Date().toISOString().slice(0, 10)}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -1161,7 +1161,7 @@ function lookupAdminRobloxUser() {
       </div>
       <div>
         <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 2px;">${val}</h4>
-        <span style="color: #57f287; font-size: 0.8rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Group Member (Rank: Hit The Block Active)</span>
+        <span style="color: #57f287; font-size: 0.8rem; font-weight: 700;"><i class="fa-solid fa-circle-check"></i> Group Member (Rank: TNM Active)</span>
       </div>
     </div>
   `;

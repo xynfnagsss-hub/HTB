@@ -13,45 +13,45 @@ module.exports = {
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🏷️ **@HTB | Noted Member — $2**\n' +
+            '🏷️ **@TNM | Noted Member — $2**\n' +
             '🎨 **CUSTOM ROLE — $3**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🔓 **@HTB | Half Access — $5**\n' +
-            '🔑 **@HTB | Hitta Access — $7**\n' +
-            '⚡ **@HTB | ONE-TAP ACCESS — $9**',
+            '🔓 **@TNM | Half Access — $5**\n' +
+            '🔑 **@TNM | Hitta Access — $7**\n' +
+            '⚡ **@TNM | ONE-TAP ACCESS — $9**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🛡️ **@HTB | CHAT/VC MOD *(CANT SELL)* — $22**\n' +
-            '🎫 **@HTB | Ticket Support — $25**\n' +
-            '⚙️ **@HTB | Administrator *(CANT SELL)* — $32**\n' +
-            '📋 **@HTB | Lead Moderator *(CANT SELL)* — $38**\n' +
-            '📊 **@HTB | Ranking Staff — $44**',
+            '🛡️ **@TNM | CHAT/VC MOD *(CANT SELL)* — $22**\n' +
+            '🎫 **@TNM | Ticket Support — $25**\n' +
+            '⚙️ **@TNM | Administrator *(CANT SELL)* — $32**\n' +
+            '📋 **@TNM | Lead Moderator *(CANT SELL)* — $38**\n' +
+            '📊 **@TNM | Ranking Staff — $44**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '👁️ **@HTB | OVERSEER — $49**\n' +
-            '🪖 **@HTB | Sergeant — $75**\n' +
-            '🎖️ **@HTB | Command Officer — $80**',
+            '👁️ **@TNM | OVERSEER — $49**\n' +
+            '🪖 **@TNM | Sergeant — $75**\n' +
+            '🎖️ **@TNM | Command Officer — $80**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
-            '🥉 **@HTB | Third in Command — $123**\n' +
-            '🥈 **@HTB | Second in Command — $150**\n' +
-            '🥇 **@HTB | First in Command — $175**',
+            '🥉 **@TNM | Third in Command — $123**\n' +
+            '🥈 **@TNM | Second in Command — $150**\n' +
+            '🥇 **@TNM | First in Command — $175**',
         },
         {
           name: '━━━━━━━━━━━━━━━━━━━━━━━',
           value:
             '> ❌ **NO REFUNDS**\n' +
             '> 🎫 **Make a ticket in <#TICKETS_CHANNEL_ID> to buy**\n' +
-            '> **@everyone @HTB Members**',
+            '> **@everyone @TNM Members**',
         },
       )
       .setFooter({ text: 'TNM Community' })

@@ -28,7 +28,7 @@ async function grantVerifiedRoles(member) {
   for (const role of verifiedRolesToGrant.values()) {
     try {
       if (!member.roles.cache.has(role.id)) {
-        await member.roles.add(role.id, 'HTB Roblox Verification Complete');
+        await member.roles.add(role.id, 'TNM Roblox Verification Complete');
       }
     } catch (e) {
       console.warn(`[Role Grant Warning ${role.name} (${role.id})]:`, e.message);
@@ -81,7 +81,7 @@ function buildVerificationPanelButtons() {
       .setStyle(ButtonStyle.Link)
       .setEmoji('🔗'),
     new ButtonBuilder()
-      .setCustomId('htb_verify_btn')
+      .setCustomId('tnm_verify_btn')
       .setLabel('2. Verify Account')
       .setStyle(ButtonStyle.Success)
       .setEmoji('✅')

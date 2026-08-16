@@ -22,7 +22,7 @@ module.exports = {
         { name: 'Volume', value: `${queue.volume}%`, inline: true }
       )
       .setThumbnail(song.thumbnail)
-      .setFooter({ text: 'HTB Music' })
+      .setFooter({ text: 'TNM Music' })
       .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
@@ -45,7 +45,7 @@ module.exports = {
         { name: 'Volume', value: `${queue.volume}%`, inline: true }
       )
       .setThumbnail(song.thumbnail)
-      .setFooter({ text: 'HTB Music' })
+      .setFooter({ text: 'TNM Music' })
       .setTimestamp();
 
     await message.reply({ embeds: [embed] });

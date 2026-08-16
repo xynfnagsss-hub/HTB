@@ -23,7 +23,7 @@ module.exports = {
         .setColor(0x57F287)
         .setTitle('🛡️ Discord Native AutoMod Active')
         .setDescription(
-          `Official Discord AutoMod rule **"HTB Anti-Ping Protection"** is fully deployed and active!\n\n` +
+          `Official Discord AutoMod rule **"TNM Anti-Ping Protection"** is fully deployed and active!\n\n` +
           `• **Protected Owners**: <@674218467041345536>\n` +
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`
@@ -50,7 +50,7 @@ module.exports = {
         .setColor(0x57F287)
         .setTitle('🛡️ Discord Native AutoMod Active')
         .setDescription(
-          `Official Discord AutoMod rule **"HTB Anti-Ping Protection"** is fully deployed and active!\n\n` +
+          `Official Discord AutoMod rule **"TNM Anti-Ping Protection"** is fully deployed and active!\n\n` +
           `• **Protected Owners**: <@674218467041345536>\n` +
           `• **Action**: Automatic Discord Message Block with warning\n` +
           `• **Status**: ✅ Enabled (Network Level Blocking)`

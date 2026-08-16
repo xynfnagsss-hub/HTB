@@ -34,7 +34,7 @@ async function handleLevelXP(message) {
       `📊 **Total XP**: \`${totalXP.toLocaleString()}\` XP\n` +
       `🎯 **Next Level Target**: \`${progress.nextLevelTotalXP.toLocaleString()}\` XP`
     )
-    .setFooter({ text: 'HTB Leveling System • Hit The Block', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
+    .setFooter({ text: 'TNM Leveling System • Trust No Mob', iconURL: 'https://htbwshop.jo3.org/favicon.png' })
     .setTimestamp();
 
   // Robux milestone (every 15 levels)

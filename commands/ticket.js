@@ -185,7 +185,7 @@ module.exports = {
     .addSubcommand(sub =>
       sub
         .setName('setup')
-        .setDescription('Deploy the official HTB ticket creation panel.')
+        .setDescription('Deploy the official TNM ticket creation panel.')
     ),
 
   async execute(interaction) {
@@ -345,14 +345,14 @@ module.exports = {
           type: ChannelType.GuildText,
           parent: parentCategory ? parentCategory.id : undefined,
           permissionOverwrites,
-          topic: `HTB ${typeInfo.name} Ticket for ${user.tag} (${user.id}) • CashApp: $itsnabula`,
+          topic: `TNM ${typeInfo.name} Ticket for ${user.tag} (${user.id}) • CashApp: $itsnabula`,
         });
 
         // Clean In-Ticket Embed
         const ticketEmbed = new EmbedBuilder()
           .setColor(typeInfo.color)
           .setAuthor({ name: `${user.tag} • ${typeInfo.name}`, iconURL: user.displayAvatarURL({ dynamic: true }) })
-          .setTitle(`${typeInfo.emoji} HTB • ${typeInfo.name.toUpperCase()} TICKET`)
+          .setTitle(`${typeInfo.emoji} TNM • ${typeInfo.name.toUpperCase()} TICKET`)
           .setDescription(
             `Welcome <@${user.id}> to your private **${typeInfo.name}** ticket!\n\n` +
             `Our staff team has been notified. Please review the details below:`
@@ -365,12 +365,12 @@ module.exports = {
               name: '📌 What To Send Below', 
               value: 
                 `• **Roblox Username** (for role & group rank syncing)\n` +
-                `• **Order ID** (if purchased on site: \`HTB-XXXXXX\`)\n` +
+                `• **Order ID** (if purchased on site: \`TNM-XXXXXX\`)\n` +
                 `• **Detailed Inquiry** or proof of payment screenshot`,
               inline: false 
             }
           )
-          .setFooter({ text: 'HTB Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
           .setTimestamp();
 
         const ticketActionsRow = new ActionRowBuilder().addComponents(
@@ -459,7 +459,7 @@ module.exports = {
           `• All message transcripts in this channel will be removed.\n` +
           `• Click **"Yes, Close Ticket"** to proceed or **"Cancel"** to keep it open.`
         )
-        .setFooter({ text: 'HTB Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

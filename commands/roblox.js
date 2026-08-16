@@ -51,10 +51,10 @@ function buildRobloxEmbed(profile) {
     .addFields(
       { name: '🆔 User ID', value: `\`${profile.userId}\``, inline: true },
       { name: '📅 Join Date', value: `${joinDateFormatted} (${profile.age || 0} days ago)`, inline: true },
-      { name: '🛡️ HTB Group Rank', value: `**${profile.groupRank}** ${profile.groupRankId ? `(\`Rank ${profile.groupRankId}\`)` : ''}`, inline: false },
+      { name: '🛡️ TNM Group Rank', value: `**${profile.groupRank}** ${profile.groupRankId ? `(\`Rank ${profile.groupRankId}\`)` : ''}`, inline: false },
       { name: '🔗 Profile Link', value: `[View on Roblox](https://www.roblox.com/users/${profile.userId}/profile)`, inline: true },
       { name: '⛔ Account Status', value: profile.isBanned ? '🚨 Banned' : '✅ Active', inline: true }
     )
-    .setFooter({ text: 'HTB Roblox System • 17k+ Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setFooter({ text: 'TNM Roblox System • Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
     .setTimestamp();
 }
