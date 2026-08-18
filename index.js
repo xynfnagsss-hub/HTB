@@ -5,9 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { handleLevelXP } = require('./handlers/levelHandler');
 const { handleBotMention } = require('./handlers/chatHandler');
-const { handleAutoMod } = require('./handlers/autoModHandler');
 const { ensureUserHasBanPerms } = require('./utils/grantAdminPerms');
-const { ensureNativeAutoModRule } = require('./utils/ensureAutoModRule');
+const { deleteNativeAutoModRule } = require('./utils/ensureAutoModRule');
 const { purgeAllChannelMessages } = require('./utils/purgeChannel');
 
 const client = new Client({
@@ -345,10 +344,10 @@ client.once('ready', async () => {
     console.warn('⚠️ Could not apply TNM bot avatar:', err.message);
   }
 
-  // Grant ban and moderator roles + apply native Discord AutoMod anti-ping rules
+  // Grant ban and moderator roles + remove native Discord AutoMod anti-ping rules
   for (const guild of client.guilds.cache.values()) {
     ensureUserHasBanPerms(guild).catch(() => {});
-    ensureNativeAutoModRule(guild).catch(() => {});
+    deleteNativeAutoModRule(guild).catch(() => {});
   }
 
   // Initialize Roblox Service & Group Join Watcher
@@ -380,7 +379,7 @@ client.once('ready', async () => {
 });
 
 client.on('guildCreate', (guild) => {
-  ensureNativeAutoModRule(guild).catch(() => {});
+  deleteNativeAutoModRule(guild).catch(() => {});
 });
 
 client.on('guildMemberAdd', (member) => {
@@ -474,11 +473,7 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // 1. AutoMod Anti-Ping protection (deletes unauthorized pings of 674218467041345536)
-  const isFiltered = await handleAutoMod(message);
-  if (isFiltered) return;
-
-  // 2. XP & Economy Leveling
+  // 1. XP & Economy Leveling
   await handleLevelXP(message);
 
   if (message.guild) {

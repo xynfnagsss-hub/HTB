@@ -58,12 +58,34 @@ async function ensureNativeAutoModRule(guild) {
       await manager.create(ruleData);
       console.log(`🛡️ Created native Discord AutoMod rule in ${guild.name}`);
     }
-
-    return { success: true };
   } catch (err) {
     console.error('[AutoMod Rule Err]:', err.message);
-    return { success: false, reason: err.message };
   }
 }
 
-module.exports = { ensureNativeAutoModRule, DEFAULT_PROTECTED_USER_IDS };
+async function deleteNativeAutoModRule(guild) {
+  if (!guild) return;
+
+  const botMember = guild.members.me || await guild.members.fetchMe().catch(() => null);
+  if (!botMember) return;
+
+  if (!botMember.permissions.has(PermissionsBitField.Flags.ManageGuild) && !botMember.permissions.has(PermissionsBitField.Flags.Administrator)) {
+    return;
+  }
+
+  const manager = guild.autoModerationRules;
+  if (!manager) return;
+
+  try {
+    const existingRules = await manager.fetch().catch(() => null);
+    const existing = existingRules?.find(r => r.name === RULE_NAME || r.name.toLowerCase().includes('anti-ping'));
+    if (existing) {
+      await existing.delete('Removing anti-ping protection');
+      console.log(`🛡️ Deleted native Discord AutoMod anti-ping rule in ${guild.name}`);
+    }
+  } catch (err) {
+    console.error('[AutoMod Delete Err]:', err.message);
+  }
+}
+
+module.exports = { ensureNativeAutoModRule, deleteNativeAutoModRule, DEFAULT_PROTECTED_USER_IDS };

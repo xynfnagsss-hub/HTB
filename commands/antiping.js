@@ -16,14 +16,9 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x57f287)
+      .setColor(0xED4245)
       .setTitle('🛡️ Anti-Ping Protection Status')
-      .setDescription('Direct `@` mentions of protected users are automatically filtered. **Message replies are 100% permitted.**')
-      .addFields(
-        { name: 'Protected Users', value: DEFAULT_PROTECTED_USER_IDS.map(id => `<@${id}> (\`${id}\`)`).join('\n') },
-        { name: 'Replies Status', value: '✅ **Allowed** (Users can reply freely)' },
-        { name: 'Direct @ Mentions', value: '🚫 **Filtered** (Manual @ pings removed)' }
-      )
+      .setDescription('❌ **Anti-ping protection is permanently deactivated.** Users can ping and mention all administrators and owners freely.')
       .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
@@ -37,14 +32,9 @@ module.exports = {
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0x57f287)
+      .setColor(0xED4245)
       .setTitle('🛡️ Anti-Ping Protection Status')
-      .setDescription('Direct `@` mentions of protected users are automatically filtered. **Message replies are 100% permitted.**')
-      .addFields(
-        { name: 'Protected Users', value: DEFAULT_PROTECTED_USER_IDS.map(id => `<@${id}> (\`${id}\`)`).join('\n') },
-        { name: 'Replies Status', value: '✅ **Allowed** (Users can reply freely)' },
-        { name: 'Direct @ Mentions', value: '🚫 **Filtered** (Manual @ pings removed)' }
-      )
+      .setDescription('❌ **Anti-ping protection is permanently deactivated.** Users can ping and mention all administrators and owners freely.')
       .setFooter({ text: 'TNM Security System' })
       .setTimestamp();
 
