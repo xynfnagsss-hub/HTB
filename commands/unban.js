@@ -23,6 +23,14 @@ module.exports = {
 
     const rawUser = interaction.options.getString('user') || interaction.options.getString('userid') || '';
     const reason = interaction.options.getString('reason') || 'No reason provided';
+
+    if (rawUser.toLowerCase() === 'all') {
+      await interaction.deferReply();
+      return handleMassUnban(interaction.guild, interaction.user, async (msgData) => {
+        await interaction.editReply(msgData);
+      });
+    }
+
     const userId = rawUser.replace(/[^0-9]/g, '');
 
     // Validate ID length (Discord snowflakes are 17-20 digits)
@@ -62,7 +70,7 @@ module.exports = {
     }
   },
 
-  // Prefix command support (.unban <userId> [reason])
+  // Prefix command support (.unban <userId/all> [reason])
   async prefixExecute(message, args, client) {
     if (!hasBanPermission(message.member, message.author.id)) {
       return message.reply('❌ You do not have permission to unban members.');
@@ -73,10 +81,20 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Usage: `.unban <userId> [reason]` or `/unban user:<userId>`');
+      return message.reply('❌ Usage: `.unban <userId/all> [reason]` or `/unban user:<userId/all>`');
     }
 
     const rawUser = args[0];
+
+    if (rawUser.toLowerCase() === 'all') {
+      const statusMsg = await message.reply('⏳ **Preparing mass unban...**');
+      return handleMassUnban(message.guild, message.author, async (msgData) => {
+        await statusMsg.edit(msgData).catch(() => {
+          message.channel.send(msgData);
+        });
+      });
+    }
+
     const userId = rawUser.replace(/[^0-9]/g, '');
     const reason = args.slice(1).join(' ') || 'No reason provided';
 
@@ -111,3 +129,44 @@ module.exports = {
     }
   },
 };
+
+async function handleMassUnban(guild, executor, replyCallback) {
+  try {
+    const bans = await guild.bans.fetch().catch(() => null);
+    if (!bans || bans.size === 0) {
+      return replyCallback({ content: '❌ There are no banned members in this server.' });
+    }
+
+    const total = bans.size;
+    await replyCallback(`⏳ **Found ${total} ban entries. Unbanning all members...**`);
+
+    let unbanned = 0;
+    let failed = 0;
+
+    for (const ban of bans.values()) {
+      try {
+        await guild.members.unban(ban.user.id, `Mass unban by ${executor.tag}`);
+        unbanned++;
+      } catch {
+        failed++;
+      }
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x00D632)
+      .setTitle('✅ Mass Unban Complete')
+      .setDescription(
+        `Successfully cleared the server ban list!\n\n` +
+        `• **Total Bans Scanned:** **${total}**\n` +
+        `• **Successfully Unbanned:** **${unbanned}**\n` +
+        (failed > 0 ? `• **Failed:** \`${failed}\`\n` : '') +
+        `• **Moderator:** <@${executor.id}>`
+      )
+      .setTimestamp();
+
+    return replyCallback({ content: null, embeds: [embed] });
+  } catch (err) {
+    console.error('[Mass Unban Error]:', err);
+    return replyCallback({ content: `❌ Failed to execute mass unban: \`${err.message}\`` });
+  }
+}
