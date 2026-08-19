@@ -88,7 +88,7 @@ function buildTicketSetupEmbed(useAttachment = false) {
     )
     .addFields(
       { name: '💳 Official CashApp', value: '`$itsnabula` *(Include Order ID)*', inline: true },
-      { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://shoptnm.org/)', inline: true },
+      { name: '🌐 Web Marketplace', value: '[shoptnm.org](https://shoptnm.org/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
     .setFooter({ 
