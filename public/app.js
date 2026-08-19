@@ -302,7 +302,7 @@ function updateAuthUI() {
   if (authContainer) {
     if (currentUser) {
       const adminBadge = isUserAdmin
-        ? '<span class="user-status-tag" style="color: #ffd700;"><i class="fa-solid fa-crown"></i> Admin</span>'
+        ? '<span class="user-status-tag" style="color: #ffffff;"><i class="fa-solid fa-crown"></i> Admin</span>'
         : '<span class="user-status-tag"><i class="fa-solid fa-circle-check"></i> Linked</span>';
 
       authContainer.innerHTML = `
