@@ -30,25 +30,38 @@ module.exports = {
       return promptMassUnbanConfirmation(interaction, interaction.user);
     }
 
-    const userId = rawUser.replace(/[^0-9]/g, '');
-
-    if (!userId || userId.length < 17 || userId.length > 20) {
-      return interaction.reply({ content: '❌ Please provide a valid 17-20 digit user ID.', ephemeral: true });
-    }
-
     if (!interaction.guild.members.me.permissions.has(PermissionsBitField.Flags.BanMembers)) {
       return interaction.reply({ content: '❌ I do not have permission to unban members in this server.', ephemeral: true });
     }
 
+    const userId = rawUser.replace(/[^0-9]/g, '');
+    let targetUserId = userId;
+    let ban = null;
+
     try {
-      const ban = await interaction.guild.bans.fetch(userId).catch(() => null);
-      if (!ban) {
-        return interaction.reply({ content: '❌ That user is not currently banned in this server.', ephemeral: true });
+      if (!targetUserId || targetUserId.length < 17 || targetUserId.length > 20) {
+        // Fallback: Search ban list by username / tag / display name
+        const bans = await interaction.guild.bans.fetch().catch(() => null);
+        ban = bans?.find(b => 
+          b.user.username.toLowerCase() === rawUser.toLowerCase() ||
+          b.user.tag.toLowerCase() === rawUser.toLowerCase() ||
+          b.user.displayName?.toLowerCase() === rawUser.toLowerCase()
+        );
+
+        if (!ban) {
+          return interaction.reply({ content: `❌ Could not find a banned user matching **"${rawUser}"**. Please provide their exact User ID or username.`, ephemeral: true });
+        }
+        targetUserId = ban.user.id;
+      } else {
+        ban = await interaction.guild.bans.fetch(targetUserId).catch(() => null);
+        if (!ban) {
+          return interaction.reply({ content: '❌ That user is not currently banned in this server.', ephemeral: true });
+        }
       }
 
-      await interaction.guild.members.unban(userId, `${reason} | Unbanned by ${interaction.user.tag}`);
+      await interaction.guild.members.unban(targetUserId, `${reason} | Unbanned by ${interaction.user.tag}`);
 
-      const userDisplay = ban.user ? `${ban.user.tag} (${userId})` : userId;
+      const userDisplay = ban.user ? `${ban.user.tag} (${targetUserId})` : targetUserId;
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
@@ -77,31 +90,46 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Usage: `.unban <userId/all> [reason]`');
+      return message.reply('❌ Usage: `.unban <userId/username/all> [reason]`');
     }
 
     const rawUser = args[0];
+    const reason = args.slice(1).join(' ') || 'No reason provided';
 
     if (rawUser.toLowerCase() === 'all') {
       return promptMassUnbanConfirmation(message, message.author);
     }
 
     const userId = rawUser.replace(/[^0-9]/g, '');
-    const reason = args.slice(1).join(' ') || 'No reason provided';
-
-    if (!userId || userId.length < 17 || userId.length > 20) {
-      return message.reply('❌ Please provide a valid 17-20 digit user ID.');
-    }
+    let targetUserId = userId;
+    let ban = null;
 
     try {
-      const ban = await message.guild.bans.fetch(userId).catch(() => null);
-      if (!ban) {
-        return message.reply('❌ That user is not currently banned in this server.');
+      if (!targetUserId || targetUserId.length < 17 || targetUserId.length > 20) {
+        // Fallback: Search ban list by username / tag / display name
+        const statusMsg = await message.reply(`🔍 **Searching ban list for matching user "${rawUser}"...**`);
+        const bans = await message.guild.bans.fetch().catch(() => null);
+        ban = bans?.find(b => 
+          b.user.username.toLowerCase() === rawUser.toLowerCase() ||
+          b.user.tag.toLowerCase() === rawUser.toLowerCase() ||
+          b.user.displayName?.toLowerCase() === rawUser.toLowerCase()
+        );
+
+        if (!ban) {
+          return statusMsg.edit(`❌ **Could not find a banned user matching "${rawUser}".** Please provide their exact User ID or username.`);
+        }
+        targetUserId = ban.user.id;
+        await statusMsg.delete().catch(() => {});
+      } else {
+        ban = await message.guild.bans.fetch(targetUserId).catch(() => null);
+        if (!ban) {
+          return message.reply('❌ That user is not currently banned in this server.');
+        }
       }
 
-      await message.guild.members.unban(userId, `${reason} | Unbanned by ${message.author.tag}`);
+      await message.guild.members.unban(targetUserId, `${reason} | Unbanned by ${message.author.tag}`);
 
-      const userDisplay = ban.user ? `${ban.user.tag} (${userId})` : userId;
+      const userDisplay = ban.user ? `${ban.user.tag} (${targetUserId})` : targetUserId;
 
       const embed = new EmbedBuilder()
         .setColor(0x00ff00)
