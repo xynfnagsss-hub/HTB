@@ -71,7 +71,7 @@ function buildTicketSetupEmbed(useAttachment = false) {
     .setColor(0xF5AF19)
     .setAuthor({ 
       name: 'TNM • COMMUNITY', 
-      iconURL: useAttachment ? 'attachment://logo.png' : 'https://xynfnagsss-hub.github.io/htbwshop/logo.png' 
+      iconURL: useAttachment ? 'attachment://logo.png' : 'https://shoptnm.org/logo.png' 
     })
     .setTitle('🎫 TNM • TICKET GATEWAY')
     .setDescription(
@@ -88,19 +88,19 @@ function buildTicketSetupEmbed(useAttachment = false) {
     )
     .addFields(
       { name: '💳 Official CashApp', value: '`$itsnabula` *(Include Order ID)*', inline: true },
-      { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://xynfnagsss-hub.github.io/htbwshop/)', inline: true },
+      { name: '🌐 Web Marketplace', value: '[htbwshop.github.io](https://shoptnm.org/)', inline: true },
       { name: '🛡️ Staff Support', value: '24/7 active staff ready to assist you.', inline: false }
     )
     .setFooter({ 
       text: 'TNM Support System • Instant Delivery', 
-      iconURL: useAttachment ? 'attachment://logo.png' : 'https://xynfnagsss-hub.github.io/htbwshop/logo.png' 
+      iconURL: useAttachment ? 'attachment://logo.png' : 'https://shoptnm.org/logo.png' 
     })
     .setTimestamp();
 
   if (useAttachment) {
     embed.setImage('attachment://ticket_banner.jpg');
   } else {
-    embed.setImage('https://xynfnagsss-hub.github.io/htbwshop/ticket_banner.jpg');
+    embed.setImage('https://shoptnm.org/ticket_banner.jpg');
   }
 
   return embed;
@@ -385,7 +385,7 @@ module.exports = {
               inline: false 
             }
           )
-          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+          .setFooter({ text: 'TNM Ticket System • Staff will claim shortly • Click below to close', iconURL: 'https://shoptnm.org/favicon.png' })
           .setTimestamp();
 
         const ticketActionsRow = new ActionRowBuilder().addComponents(
@@ -474,7 +474,7 @@ module.exports = {
           `• All message transcripts in this channel will be removed.\n` +
           `• Click **"Yes, Close Ticket"** to proceed or **"Cancel"** to keep it open.`
         )
-        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Ticket Management • Action Cannot Be Undone', iconURL: 'https://shoptnm.org/favicon.png' });
 
       const confirmRow = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

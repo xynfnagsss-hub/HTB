@@ -200,7 +200,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
           `Scanned **${allMembers.size}** total members in **${guild.name}**.\n\n` +
           `Zero members hold both **Verified** and **Unverified** roles. Everyone with Verified is clean!`
         )
-        .setFooter({ text: 'TNM Role Cleaner • Universal Server Guard', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' });
+        .setFooter({ text: 'TNM Role Cleaner • Universal Server Guard', iconURL: 'https://shoptnm.org/favicon.png' });
       return progressCallback(cleanEmbed, true);
     }
 
@@ -255,7 +255,7 @@ async function handleMassRolePurge(guild, executor, progressCallback) {
         `• **Status:** Verified members now **ONLY** have Verified, with Unverified completely removed!\n\n` +
         `👮 **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TNM Role Management • Clean Verification System', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Role Management • Clean Verification System', iconURL: 'https://shoptnm.org/favicon.png' })
       .setTimestamp();
 
     return progressCallback(finalEmbed, true);
@@ -298,7 +298,7 @@ async function handleLegacyAccessRoleCleanup(guild, executor, replyCallback) {
         LEGACY_ACCESS_ROLE_IDS.map(id => `• <@&${id}>`).join('\n') +
         `\n\nExecuted by: <@${executor.id}>`
       )
-      .setFooter({ text: 'TNM Access Management • Legacy Role Cleanup', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Access Management • Legacy Role Cleanup', iconURL: 'https://shoptnm.org/favicon.png' })
       .setTimestamp();
 
     return replyCallback(embed);
@@ -344,7 +344,7 @@ async function handleUnverifySingleUser(member, executor, replyCallback) {
         `• **Database Link Cleared:** Yes\n` +
         `• **Executed By:** <@${executor.id}>`
       )
-      .setFooter({ text: 'TNM Roblox System • Community', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+      .setFooter({ text: 'TNM Roblox System • Community', iconURL: 'https://shoptnm.org/favicon.png' })
       .setTimestamp();
 
     return replyCallback(embed);

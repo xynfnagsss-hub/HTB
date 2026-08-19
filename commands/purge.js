@@ -230,7 +230,7 @@ async function handleRolePurge(guild, role, executor, progressCallback) {
       )
       .setFooter({ 
         text: 'TNM Role Management • Purge System', 
-        iconURL: hasLocalLogo ? 'attachment://logo.png' : 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' 
+        iconURL: hasLocalLogo ? 'attachment://logo.png' : 'https://shoptnm.org/favicon.png' 
       })
       .setTimestamp();
 
