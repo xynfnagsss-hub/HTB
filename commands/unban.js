@@ -1,4 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionsBitField, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
+const path = require('path');
+const fs = require('fs');
 
 const ADMIN_BYPASS_USERS = ['1508174981396168755', '674218467041345536'];
 
@@ -10,9 +12,9 @@ function hasBanPermission(member, userId) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('unban')
-    .setDescription('Unban a user from the server')
+    .setDescription('Unban a user from the server, or clear the server ban list')
     .addStringOption(opt =>
-      opt.setName('user').setDescription('The user ID to unban (or mention)').setRequired(true))
+      opt.setName('user').setDescription('The user ID to unban, or "all" to unban everyone').setRequired(true))
     .addStringOption(opt =>
       opt.setName('reason').setDescription('Reason for the unban').setRequired(false)),
 
@@ -21,19 +23,15 @@ module.exports = {
       return interaction.reply({ content: '❌ You do not have permission to unban members.', ephemeral: true });
     }
 
-    const rawUser = interaction.options.getString('user') || interaction.options.getString('userid') || '';
+    const rawUser = interaction.options.getString('user') || '';
     const reason = interaction.options.getString('reason') || 'No reason provided';
 
     if (rawUser.toLowerCase() === 'all') {
-      await interaction.deferReply();
-      return handleMassUnban(interaction.guild, interaction.user, async (msgData) => {
-        await interaction.editReply(msgData);
-      });
+      return promptMassUnbanConfirmation(interaction, interaction.user);
     }
 
     const userId = rawUser.replace(/[^0-9]/g, '');
 
-    // Validate ID length (Discord snowflakes are 17-20 digits)
     if (!userId || userId.length < 17 || userId.length > 20) {
       return interaction.reply({ content: '❌ Please provide a valid 17-20 digit user ID.', ephemeral: true });
     }
@@ -43,7 +41,6 @@ module.exports = {
     }
 
     try {
-      // Fetch ban entry to verify the user is banned
       const ban = await interaction.guild.bans.fetch(userId).catch(() => null);
       if (!ban) {
         return interaction.reply({ content: '❌ That user is not currently banned in this server.', ephemeral: true });
@@ -70,7 +67,6 @@ module.exports = {
     }
   },
 
-  // Prefix command support (.unban <userId/all> [reason])
   async prefixExecute(message, args, client) {
     if (!hasBanPermission(message.member, message.author.id)) {
       return message.reply('❌ You do not have permission to unban members.');
@@ -81,18 +77,13 @@ module.exports = {
     }
 
     if (!args.length) {
-      return message.reply('❌ Usage: `.unban <userId/all> [reason]` or `/unban user:<userId/all>`');
+      return message.reply('❌ Usage: `.unban <userId/all> [reason]`');
     }
 
     const rawUser = args[0];
 
     if (rawUser.toLowerCase() === 'all') {
-      const statusMsg = await message.reply('⏳ **Preparing mass unban...**');
-      return handleMassUnban(message.guild, message.author, async (msgData) => {
-        await statusMsg.edit(msgData).catch(() => {
-          message.channel.send(msgData);
-        });
-      });
+      return promptMassUnbanConfirmation(message, message.author);
     }
 
     const userId = rawUser.replace(/[^0-9]/g, '');
@@ -130,43 +121,144 @@ module.exports = {
   },
 };
 
-async function handleMassUnban(guild, executor, replyCallback) {
+async function promptMassUnbanConfirmation(source, executor) {
+  const guild = source.guild;
+  const isSlash = typeof source.deferReply === 'function';
+
   try {
     const bans = await guild.bans.fetch().catch(() => null);
     if (!bans || bans.size === 0) {
-      return replyCallback({ content: '❌ There are no banned members in this server.' });
+      const emptyMsg = '❌ **There are no banned members in this server.**';
+      return isSlash ? source.reply({ content: emptyMsg, ephemeral: true }) : source.reply(emptyMsg);
     }
 
     const total = bans.size;
-    await replyCallback(`⏳ **Found ${total} ban entries. Unbanning all members...**`);
-
-    let unbanned = 0;
-    let failed = 0;
-
-    for (const ban of bans.values()) {
-      try {
-        await guild.members.unban(ban.user.id, `Mass unban by ${executor.tag}`);
-        unbanned++;
-      } catch {
-        failed++;
-      }
-    }
-
-    const embed = new EmbedBuilder()
-      .setColor(0x00D632)
-      .setTitle('✅ Mass Unban Complete')
+    const confirmEmbed = new EmbedBuilder()
+      .setColor(0xED4245)
+      .setTitle('⚠️ MASS UNBAN CONFIRMATION')
       .setDescription(
-        `Successfully cleared the server ban list!\n\n` +
-        `• **Total Bans Scanned:** **${total}**\n` +
-        `• **Successfully Unbanned:** **${unbanned}**\n` +
-        (failed > 0 ? `• **Failed:** \`${failed}\`\n` : '') +
-        `• **Moderator:** <@${executor.id}>`
+        `**You are about to unban EVERY banned user in ${guild.name}!**\n\n` +
+        `• **Banned Users Scanned:** **${total}**\n` +
+        `• **Action:** This will lift bans for all accounts on the server list.\n\n` +
+        `*Click **"Yes, Unban All"** to proceed, or click **"Cancel"** to abort.*`
       )
       .setTimestamp();
 
-    return replyCallback({ content: null, embeds: [embed] });
+    const confirmRow = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('unban_all_confirm')
+        .setLabel('Yes, Unban All')
+        .setEmoji('🗑️')
+        .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId('unban_all_cancel')
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary)
+    );
+
+    const replyMsg = isSlash
+      ? await source.reply({ embeds: [confirmEmbed], components: [confirmRow], fetchReply: true })
+      : await source.reply({ embeds: [confirmEmbed], components: [confirmRow] });
+
+    const collector = replyMsg.createMessageComponentCollector({
+      filter: (i) => i.user.id === executor.id,
+      time: 25000,
+      componentType: ComponentType.Button,
+    });
+
+    collector.on('collect', async (interaction) => {
+      if (interaction.customId === 'unban_all_cancel') {
+        const cancelEmbed = new EmbedBuilder()
+          .setColor(0x72767D)
+          .setTitle('❌ Mass Unban Cancelled')
+          .setDescription('The mass unban process has been cancelled. No users were unbanned.');
+
+        await interaction.update({ embeds: [cancelEmbed], components: [] });
+        return collector.stop('cancelled');
+      }
+
+      if (interaction.customId === 'unban_all_confirm') {
+        await interaction.update({ content: '⏳ **Initializing mass unban...**', embeds: [], components: [] });
+        collector.stop('confirmed');
+
+        return handleMassUnbanExecution(guild, bans, executor, async (progressContent, progressEmbed) => {
+          if (progressEmbed) {
+            await replyMsg.edit({ content: null, embeds: [progressEmbed] }).catch(() => {});
+          } else {
+            await replyMsg.edit({ content: progressContent }).catch(() => {});
+          }
+        });
+      }
+    });
+
+    collector.on('end', async (_, reason) => {
+      if (reason === 'time') {
+        const timeoutEmbed = new EmbedBuilder()
+          .setColor(0x72767D)
+          .setTitle('⌛ Confirmation Timed Out')
+          .setDescription('The mass unban request timed out. No changes were made.');
+
+        await replyMsg.edit({ embeds: [timeoutEmbed], components: [] }).catch(() => {});
+      }
+    });
   } catch (err) {
-    console.error('[Mass Unban Error]:', err);
-    return replyCallback({ content: `❌ Failed to execute mass unban: \`${err.message}\`` });
+    console.error('[Mass Unban Prompt Error]:', err);
+    const errMsg = `❌ Failed to initiate mass unban: \`${err.message}\``;
+    return isSlash ? source.reply({ content: errMsg, ephemeral: true }) : source.reply(errMsg);
   }
+}
+
+async function handleMassUnbanExecution(guild, bans, executor, updateCallback) {
+  const total = bans.size;
+  let unbanned = 0;
+  let failed = 0;
+  let lastUpdate = Date.now();
+
+  const banList = Array.from(bans.values());
+
+  for (let i = 0; i < total; i++) {
+    const ban = banList[i];
+    try {
+      await guild.members.unban(ban.user.id, `Mass unban executed by ${executor.tag}`);
+      unbanned++;
+    } catch {
+      failed++;
+    }
+
+    // Update progress bar
+    if (Date.now() - lastUpdate > 2500 || i === total - 1) {
+      lastUpdate = Date.now();
+      const percent = Math.round(((i + 1) / total) * 100);
+      const filledBars = Math.round(percent / 10);
+      const emptyBars = 10 - filledBars;
+      const progressBar = '▰'.repeat(filledBars) + '▱'.repeat(emptyBars);
+
+      await updateCallback(
+        `⏳ **Mass unban in progress...**\n` +
+        `${progressBar} \`${percent}%\`\n` +
+        `• Unbanned: **${unbanned} / ${total}**\n` +
+        `• Failures: **${failed}**`
+      );
+    }
+
+    // Rate-limiting throttle
+    if (i % 10 === 0 && i > 0) {
+      await new Promise(r => setTimeout(r, 250));
+    }
+  }
+
+  const finalEmbed = new EmbedBuilder()
+    .setColor(0x00D632)
+    .setTitle('✅ MASS UNBAN COMPLETE')
+    .setDescription(
+      `Successfully cleared the server ban list!\n\n` +
+      `• **Total Bans Scanned:** **${total}**\n` +
+      `• **Successfully Unbanned:** **${unbanned}**\n` +
+      (failed > 0 ? `• **Failed:** \`${failed}\`\n` : '') +
+      `• **Moderator:** <@${executor.id}>`
+    )
+    .setFooter({ text: 'TNM Security System', iconURL: 'https://xynfnagsss-hub.github.io/htbwshop/favicon.png' })
+    .setTimestamp();
+
+  return updateCallback(null, finalEmbed);
 }
