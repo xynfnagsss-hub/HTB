@@ -827,7 +827,7 @@ if (checkoutBtn) {
         <!-- Option 2: Discord Ticket -->
         <div style="margin-bottom: 12px;">
           <div style="font-size: 0.76rem; color: #768196; margin-bottom: 6px; text-transform: uppercase; font-weight: 700;">— OR OPEN A TICKET IN DISCORD —</div>
-          <a href="https://discord.gg/xqz5TztwNM" target="_blank" rel="noopener" class="btn btn-discord btn-block" style="padding: 11px; font-size: 0.9rem;">
+          <a href="https://discord.gg/tnm" target="_blank" rel="noopener" class="btn btn-discord btn-block" style="padding: 11px; font-size: 0.9rem;">
             <i class="fa-brands fa-discord"></i> Open Ticket in Discord (17k+)
           </a>
         </div>
