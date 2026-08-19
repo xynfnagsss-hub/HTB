@@ -51,6 +51,7 @@ module.exports = {
           value:
             '> ❌ **NO REFUNDS**\n' +
             '> 🎫 **Make a ticket in <#TICKETS_CHANNEL_ID> to buy**\n' +
+            '> 🌐 **Purchase Online:** [www.shoptnm.org](https://www.shoptnm.org/)\n' +
             '> **@everyone @TNM Members**',
         },
       )

@@ -285,7 +285,7 @@ async function handleMassUnbanExecution(guild, bans, executor, updateCallback) {
       (failed > 0 ? `• **Failed:** \`${failed}\`\n` : '') +
       `• **Moderator:** <@${executor.id}>`
     )
-    .setFooter({ text: 'TNM Security System', iconURL: 'https://shoptnm.org/favicon.png' })
+    .setFooter({ text: 'TNM Security System', iconURL: 'https://www.shoptnm.org/favicon.png' })
     .setTimestamp();
 
   return updateCallback(null, finalEmbed);
