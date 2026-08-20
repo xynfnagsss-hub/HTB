@@ -24,6 +24,12 @@ async function initRoblox(cookie = process.env.ROBLOX_COOKIE) {
   } catch (err) {
     console.error('❌ [Roblox Manager]: Failed to authenticate cookie:', err.message);
     isRobloxAuthenticated = false;
+    try {
+      await noblox.clearSession();
+      console.log('ℹ️ [Roblox Manager]: Bad cookie session cleared. Falling back to public endpoints.');
+    } catch (clearErr) {
+      console.warn('⚠️ [Roblox Manager]: Failed to clear bad session:', clearErr.message);
+    }
     return false;
   }
 }
@@ -35,10 +41,29 @@ const DEFAULT_ROBLOX_GROUP_ID = 316559660;
  */
 async function getPlayerProfile(usernameOrId, groupId = process.env.ROBLOX_GROUP_ID || DEFAULT_ROBLOX_GROUP_ID) {
   let userId;
-  if (/^\d+$/.test(usernameOrId)) {
-    userId = parseInt(usernameOrId);
-  } else {
-    userId = await noblox.getIdFromUsername(usernameOrId);
+  try {
+    if (/^\d+$/.test(usernameOrId)) {
+      userId = parseInt(usernameOrId);
+    } else {
+      userId = await noblox.getIdFromUsername(usernameOrId);
+    }
+  } catch (err) {
+    if (err.message.includes('RobloxAPIError') || err.message.includes('code') || err.message.includes('Unauthorized')) {
+      console.warn('⚠️ [Roblox Manager]: Public lookup failed due to cookie/session error. Clearing session and retrying...', err.message);
+      try {
+        await noblox.clearSession();
+        isRobloxAuthenticated = false;
+      } catch (clearErr) {}
+      
+      // Retry lookup after clearing bad session cookie
+      if (/^\d+$/.test(usernameOrId)) {
+        userId = parseInt(usernameOrId);
+      } else {
+        userId = await noblox.getIdFromUsername(usernameOrId);
+      }
+    } else {
+      throw err;
+    }
   }
 
   if (!userId) throw new Error(`Roblox player "${usernameOrId}" not found.`);
